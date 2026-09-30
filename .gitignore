@@ -35,3 +35,6 @@ dist/
 coverage/
 *.log
 *.tsbuildinfo
+
+# Angular cache
+.angular/
