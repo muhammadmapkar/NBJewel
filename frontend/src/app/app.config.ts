@@ -15,6 +15,7 @@ const routes: Routes = [{
     { path: 'home', loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent) },
     { path: 'scheme-master', loadComponent: () => import('./features/gold-scheme/scheme-master.component').then(m => m.SchemeMasterComponent) },
     { path: 'chit-master', loadComponent: () => import('./features/gold-scheme/chit-master.component').then(m => m.ChitMasterComponent) },
+    { path: 'catalog', loadChildren: () => import('./features/catalog/catalog.routes').then(m => m.CATALOG_ROUTES) },
     { path: 'change-financial-year', loadComponent: () => import('./features/settings/financial-year.component').then(m => m.FinancialYearComponent) },
     { path: 'change-password', loadComponent: () => import('./features/settings/change-password.component').then(m => m.ChangePasswordComponent) }
   ]

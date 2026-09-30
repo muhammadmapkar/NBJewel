@@ -19,7 +19,7 @@ import { menuItems, MenuItem } from '../mock/mock-data';
             @if (item.children && expanded() === item.label) {
               <div class="submenu">
                 @for (child of item.children; track child) {
-                  <a [routerLink]="child === 'Scheme Master' ? '/scheme-master' : child === 'Chit Master' ? '/chit-master' : null" [class.active]="(child === 'Scheme Master' && currentPage === 'scheme') || (child === 'Chit Master' && currentPage === 'chit')">{{ child }}<span>›</span></a>
+                  <a [routerLink]="child === 'Scheme Master' ? '/scheme-master' : child === 'Chit Master' ? '/chit-master' : child === 'Item Catalog' ? '/catalog' : null" routerLinkActive="active" [class.active]="(child === 'Scheme Master' && currentPage === 'scheme') || (child === 'Chit Master' && currentPage === 'chit')">{{ child }}<span>›</span></a>
                 }
               </div>
             }

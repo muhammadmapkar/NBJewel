@@ -6,7 +6,7 @@ export interface Widget { title: string; value?: string; kind: 'kpi' | 'chart' |
 
 export const menuItems: MenuItem[] = [
   { label: 'Gold Scheme', icon: '▣', children: ['Masters', 'Chit Discount Setup', 'Registration Master list', 'Scheme Master', 'Chit Master', 'Transactions', 'Reports'] },
-  { label: 'Finance', icon: '◉' }, { label: 'Inventory', icon: '▣' }, { label: 'Purchase', icon: '◇' },
+  { label: 'Finance', icon: '◉' }, { label: 'Inventory', icon: '▣', children: ['Item Catalog'] }, { label: 'Purchase', icon: '◇' },
   { label: 'Sales', icon: '▤' }, { label: 'General', icon: '⠿' },
   { label: 'Change Financial Year', icon: '▦', route: '/change-financial-year' },
   { label: 'Change Password', icon: '⚿', route: '/change-password' }, { label: 'Other Settings', icon: '⚙' }
