@@ -1,5 +1,6 @@
 // Role: Composes the API, registers the sample repository, configures Swagger,
-// and enables the Angular development origin through CORS.
+// enables the Angular development origin through CORS, and sets up the client
+// that forwards chat questions to the Python AI service.
 
 using NbJewel.Api.Repositories;
 
@@ -14,6 +15,11 @@ builder.Services.AddCors(options =>
         policy.WithOrigins("http://localhost:4200").AllowAnyHeader().AllowAnyMethod());
 });
 builder.Services.AddSingleton<IItemRepository, SampleItemRepository>();
+builder.Services.AddHttpClient(NbJewel.Api.Controllers.ChatController.ClientName, client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["AI_SERVICE_URL"] ?? "http://localhost:8000");
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
 
 var app = builder.Build();
 app.UseSwagger();
