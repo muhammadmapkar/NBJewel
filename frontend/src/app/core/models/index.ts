@@ -6,3 +6,5 @@ export * from './store.model';
 export * from './stock-level.model';
 export * from './price-breakdown.model';
 export * from './metal-rate.model';
+export * from './item-variant.model';
+export * from './item-image.model';

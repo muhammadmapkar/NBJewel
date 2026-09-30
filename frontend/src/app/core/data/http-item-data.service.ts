@@ -1,19 +1,24 @@
 // Role: Implements ItemDataService by calling the .NET API with HttpClient.
+// Variants and images have no API endpoints yet, so those methods
+// hand off to InMemorySampleDataService. When the backend adds endpoints,
+// replace the bodies at the bottom of this class with HttpClient calls.
 
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
-  Category, Item, ItemSearchParams, ItemWriteRequest, MetalRate,
+  Category, Item, ItemImage, ItemSearchParams, ItemVariant, ItemWriteRequest, MetalRate,
   PagedResult, PriceBreakdown, StockLevel, Store
 } from '../models';
+import { InMemorySampleDataService } from './in-memory-sample-data.service';
 import { ItemDataService } from './item-data.service';
 
 @Injectable()
 export class HttpItemDataService extends ItemDataService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = environment.apiBaseUrl;
+  private readonly sample = inject(InMemorySampleDataService);
 
   override searchItems(params: ItemSearchParams = {}): Observable<PagedResult<Item>> {
     let query = new HttpParams();
@@ -60,4 +65,12 @@ export class HttpItemDataService extends ItemDataService {
   override updateItemStatus(id: number, status: string): Observable<Item> {
     return this.http.patch<Item>(`${this.baseUrl}/api/items/${id}/status`, { status });
   }
+
+  // Assumed, no backend endpoint yet: served from in-memory sample data.
+  override getVariants(itemId: number): Observable<ItemVariant[]> { return this.sample.getVariants(itemId); }
+  override getImages(itemId: number): Observable<ItemImage[]> { return this.sample.getImages(itemId); }
+  override addImage(itemId: number, fileName: string): Observable<ItemImage> { return this.sample.addImage(itemId, fileName); }
+  override setPrimaryImage(itemId: number, imageId: number): Observable<void> { return this.sample.setPrimaryImage(itemId, imageId); }
+  override removeImage(itemId: number, imageId: number): Observable<void> { return this.sample.removeImage(itemId, imageId); }
+  override reorderImages(itemId: number, imageIds: number[]): Observable<void> { return this.sample.reorderImages(itemId, imageIds); }
 }

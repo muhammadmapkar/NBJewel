@@ -1,5 +1,5 @@
-// Role: The item detail screen at /catalog/:id. It shows every item field, the
-// price breakdown, stock by store, and the Edit and Change Status actions.
+// Role: The item detail screen at /catalog/:id. It has four tabs (Overview,
+// Images, Variants, Stock) plus the Edit and Change Status actions.
 
 import { DecimalPipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
@@ -8,18 +8,22 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { catchError, of } from 'rxjs';
 import { ItemDataService } from '../../core/data/item-data.service';
 import { ApiError } from '../../core/http/error.interceptor';
-import { Category, Item, PriceBreakdown, StockLevel, Store } from '../../core/models';
+import { Category, Item, PriceBreakdown } from '../../core/models';
 import { ToastComponent } from '../../shared/ui/toast.component';
 import { errorMessage, makingTypeLabel } from './item-options';
+import { ImageGalleryComponent } from './image-gallery.component';
 import { Loadable } from './loadable';
 import { StatusDialogComponent } from './status-dialog.component';
 import { StatusPillComponent } from './status-pill.component';
+import { StockPanelComponent } from './stock-panel.component';
+import { VariantsTableComponent } from './variants-table.component';
 
 type ItemState = 'loading' | 'ready' | 'notfound' | 'error';
+type TabId = 'overview' | 'images' | 'variants' | 'stock';
 
 @Component({
   selector: 'nb-item-detail', standalone: true,
-  imports: [DecimalPipe, RouterLink, StatusPillComponent, StatusDialogComponent, ToastComponent],
+  imports: [DecimalPipe, RouterLink, StatusPillComponent, StatusDialogComponent, ToastComponent, ImageGalleryComponent, VariantsTableComponent, StockPanelComponent],
   template: `
     <nb-toast [message]="toast()" (dismissed)="toast.set(null)" />
 
@@ -49,78 +53,60 @@ type ItemState = 'loading' | 'ready' | 'notfound' | 'error';
             </div>
           </div>
 
-          <div class="columns">
-            <section class="card">
-              <h2>Item details</h2>
-              <dl>
-                <div><dt>Code</dt><dd>{{ it.code }}</dd></div>
-                <div><dt>Name</dt><dd>{{ it.name }}</dd></div>
-                <div><dt>Category</dt><dd>{{ categoryName(it.categoryId) }}</dd></div>
-                <div><dt>Design code</dt><dd>{{ it.designCode }}</dd></div>
-                <div><dt>Metal</dt><dd>{{ it.metalType }}</dd></div>
-                <div><dt>Purity</dt><dd>{{ it.purity }}</dd></div>
-                <div><dt>Gross weight</dt><dd>{{ it.grossWt | number:'1.3-3' }} g</dd></div>
-                <div><dt>Net weight</dt><dd>{{ it.netWt | number:'1.3-3' }} g</dd></div>
-                <div><dt>Stone weight</dt><dd>{{ it.stoneWt | number:'1.3-3' }} g</dd></div>
-                <div><dt>Making</dt><dd>{{ it.makingValue | number:'1.2-2' }} ({{ makingLabel(it.makingType) }})</dd></div>
-                <div><dt>HUID</dt><dd>{{ it.huid || 'None' }}</dd></div>
-                <div><dt>Status</dt><dd><nb-status-pill [status]="it.status" /></dd></div>
-                <div><dt>Image</dt><dd>{{ it.imageUrl || 'No image' }}</dd></div>
-              </dl>
-            </section>
+          <div class="tabs" role="tablist" aria-label="Item sections">
+            @for (t of tabs; track t.id) {
+              <button type="button" role="tab" [id]="'tab-' + t.id" [attr.aria-selected]="tab() === t.id" [class.active]="tab() === t.id"
+                (click)="tab.set(t.id)">{{ t.label }}</button>
+            }
+          </div>
 
-            <div class="side">
-              <section class="card">
-                <h2>Price breakdown</h2>
-                @switch (price().status) {
-                  @case ('loading') { <div class="skeleton line"></div><div class="skeleton line"></div><div class="skeleton line"></div> }
-                  @case ('error') { <div class="message small">{{ priceError() }} <button type="button" class="link" (click)="loadPrice(it.id)">Retry</button></div> }
-                  @default {
-                    @if (priceValue(); as p) {
-                      <dl class="rows">
-                        <div><dt>Net weight</dt><dd>{{ p.netWeight | number:'1.3-3' }} g</dd></div>
-                        <div><dt>Rate per gram</dt><dd>{{ p.ratePerGram | number:'1.2-2' }} {{ p.currency }}</dd></div>
-                        <div><dt>Metal value</dt><dd>{{ p.metalValue | number:'1.2-2' }} {{ p.currency }}</dd></div>
-                        <div><dt>Making charge</dt><dd>{{ p.makingCharge | number:'1.2-2' }} {{ p.currency }}</dd></div>
-                        <div class="total"><dt>Total</dt><dd>{{ p.totalPrice | number:'1.2-2' }} {{ p.currency }}</dd></div>
-                      </dl>
-                    }
-                  }
-                }
-              </section>
+          <div role="tabpanel" [attr.aria-labelledby]="'tab-' + tab()">
+            @switch (tab()) {
+              @case ('images') { <nb-image-gallery [itemId]="it.id" /> }
+              @case ('variants') { <nb-variants-table [itemId]="it.id" /> }
+              @case ('stock') { <nb-stock-panel [itemId]="it.id" /> }
+              @default {
+                <div class="columns">
+                  <section class="card">
+                    <h2>Item details</h2>
+                    <dl>
+                      <div><dt>Code</dt><dd>{{ it.code }}</dd></div>
+                      <div><dt>Name</dt><dd>{{ it.name }}</dd></div>
+                      <div><dt>Category</dt><dd>{{ categoryName(it.categoryId) }}</dd></div>
+                      <div><dt>Design code</dt><dd>{{ it.designCode }}</dd></div>
+                      <div><dt>Metal</dt><dd>{{ it.metalType }}</dd></div>
+                      <div><dt>Purity</dt><dd>{{ it.purity }}</dd></div>
+                      <div><dt>Gross weight</dt><dd>{{ it.grossWt | number:'1.3-3' }} g</dd></div>
+                      <div><dt>Net weight</dt><dd>{{ it.netWt | number:'1.3-3' }} g</dd></div>
+                      <div><dt>Stone weight</dt><dd>{{ it.stoneWt | number:'1.3-3' }} g</dd></div>
+                      <div><dt>Making</dt><dd>{{ it.makingValue | number:'1.2-2' }} ({{ makingLabel(it.makingType) }})</dd></div>
+                      <div><dt>HUID</dt><dd>{{ it.huid || 'None' }}</dd></div>
+                      <div><dt>Status</dt><dd><nb-status-pill [status]="it.status" /></dd></div>
+                      <div><dt>Image</dt><dd>{{ it.imageUrl || 'No image' }}</dd></div>
+                    </dl>
+                  </section>
 
-              <section class="card">
-                <h2>Stock by store</h2>
-                @switch (stock().status) {
-                  @case ('loading') { <div class="skeleton line"></div><div class="skeleton line"></div> }
-                  @case ('error') { <div class="message small">{{ stockError() }} <button type="button" class="link" (click)="loadStock(it.id)">Retry</button></div> }
-                  @default {
-                    @if (stockRows().length === 0) {
-                      <div class="message small">No stock records for this item.</div>
-                    } @else {
-                      <div class="table-scroll">
-                        <table>
-                          <thead><tr><th>Store</th><th class="num">On hand</th><th class="num">Reserved</th><th class="num">Available</th></tr></thead>
-                          <tbody>
-                            @for (r of stockRows(); track r.storeId) {
-                              <tr>
-                                <td>{{ storeName(r.storeId) }}</td>
-                                <td class="num">{{ r.onHand }}</td>
-                                <td class="num">{{ r.reserved }}</td>
-                                <td class="num">{{ r.onHand - r.reserved }}</td>
-                              </tr>
-                            }
-                            <tr class="total">
-                              <td>Total</td><td class="num">{{ totalOnHand() }}</td><td class="num">{{ totalReserved() }}</td><td class="num">{{ totalOnHand() - totalReserved() }}</td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
+                  <section class="card">
+                    <h2>Price breakdown</h2>
+                    @switch (price().status) {
+                      @case ('loading') { <div class="skeleton line"></div><div class="skeleton line"></div><div class="skeleton line"></div> }
+                      @case ('error') { <div class="message small">{{ priceError() }} <button type="button" class="link" (click)="loadPrice(it.id)">Retry</button></div> }
+                      @default {
+                        @if (priceValue(); as p) {
+                          <dl class="rows">
+                            <div><dt>Net weight</dt><dd>{{ p.netWeight | number:'1.3-3' }} g</dd></div>
+                            <div><dt>Rate per gram</dt><dd>{{ p.ratePerGram | number:'1.2-2' }} {{ p.currency }}</dd></div>
+                            <div><dt>Metal value</dt><dd>{{ p.metalValue | number:'1.2-2' }} {{ p.currency }}</dd></div>
+                            <div><dt>Making charge</dt><dd>{{ p.makingCharge | number:'1.2-2' }} {{ p.currency }}</dd></div>
+                            <div class="total"><dt>Total</dt><dd>{{ p.totalPrice | number:'1.2-2' }} {{ p.currency }}</dd></div>
+                          </dl>
+                        }
+                      }
                     }
-                  }
-                }
-              </section>
-            </div>
+                  </section>
+                </div>
+              }
+            }
           </div>
 
           @if (dialogOpen()) {
@@ -138,20 +124,17 @@ type ItemState = 'loading' | 'ready' | 'notfound' | 'error';
     .actions { display:flex; gap:25px; }
     .actions a, .actions button { border:0; background:transparent; font-weight:700; color:#333; text-decoration:none; padding:0; }
     .columns { display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:start; }
-    .side { display:grid; gap:14px; }
+    .tabs { display:flex; gap:4px; margin-bottom:14px; border-bottom:1px solid var(--line); overflow-x:auto; }
+    .tabs button { padding:10px 18px; border:0; border-bottom:3px solid transparent; background:transparent; color:var(--muted); font-weight:700; white-space:nowrap; }
+    .tabs button.active { color:var(--gold); border-bottom-color:var(--button); }
     .card { background:white; padding:16px; border-radius:8px; }
     h2 { margin:-16px -16px 14px; padding:11px 16px; font-size:14px; color:var(--gold); background:var(--widget); border-radius:8px 8px 0 0; }
     dl { margin:0; display:grid; gap:10px; }
     dl > div { display:flex; justify-content:space-between; align-items:center; gap:12px; }
     dt { color:#6f6d68; font-size:12px; font-weight:700; }
     dd { margin:0; text-align:right; word-break:break-word; }
-    .rows .total, tr.total { font-weight:700; border-top:1px solid var(--line); }
+    .rows .total { font-weight:700; border-top:1px solid var(--line); }
     .rows .total { padding-top:10px; }
-    .table-scroll { overflow-x:auto; }
-    table { width:100%; border-collapse:collapse; }
-    th { padding:8px 10px; text-align:left; font-size:12px; color:#6f6d68; border-bottom:1px solid var(--line); white-space:nowrap; }
-    td { padding:8px 10px; border-top:1px solid var(--line); white-space:nowrap; }
-    .num { text-align:right; } th.num { text-align:right; }
     .message { text-align:center; color:var(--muted); padding:30px 12px; }
     .message.small { padding:16px 0; }
     .message a, .link { color:var(--gold); font-weight:700; }
@@ -172,9 +155,12 @@ export class ItemDetailComponent {
   readonly loadError = signal('');
   readonly item = signal<Item | null>(null);
   readonly price = signal<Loadable<PriceBreakdown>>({ status: 'loading' });
-  readonly stock = signal<Loadable<StockLevel[]>>({ status: 'loading' });
   readonly categories = signal<Category[]>([]);
-  readonly stores = signal<Store[]>([]);
+  readonly tab = signal<TabId>('overview');
+  readonly tabs: { id: TabId; label: string }[] = [
+    { id: 'overview', label: 'Overview' }, { id: 'images', label: 'Images' },
+    { id: 'variants', label: 'Variants' }, { id: 'stock', label: 'Stock' }
+  ];
   readonly toast = signal<string | null>(null);
   readonly dialogOpen = signal(false);
   readonly statusSaving = signal(false);
@@ -182,18 +168,14 @@ export class ItemDetailComponent {
 
   readonly priceValue = computed(() => { const p = this.price(); return p.status === 'ready' ? p.value : null; });
   readonly priceError = computed(() => { const p = this.price(); return p.status === 'error' ? p.message : ''; });
-  readonly stockRows = computed(() => { const s = this.stock(); return s.status === 'ready' ? s.value : []; });
-  readonly stockError = computed(() => { const s = this.stock(); return s.status === 'error' ? s.message : ''; });
-  readonly totalOnHand = computed(() => this.stockRows().reduce((sum, r) => sum + r.onHand, 0));
-  readonly totalReserved = computed(() => this.stockRows().reduce((sum, r) => sum + r.reserved, 0));
 
   constructor() {
     this.showToastFromNavigation();
     this.data.getCategories().pipe(catchError(() => of<Category[]>([]))).subscribe(c => this.categories.set(c));
-    this.data.getStores().pipe(catchError(() => of<Store[]>([]))).subscribe(s => this.stores.set(s));
     this.route.paramMap.pipe(takeUntilDestroyed()).subscribe(params => {
       const id = Number(params.get('id'));
       this.id = id;
+      this.tab.set('overview');
       this.load();
     });
   }
@@ -208,7 +190,6 @@ export class ItemDetailComponent {
         this.item.set(item);
         this.state.set('ready');
         this.loadPrice(id);
-        this.loadStock(id);
       },
       error: (error: unknown) => {
         if (id !== this.id) return;
@@ -224,14 +205,6 @@ export class ItemDetailComponent {
     this.data.getPrice(id).subscribe({
       next: value => this.price.set({ status: 'ready', value }),
       error: (error: unknown) => this.price.set({ status: 'error', message: errorMessage(error) })
-    });
-  }
-
-  loadStock(id: number): void {
-    this.stock.set({ status: 'loading' });
-    this.data.getStock(id).subscribe({
-      next: value => this.stock.set({ status: 'ready', value }),
-      error: (error: unknown) => this.stock.set({ status: 'error', message: errorMessage(error) })
     });
   }
 
@@ -258,7 +231,6 @@ export class ItemDetailComponent {
   }
 
   categoryName(id: number): string { return this.categories().find(c => c.id === id)?.name ?? `Category ${id}`; }
-  storeName(id: number): string { return this.stores().find(s => s.id === id)?.name ?? `Store ${id}`; }
   makingLabel(type: string): string { return makingTypeLabel(type); }
 
   // The form screen passes a success message through the navigation state.

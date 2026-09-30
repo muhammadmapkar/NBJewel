@@ -5,6 +5,7 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { ApplicationConfig } from '@angular/core';
 import { provideRouter, Routes } from '@angular/router';
 import { HttpItemDataService } from './core/data/http-item-data.service';
+import { InMemorySampleDataService } from './core/data/in-memory-sample-data.service';
 import { ItemDataService } from './core/data/item-data.service';
 import { errorInterceptor } from './core/http/error.interceptor';
 import { ShellComponent } from './core/layout/shell.component';
@@ -25,6 +26,8 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideRouter(routes),
     provideHttpClient(withInterceptors([errorInterceptor])),
+    // To swap the data source, change useClass here (for example to a SQL or real ERP service).
+    InMemorySampleDataService,
     { provide: ItemDataService, useClass: HttpItemDataService }
   ]
 };
