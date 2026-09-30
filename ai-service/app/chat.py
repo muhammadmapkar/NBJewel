@@ -101,7 +101,7 @@ class ChatService:
                 messages.append(Message("user", JSON_RETRY_NOTE))
                 continue
 
-            verdict = run_guards(answer, runs)
+            verdict = run_guards(answer, runs, self._system)
             if not verdict.passed:
                 logger.info("guard=%s result=refused reason=%s", verdict.guard, verdict.reason)
                 return refusal()

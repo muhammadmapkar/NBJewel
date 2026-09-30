@@ -115,6 +115,22 @@ def _item_summary(item: dict[str, Any]) -> dict[str, Any]:
     return {k: item.get(k) for k in keys}
 
 
+# Only these item fields are passed to the model. Free-text fields that are not part of the item
+# contract (for example a description) could carry planted instructions, so they are dropped.
+ITEM_FIELDS = ("id", "code", "name", "categoryId", "designCode", "metalType", "purity", "grossWt", "netWt",
+               "stoneWt", "makingType", "makingValue", "huid", "status", "imageUrl")
+
+
+def _clean_item(item: dict[str, Any]) -> dict[str, Any]:
+    return {k: item.get(k) for k in ITEM_FIELDS}
+
+
+def _item_label(client: ReadOnlyApiClient, item_id: int) -> dict[str, Any]:
+    """The code and name of an item, so answers can name the item the numbers belong to."""
+    status, item = client.get(f"/api/items/{item_id}")
+    return {"itemCode": item.get("code"), "itemName": item.get("name")} if status == 200 and isinstance(item, dict) else {}
+
+
 def _resolve_category(client: ReadOnlyApiClient, value: str) -> int | None:
     if value.isdigit():
         return int(value)
@@ -167,6 +183,7 @@ def get_item_details(client: ReadOnlyApiClient, args: GetItemDetailsArgs) -> Too
         if not matches:
             return not_found(f"No item with code '{args.code}'.")
         item = matches[0]
+    item = _clean_item(item)
     return ok(item, [source("get_item_details", item["id"])])
 
 
@@ -176,7 +193,7 @@ def get_item_price_breakdown(client: ReadOnlyApiClient, args: ItemIdArgs) -> Too
         return not_found(f"No item with id {args.itemId}.")
     if status == 422:
         return not_found(str(body) if isinstance(body, str) else "No price can be calculated for this item.")
-    return ok(body, [source("get_item_price_breakdown", args.itemId)])
+    return ok({**_item_label(client, args.itemId), **body}, [source("get_item_price_breakdown", args.itemId)])
 
 
 def _stores_by_id(client: ReadOnlyApiClient) -> dict[int, dict[str, Any]]:
@@ -197,7 +214,7 @@ def get_stock_by_store(client: ReadOnlyApiClient, args: ItemIdArgs) -> ToolResul
         "city": stores.get(r["storeId"], {}).get("city"),
         "onHand": r["onHand"], "reserved": r["reserved"], "available": r["onHand"] - r["reserved"],
     } for r in records]
-    data = {"itemId": args.itemId, "stores": rows, "totalOnHand": sum(r["onHand"] for r in rows)}
+    data = {"itemId": args.itemId, **_item_label(client, args.itemId), "stores": rows, "totalOnHand": sum(r["onHand"] for r in rows)}
     return ok(data, [source("get_stock_by_store", args.itemId)])
 
 

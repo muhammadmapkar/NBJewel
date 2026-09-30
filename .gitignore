@@ -38,3 +38,6 @@ coverage/
 
 # Angular cache
 .angular/
+
+# AI service live test report
+ai-service/tests/report.md

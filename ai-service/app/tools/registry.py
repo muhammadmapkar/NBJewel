@@ -40,7 +40,8 @@ def _simplify_schema(node: Any) -> Any:
 class ToolRegistry:
     def __init__(self, client: ReadOnlyApiClient | None = None, tools: list[Tool] | None = None) -> None:
         self._client = client or ReadOnlyApiClient(get_settings().nbjewel_api_url)
-        self._tools = {t.name: t for t in (tools or ALL_TOOLS)}
+        # An empty list means "no tools", so only fall back to all tools when none was given.
+        self._tools = {t.name: t for t in (ALL_TOOLS if tools is None else tools)}
 
     def declarations(self) -> list[dict[str, Any]]:
         """Name, description and JSON schema of every tool."""
