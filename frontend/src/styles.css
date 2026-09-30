@@ -1,0 +1,8 @@
+/* Role: Loads the shared visual theme and supplies small global layout rules. */
+@import './styles/theme.css';
+
+* { box-sizing: border-box; }
+html, body { min-height: 100%; margin: 0; }
+body { font-family: Inter, Arial, sans-serif; color: var(--ink); background: var(--page); font-size: 14px; }
+button, input, select { font: inherit; }
+button { cursor: pointer; }

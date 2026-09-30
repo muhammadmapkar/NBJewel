@@ -1,0 +1,16 @@
+/* Role: Centralizes the NB Jewel visual language as reusable CSS variables. */
+:root {
+  --sidebar: #b8860b;
+  --sidebar-deep: #a87900;
+  --gold: #b8860b;
+  --button: #ffc107;
+  --pale: #fff1a8;
+  --widget: #fde9a0;
+  --page: #f8f0dc;
+  --ink: #242424;
+  --muted: #77736a;
+  --line: #ded9cb;
+  --card: #fff;
+  --danger: #c0392b;
+  --sidebar-width: 260px;
+}

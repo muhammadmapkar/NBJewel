@@ -1,0 +1,12 @@
+// Role: Renders the static Scheme Master form and its visual-only controls.
+
+import { Component } from '@angular/core';
+import { ToggleComponent } from '../../shared/ui/toggle.component';
+import { schemeFields } from '../../core/mock/mock-data';
+
+@Component({
+  selector: 'nb-scheme-master', standalone: true, imports: [ToggleComponent],
+  template: `<div class="page-head"><div><h1>Scheme Master</h1><p>Gold Scheme　›　Masters　›　Scheme Master</p><small>Record was created by ADMIN on 30-Jul-2026 03:51:28 PM. It was never modified.</small></div><div class="actions"><button>＋ Add</button><button>▣ Save</button><button>☷ List</button></div></div><div class="form-card">@for (field of fields; track field[0]; let i = $index) {<label [class.required]="field[2] === 'required'">{{ field[0] }} @if (field[2] === 'toggle') {<nb-toggle [on]="i % 3 !== 0" />} @else if (field[2] === 'radio') {<span class="radios"><input type="radio" checked name="rate"> Current <input type="radio" name="rate"> Min. <input type="radio" name="rate"> Max. <input type="radio" name="rate"> Avg.</span>} @else if (field[2] === 'select') {<select><option>{{ field[1] }}</option></select>} @else {<input [type]="field[2] === 'number' ? 'number' : 'text'" [value]="field[1]">}</label>}</div>`,
+  styles: [`.page-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; } h1 { margin:0 0 5px; font-size:25px; } p, small { margin:0; color:var(--muted); font-size:12px; } .actions { display:flex; gap:25px; } .actions button { border:0; background:transparent; font-weight:700; color:#333; } .form-card { display:grid; grid-template-columns:1fr 1fr; gap:15px 22px; background:white; padding:20px 16px; border-radius:8px; } label { display:flex; flex-direction:column; gap:6px; color:#6f6d68; font-size:12px; font-weight:700; } label.required:before { content:'* '; color:#c0392b; } input, select { width:100%; min-height:38px; padding:8px 10px; border:1px solid #cfd1d5; border-radius:6px; background:white; color:#555; outline:none; } input:focus, select:focus { border-color:var(--button); } nb-toggle { align-self:flex-start; } .radios { display:flex; align-items:center; gap:7px; color:#555; } .radios input { width:auto; min-height:0; accent-color:var(--gold); } @media (max-width:650px) { .page-head { display:block; } .actions { margin-top:15px; } .form-card { grid-template-columns:1fr; } }`]
+})
+export class SchemeMasterComponent { readonly fields = schemeFields; }
