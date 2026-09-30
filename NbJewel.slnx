@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/backend/">
+    <Project Path="backend/NbJewel.Api.Tests/NbJewel.Api.Tests.csproj" />
+    <Project Path="backend/NbJewel.Api/NbJewel.Api.csproj" />
+  </Folder>
+</Solution>
