@@ -1,7 +1,12 @@
-// Role: Declares the application-wide router and browser providers.
+// Role: Declares the application-wide router, HTTP client, error handling,
+// and the data service used by the screens.
 
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { ApplicationConfig } from '@angular/core';
 import { provideRouter, Routes } from '@angular/router';
+import { HttpItemDataService } from './core/data/http-item-data.service';
+import { ItemDataService } from './core/data/item-data.service';
+import { errorInterceptor } from './core/http/error.interceptor';
 import { ShellComponent } from './core/layout/shell.component';
 
 const routes: Routes = [{
@@ -15,4 +20,10 @@ const routes: Routes = [{
   ]
 }];
 
-export const appConfig: ApplicationConfig = { providers: [provideRouter(routes)] };
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideRouter(routes),
+    provideHttpClient(withInterceptors([errorInterceptor])),
+    { provide: ItemDataService, useClass: HttpItemDataService }
+  ]
+};
