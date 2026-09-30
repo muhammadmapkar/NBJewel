@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "name": "Jewelry",
+    "parentId": null
+  },
+  {
+    "id": 2,
+    "name": "Rings",
+    "parentId": 1
+  },
+  {
+    "id": 3,
+    "name": "Necklaces",
+    "parentId": 1
+  },
+  {
+    "id": 4,
+    "name": "Bangles",
+    "parentId": 1
+  },
+  {
+    "id": 5,
+    "name": "Chains",
+    "parentId": 1
+  },
+  {
+    "id": 6,
+    "name": "Earrings",
+    "parentId": 1
+  },
+  {
+    "id": 7,
+    "name": "Pendants",
+    "parentId": 1
+  },
+  {
+    "id": 8,
+    "name": "Coins",
+    "parentId": 1
+  }
+]

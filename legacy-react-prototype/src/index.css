@@ -1,0 +1,14 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { font-family: 'Manrope', sans-serif; color: #e7eaf0; background: #0c0f14; font-synthesis: none; }
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; background: radial-gradient(circle at 80% -20%, #273022 0, transparent 38%), #0c0f14; }
+button, select { font: inherit; }
+.mono { font-family: 'DM Mono', monospace; }
+.glass { background: rgba(20, 25, 34, .78); border: 1px solid #252c38; box-shadow: 0 16px 44px rgba(0,0,0,.16); }
+.scrollbar::-webkit-scrollbar { height: 5px; width: 5px; } .scrollbar::-webkit-scrollbar-thumb { background: #313948; border-radius: 99px; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.skeleton { background: linear-gradient(90deg, #171d26 25%, #252e3b 50%, #171d26 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
