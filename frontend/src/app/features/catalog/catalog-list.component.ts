@@ -8,16 +8,16 @@
 
 import { DecimalPipe } from '@angular/common';
 import { Component, computed, effect, inject, OnInit, signal, untracked } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { catchError, EMPTY, expand, forkJoin, map, of, reduce } from 'rxjs';
 import { ItemDataService } from '../../core/data/item-data.service';
 import { Category, Item, MetalRate, PriceBreakdown, StockLevel } from '../../core/models';
 import { CatalogFilters, DEFAULT_CATALOG_FILTERS } from './catalog-filters.model';
 import { CatalogFiltersComponent } from './filters.component';
+import { Loadable } from './loadable';
 import { StatusPillComponent } from './status-pill.component';
 
 type LoadState = 'loading' | 'ready' | 'error';
-type Loadable<T> = { status: 'loading' } | { status: 'ready'; value: T } | { status: 'error' };
 type SortKey = 'code' | 'name' | 'category' | 'metal' | 'purity' | 'netWt' | 'status';
 interface SortState { key: SortKey; dir: 'asc' | 'desc'; }
 interface Column { id: string; label: string; sortKey?: SortKey; }
@@ -27,13 +27,14 @@ const FETCH_PAGE_SIZE = 100;
 
 @Component({
   selector: 'nb-catalog-list', standalone: true,
-  imports: [DecimalPipe, CatalogFiltersComponent, StatusPillComponent],
+  imports: [DecimalPipe, RouterLink, CatalogFiltersComponent, StatusPillComponent],
   template: `
     <div class="page-head">
       <div>
         <h1>Item Catalog</h1>
         <p>Inventory　›　Item Catalog</p>
       </div>
+      <a class="add" routerLink="/catalog/new">＋ Add</a>
     </div>
 
     <div class="card">
@@ -123,7 +124,8 @@ const FETCH_PAGE_SIZE = 100;
     </div>
   `,
   styles: [`
-    .page-head { margin-bottom:12px; }
+    .page-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; }
+    .add { font-weight:700; color:#333; text-decoration:none; }
     h1 { margin:0 0 5px; font-size:25px; }
     p { margin:0; color:var(--muted); font-size:12px; }
     .card { background:white; padding:16px; border-radius:8px; margin-bottom:14px; }
@@ -330,7 +332,7 @@ export class CatalogListComponent implements OnInit {
     if (items.length === 0) { this.finishLoad(items); return; }
     forkJoin(items.map(i => this.data.getStock(i.id).pipe(
       map((value): [number, Loadable<StockLevel[]>] => [i.id, { status: 'ready', value }]),
-      catchError(() => of<[number, Loadable<StockLevel[]>]>([i.id, { status: 'error' }]))
+      catchError(() => of<[number, Loadable<StockLevel[]>]>([i.id, { status: 'error', message: '' }]))
     ))).subscribe(entries => {
       if (token !== this.loadToken) return;
       this.stocks.set(Object.fromEntries(entries));
@@ -344,14 +346,14 @@ export class CatalogListComponent implements OnInit {
         this.prices.update(p => ({ ...p, [item.id]: { status: 'loading' } }));
         this.data.getPrice(item.id).subscribe({
           next: value => this.prices.update(p => ({ ...p, [item.id]: { status: 'ready', value } })),
-          error: () => this.prices.update(p => ({ ...p, [item.id]: { status: 'error' } }))
+          error: () => this.prices.update(p => ({ ...p, [item.id]: { status: 'error', message: '' } }))
         });
       }
       if (!this.stocks()[item.id]) {
         this.stocks.update(s => ({ ...s, [item.id]: { status: 'loading' } }));
         this.data.getStock(item.id).subscribe({
           next: value => this.stocks.update(s => ({ ...s, [item.id]: { status: 'ready', value } })),
-          error: () => this.stocks.update(s => ({ ...s, [item.id]: { status: 'error' } }))
+          error: () => this.stocks.update(s => ({ ...s, [item.id]: { status: 'error', message: '' } }))
         });
       }
     }
