@@ -85,7 +85,7 @@ Stop any service with Ctrl+C in its Terminal tab.
 
 ## Tests
 
-.NET tests (47 tests, no network):
+.NET tests (49 tests, no network):
 
 ```bash
 cd backend && dotnet test NbJewel.Api.Tests
