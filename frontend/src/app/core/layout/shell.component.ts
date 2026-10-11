@@ -6,7 +6,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
-import { filter } from 'rxjs';
+import { filter, skip } from 'rxjs';
 import { ChatPanelComponent } from '../../features/chat/chat-panel.component';
 import { SidebarComponent } from './sidebar.component';
 import { TopbarComponent } from './topbar.component';
@@ -59,7 +59,8 @@ export class ShellComponent {
 
   constructor() {
     // On a phone the open sidebar covers the page, so close it after choosing a page.
-    this.router.events.pipe(filter(e => e instanceof NavigationEnd), takeUntilDestroyed())
+    // The first navigation is the page load itself, and it must not undo a remembered open state.
+    this.router.events.pipe(filter(e => e instanceof NavigationEnd), skip(1), takeUntilDestroyed())
       .subscribe(() => { if (isPhone() && !this.collapsed()) this.setCollapsed(true); });
   }
 
