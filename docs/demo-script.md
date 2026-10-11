@@ -37,6 +37,6 @@ All data in this demo is fake sample data. Names, prices and stock are invented.
 - **Catalog says "Cannot reach the server".** The .NET API is not running. Start it (see `run-guide.md`), then press Retry.
 - **Chat says "Assistant unavailable. Retry."** Either the AI service is not running, the Gemini key or model is missing or wrong, or Gemini failed. Check `http://localhost:8000/health`. Check the terminal of the AI service for the warning line. Press Retry.
 - **Chat answers are refused when they should not be.** The model may have used a number or source the guards reject. Ask again with a simpler question, for example "Show stock of RNG-0142 by store." Say this is the guards working, and that a refusal is safer than a wrong answer.
-- **Numbers look different from this script.** The API restarted and lost in-memory edits, or an edit was left in place. Restart the .NET API to reset the data.
+- **Numbers or statuses look different from this script.** Someone changed an item (status, stock, or an edit) since the API started. For example, BNG-0011 should be Draft at the start, but it shows Complete if its status was changed. The API keeps changes in memory only and does not log them. Restart the .NET API to reset all data to the sample files.
 - **A page loads blank on refresh.** Open `http://localhost:4200/catalog` directly. Make sure `ng serve` is still running.
 - **Out of time or nothing works.** Show Swagger at `http://localhost:5155/swagger` and the test results (`run-guide.md`), and walk through `architecture.md`.

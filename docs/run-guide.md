@@ -24,7 +24,7 @@ curl -s "http://localhost:5155/api/items/1"
 
 ### Storage: sample (default) or SQL Server
 
-By default the API uses the sample JSON files and keeps changes in memory. They reset when the API restarts.
+By default the API uses the sample JSON files and keeps changes in memory. Item statuses, added stock and edited items all reset to the values in `sample-data/` when the API restarts. For example, if the screen shows BNG-0011 as Complete after someone changed it, a restart brings it back to Draft. The API does not log or save these changes.
 
 To save to SQL Server instead, create the database with `docs/item_catalog_schema.sql`, then set the provider and the connection string in the Terminal tab that starts the API. The connection string is read from an environment variable and is never stored in the repository. Use your own server and login (the value below is a placeholder):
 
