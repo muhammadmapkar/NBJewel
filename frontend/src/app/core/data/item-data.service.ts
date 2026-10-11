@@ -3,25 +3,29 @@
 
 import { Observable } from 'rxjs';
 import {
-  Category, Item, ItemImage, ItemSearchParams, ItemVariant, ItemWriteRequest, MetalRate,
-  PagedResult, PriceBreakdown, StockLevel, Store
+  Category, Design, Item, ItemImage, ItemSearchParams, ItemVariant, ItemWriteRequest, MetalRate,
+  PagedResult, PriceBreakdown, StockAddRequest, StockLevel, Store
 } from '../models';
 
 export abstract class ItemDataService {
   abstract searchItems(params?: ItemSearchParams): Observable<PagedResult<Item>>;
   abstract getItem(id: number): Observable<Item>;
   abstract getStock(itemId: number): Observable<StockLevel[]>;
+  // Adds the quantity to on-hand stock. The API rejects a quantity of 0 or less.
+  abstract addStock(itemId: number, request: StockAddRequest): Observable<StockLevel>;
   abstract getPrice(itemId: number): Observable<PriceBreakdown>;
   abstract getCategories(): Observable<Category[]>;
   abstract getStores(): Observable<Store[]>;
+  abstract getDesigns(): Observable<Design[]>;
   abstract getLatestMetalRates(): Observable<MetalRate[]>;
   abstract createItem(request: ItemWriteRequest): Observable<Item>;
   abstract updateItem(id: number, request: ItemWriteRequest): Observable<Item>;
+  // The API only allows the next status in the workflow and replies 409 otherwise.
   abstract updateItemStatus(id: number, status: string): Observable<Item>;
-
-  // Variants and images. The .NET API has no endpoints for these yet, so they
-  // are served by InMemorySampleDataService (see HttpItemDataService).
   abstract getVariants(itemId: number): Observable<ItemVariant[]>;
+
+  // Images. The .NET API has no endpoints for these yet, so they
+  // are served by InMemorySampleDataService (see HttpItemDataService).
   abstract getImages(itemId: number): Observable<ItemImage[]>;
   abstract addImage(itemId: number, fileName: string): Observable<ItemImage>;
   abstract setPrimaryImage(itemId: number, imageId: number): Observable<void>;

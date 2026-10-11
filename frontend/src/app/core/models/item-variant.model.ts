@@ -1,5 +1,6 @@
 // Role: Describes one variant (size and color) of an item.
-// Assumed, no backend endpoint yet: the .NET API does not serve variants.
+// The API sends everything except stock. The data service adds stock by
+// summing the item's stock records for this variant.
 
 export interface ItemVariant {
   id: number;

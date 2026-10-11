@@ -11,7 +11,7 @@ export class ApiError extends Error {
   }
 }
 
-// The API sends plain text for 400 and 422 responses. Use it when it is short.
+// The API sends plain text for 400, 409, and 422 responses. Use it when it is short.
 function serverText(error: HttpErrorResponse): string | null {
   const body: unknown = error.error;
   return typeof body === 'string' && body.length > 0 && body.length < 200 ? body : null;
@@ -25,6 +25,8 @@ export function toFriendlyMessage(error: HttpErrorResponse): string {
       return serverText(error) ?? 'The request was not valid. Please check the details and try again.';
     case 404:
       return 'That record was not found. It may have been removed.';
+    case 409:
+      return serverText(error) ?? 'That change is not allowed right now.';
     case 422:
       return serverText(error) ?? 'The request could not be processed.';
     default:

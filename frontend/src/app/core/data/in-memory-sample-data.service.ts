@@ -1,10 +1,9 @@
-// Role: Fake data for variants and images while the .NET API has no endpoints
-// for them. Everything here is assumed, no backend endpoint yet. Data lives in
+// Role: Fake data for images while the .NET API has no endpoints for them. Everything here is assumed, no backend endpoint yet. Data lives in
 // memory only and resets when the page is reloaded.
 
 import { Injectable } from '@angular/core';
 import { delay, Observable, of, throwError } from 'rxjs';
-import { ItemImage, ItemVariant } from '../models';
+import { ItemImage } from '../models';
 
 const LATENCY_MS = 250;
 const SWATCHES = ['#f3e3a4', '#e9d08a', '#f8f0dc', '#d9b96a'];
@@ -21,22 +20,6 @@ export function placeholderImage(label: string, seed: number): string {
 export class InMemorySampleDataService {
   private readonly images = new Map<number, ItemImage[]>();
   private nextImageId = 1000;
-
-  getVariants(itemId: number): Observable<ItemVariant[]> {
-    // Every third item is a single item with no variants.
-    if (itemId % 3 === 0) return of<ItemVariant[]>([]).pipe(delay(LATENCY_MS));
-    const all = [['6', 'Yellow gold'], ['7', 'Yellow gold'], ['7', 'Rose gold']];
-    const rows = all.slice(0, itemId % 3 === 1 ? 3 : 2).map(([size, color], index): ItemVariant => ({
-      id: itemId * 10 + index + 1,
-      itemId,
-      size,
-      color,
-      variantCode: `VAR-${String(itemId).padStart(4, '0')}-${index + 1}`,
-      priceDelta: index * 5,
-      stock: (itemId * 7 + index * 3) % 9 + 1
-    }));
-    return of(rows).pipe(delay(LATENCY_MS));
-  }
 
   getImages(itemId: number): Observable<ItemImage[]> {
     return of(this.list(itemId).map(i => ({ ...i }))).pipe(delay(LATENCY_MS));

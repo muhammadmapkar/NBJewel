@@ -2,7 +2,7 @@
 // filters, sorts and pages them in the browser. Price and stock are fetched
 // only for the ten rows currently on screen.
 //
-// Why in the browser: the API can filter by search, category, metal, purity and
+// Why in the browser: the API can filter by search (code, name or design code), category, metal, purity and
 // status, but it cannot sort, filter by weight or stock, or return totals.
 // That is fine for the sample data (30 items). A real ERP would move this to the server.
 
@@ -18,7 +18,7 @@ import { Loadable } from './loadable';
 import { StatusPillComponent } from './status-pill.component';
 
 type LoadState = 'loading' | 'ready' | 'error';
-type SortKey = 'code' | 'name' | 'category' | 'metal' | 'purity' | 'netWt' | 'status';
+type SortKey = 'code' | 'name' | 'designCode' | 'category' | 'metal' | 'purity' | 'netWt' | 'status';
 interface SortState { key: SortKey; dir: 'asc' | 'desc'; }
 interface Column { id: string; label: string; sortKey?: SortKey; }
 
@@ -45,7 +45,7 @@ const FETCH_PAGE_SIZE = 100;
 
     <div class="card table-card">
       <div class="toolbar">
-        <input class="search" type="search" placeholder="Search by code or name" aria-label="Search items"
+        <input class="search" type="search" placeholder="Search by code, name or design code" aria-label="Search items"
           [value]="search()" (input)="onSearch($event)">
         @if (state() === 'ready') { <span class="count">{{ filteredItems().length }} items</span> }
       </div>
@@ -82,6 +82,7 @@ const FETCH_PAGE_SIZE = 100;
                       <td><div class="thumb" [title]="item.imageUrl ?? 'No image'">◇</div></td>
                       <td class="code">{{ item.code }}</td>
                       <td>{{ item.name }}</td>
+                      <td>{{ item.designCode }}</td>
                       <td>{{ categoryName(item.categoryId) }}</td>
                       <td>{{ item.metalType }}</td>
                       <td>{{ item.purity }}</td>
@@ -143,7 +144,7 @@ const FETCH_PAGE_SIZE = 100;
     .sort { border:0; background:transparent; padding:0; color:inherit; font-weight:700; }
     .arrow { display:inline-block; width:14px; margin-left:4px; }
     .code { font-weight:700; }
-    .num { text-align:right; } th:nth-child(7), th:nth-child(8), th:nth-child(10) { text-align:right; }
+    .num { text-align:right; } th:nth-child(8), th:nth-child(9), th:nth-child(11) { text-align:right; }
     .thumb { width:38px; height:38px; display:grid; place-items:center; border-radius:6px; background:var(--page); border:1px solid var(--line); color:var(--gold); font-size:18px; }
     .muted { color:var(--muted); }
     .message { padding:40px 16px; text-align:center; color:var(--muted); }
@@ -168,6 +169,7 @@ export class CatalogListComponent implements OnInit {
     { id: 'thumb', label: 'Image' },
     { id: 'code', label: 'Code', sortKey: 'code' },
     { id: 'name', label: 'Name', sortKey: 'name' },
+    { id: 'designCode', label: 'Design code', sortKey: 'designCode' },
     { id: 'category', label: 'Category', sortKey: 'category' },
     { id: 'metal', label: 'Metal', sortKey: 'metal' },
     { id: 'purity', label: 'Purity', sortKey: 'purity' },
@@ -313,6 +315,7 @@ export class CatalogListComponent implements OnInit {
     switch (key) {
       case 'code': return item.code;
       case 'name': return item.name;
+      case 'designCode': return item.designCode;
       case 'category': return this.categoryName(item.categoryId);
       case 'metal': return item.metalType;
       case 'purity': return item.purity;

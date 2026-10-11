@@ -2,6 +2,7 @@
 
 export * from './item.model';
 export * from './category.model';
+export * from './design.model';
 export * from './store.model';
 export * from './stock-level.model';
 export * from './price-breakdown.model';

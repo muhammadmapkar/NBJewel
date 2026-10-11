@@ -1,5 +1,5 @@
 // Role: The Variants tab. Lists the sizes and colors of one item.
-// Assumed, no backend endpoint yet: variants come from sample data.
+// Variants come from the API. Stock is the sum of the item's stock records for the variant.
 
 import { DecimalPipe } from '@angular/common';
 import { Component, computed, effect, inject, input, signal, untracked } from '@angular/core';

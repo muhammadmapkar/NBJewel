@@ -1,5 +1,7 @@
 // Role: The item form screen, used for /catalog/new and /catalog/:id/edit.
 // It is a reactive form with validation, and saves through ItemDataService.
+// Design code is a dropdown fed by the design master. Status is not on the form:
+// new items start as Draft and status moves forward from the item page.
 
 import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -8,17 +10,16 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
 import { ItemDataService } from '../../core/data/item-data.service';
 import { ApiError } from '../../core/http/error.interceptor';
-import { Category, Item, ItemWriteRequest, MetalRate } from '../../core/models';
-import { ITEM_STATUSES } from './catalog-filters.model';
+import { Category, Design, Item, ItemWriteRequest, MetalRate } from '../../core/models';
 import { errorMessage, MAKING_TYPES } from './item-options';
 
 type FormState = 'loading' | 'ready' | 'notfound' | 'error';
-type FieldName = 'code' | 'name' | 'categoryId' | 'designCode' | 'metalType' | 'purity' | 'grossWt' | 'netWt' | 'stoneWt' | 'makingType' | 'makingValue' | 'huid' | 'status';
+type FieldName = 'code' | 'name' | 'categoryId' | 'designId' | 'metalType' | 'purity' | 'grossWt' | 'netWt' | 'stoneWt' | 'makingType' | 'makingValue' | 'huid';
 
 const LABELS: Record<FieldName, string> = {
-  code: 'Code', name: 'Name', categoryId: 'Category', designCode: 'Design code', metalType: 'Metal',
+  code: 'Code', name: 'Name', categoryId: 'Category', designId: 'Design code', metalType: 'Metal',
   purity: 'Purity', grossWt: 'Gross weight', netWt: 'Net weight', stoneWt: 'Stone weight',
-  makingType: 'Making type', makingValue: 'Making value', huid: 'HUID', status: 'Status'
+  makingType: 'Making type', makingValue: 'Making value', huid: 'HUID'
 };
 
 // Group-level rule: net weight may not be above gross weight.
@@ -73,8 +74,11 @@ function netNotAboveGross(group: AbstractControl): ValidationErrors | null {
                 @if (error('categoryId'); as e) { <span class="err">{{ e }}</span> }
               </label>
               <label class="required">Design code
-                <input type="text" formControlName="designCode" [class.invalid]="error('designCode')">
-                @if (error('designCode'); as e) { <span class="err">{{ e }}</span> }
+                <select formControlName="designId" [class.invalid]="error('designId')">
+                  <option [ngValue]="null">Select a design code</option>
+                  @for (d of designs(); track d.designId) { <option [ngValue]="d.designId">{{ d.designCode }} - {{ d.name }}</option> }
+                </select>
+                @if (error('designId'); as e) { <span class="err">{{ e }}</span> }
               </label>
               <label class="required">Metal
                 <select formControlName="metalType" (change)="onMetalChange()" [class.invalid]="error('metalType')">
@@ -115,12 +119,6 @@ function netNotAboveGross(group: AbstractControl): ValidationErrors | null {
               </label>
               <label>HUID
                 <input type="text" formControlName="huid">
-              </label>
-              <label class="required">Status
-                <select formControlName="status" [class.invalid]="error('status')">
-                  @for (s of statuses; track s) { <option [value]="s">{{ s }}</option> }
-                </select>
-                @if (error('status'); as e) { <span class="err">{{ e }}</span> }
               </label>
             </div>
 
@@ -170,7 +168,6 @@ export class ItemFormComponent {
   private imageUrl: string | null = null;
 
   readonly skeletonRows = [1, 2, 3, 4, 5, 6];
-  readonly statuses = ITEM_STATUSES;
   readonly makingTypes = MAKING_TYPES;
 
   readonly state = signal<FormState>('loading');
@@ -178,6 +175,7 @@ export class ItemFormComponent {
   readonly saving = signal(false);
   readonly saveError = signal<string | null>(null);
   readonly categories = signal<Category[]>([]);
+  readonly designs = signal<Design[]>([]);
   readonly rates = signal<MetalRate[]>([]);
   readonly isEdit = signal(false);
   private readonly selectedMetal = signal('');
@@ -188,7 +186,7 @@ export class ItemFormComponent {
     code: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     name: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     categoryId: new FormControl<number | null>(null, [Validators.required]),
-    designCode: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    designId: new FormControl<number | null>(null, [Validators.required]),
     metalType: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     purity: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     grossWt: new FormControl<number | null>(null, [Validators.required, Validators.min(0)]),
@@ -196,8 +194,7 @@ export class ItemFormComponent {
     stoneWt: new FormControl<number | null>(0, [Validators.required, Validators.min(0)]),
     makingType: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     makingValue: new FormControl<number | null>(null, [Validators.required, Validators.min(0)]),
-    huid: new FormControl('', { nonNullable: true }),
-    status: new FormControl('Draft', { nonNullable: true, validators: [Validators.required] })
+    huid: new FormControl('', { nonNullable: true })
   }, { validators: [netNotAboveGross] });
 
   // The item's own metal and purity are always offered, even if no rate exists for them.
@@ -222,12 +219,14 @@ export class ItemFormComponent {
     this.state.set('loading');
     forkJoin({
       categories: this.data.getCategories(),
+      designs: this.data.getDesigns(),
       rates: this.data.getLatestMetalRates(),
       item: editId === null ? of(null) : this.data.getItem(editId)
     }).subscribe({
-      next: ({ categories, rates, item }) => {
+      next: ({ categories, designs, rates, item }) => {
         if (editId !== this.editId) return;
         this.categories.set(categories.filter(c => !categories.some(o => o.parentId === c.id)));
+        this.designs.set(designs);
         this.rates.set(rates);
         if (item) this.fillForm(item);
         this.state.set('ready');
@@ -264,7 +263,7 @@ export class ItemFormComponent {
       code: v.code.trim(),
       name: v.name.trim(),
       categoryId: v.categoryId as number,
-      designCode: v.designCode.trim(),
+      designId: v.designId as number,
       metalType: v.metalType,
       purity: v.purity,
       grossWt: v.grossWt as number,
@@ -273,7 +272,6 @@ export class ItemFormComponent {
       makingType: v.makingType,
       makingValue: v.makingValue as number,
       huid: v.huid.trim() || null,
-      status: v.status,
       imageUrl: this.imageUrl
     };
     this.saving.set(true);
@@ -300,10 +298,10 @@ export class ItemFormComponent {
     this.loadedMetal.set(item.metalType);
     this.loadedPurity.set(item.purity);
     this.form.reset({
-      code: item.code, name: item.name, categoryId: item.categoryId, designCode: item.designCode,
+      code: item.code, name: item.name, categoryId: item.categoryId, designId: item.designId,
       metalType: item.metalType, purity: item.purity, grossWt: item.grossWt, netWt: item.netWt,
       stoneWt: item.stoneWt, makingType: this.matchMakingType(item.makingType), makingValue: item.makingValue,
-      huid: item.huid ?? '', status: item.status
+      huid: item.huid ?? ''
     });
     this.selectedMetal.set(item.metalType);
   }

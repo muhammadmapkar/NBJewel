@@ -5,6 +5,8 @@ export interface Item {
   code: string;
   name: string;
   categoryId: number;
+  designId: number;
+  // Read-only: the API fills it from the design master.
   designCode: string;
   metalType: string;
   purity: string;
@@ -19,11 +21,12 @@ export interface Item {
 }
 
 // Body sent when creating or fully updating an item (the API has no id field here).
+// There is no status: new items start as Draft and status moves through its own call.
 export interface ItemWriteRequest {
   code: string;
   name: string;
   categoryId: number;
-  designCode: string;
+  designId: number;
   metalType: string;
   purity: string;
   grossWt: number;
@@ -32,7 +35,6 @@ export interface ItemWriteRequest {
   makingType: string;
   makingValue: number;
   huid: string | null;
-  status: string;
   imageUrl: string | null;
 }
 

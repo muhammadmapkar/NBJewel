@@ -20,4 +20,11 @@ export const DEFAULT_CATALOG_FILTERS: CatalogFilters = {
   inStockOnly: false
 };
 
-export const ITEM_STATUSES = ['Active', 'Draft', 'Discontinued'];
+// Status workflow (assumed): an item moves forward one step at a time. The API enforces it too.
+export const ITEM_STATUSES = ['Draft', 'With Smith', 'Received', 'Complete'];
+
+// The only status an item may move to from this one, or null at the end of the workflow.
+export function nextStatus(current: string): string | null {
+  const index = ITEM_STATUSES.indexOf(current);
+  return index >= 0 && index < ITEM_STATUSES.length - 1 ? ITEM_STATUSES[index + 1] : null;
+}
