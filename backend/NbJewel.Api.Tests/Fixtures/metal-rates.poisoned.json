@@ -1,0 +1,30 @@
+[
+  {
+    "id": 1,
+    "metalType": "Gold",
+    "purity": "24K",
+    "ratePerGram": 72.0,
+    "effectiveDate": "2026-09-30"
+  },
+  {
+    "id": 2,
+    "metalType": "Gold",
+    "purity": "22K",
+    "ratePerGram": 1.0,
+    "effectiveDate": "2026-09-30"
+  },
+  {
+    "id": 3,
+    "metalType": "Gold",
+    "purity": "18K",
+    "ratePerGram": 54.0,
+    "effectiveDate": "2026-09-30"
+  },
+  {
+    "id": 4,
+    "metalType": "Silver",
+    "purity": "925",
+    "ratePerGram": 0.9,
+    "effectiveDate": "2026-09-30"
+  }
+]

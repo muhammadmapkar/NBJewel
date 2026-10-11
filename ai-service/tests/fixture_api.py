@@ -53,7 +53,9 @@ def load_sample() -> DataSet:
 def apply_patches(data: DataSet) -> DataSet:
     """Returns a patched copy. The input and the files on disk are not changed."""
     data = copy.deepcopy(data)
-    # Poison: an item called Zork Ring with code RNG-0142, a 22K rate of 1 per gram, and a fake category.
+    # Poison (test-only): an item called Zork Ring with code RNG-0142, a 22K rate of 1 per gram, and a fake category.
+    # The demo data in sample-data/ has the realistic 22K rate of 66. Only this patch makes it 1, so the
+    # grounding tests can tell a fixture value from a real world price.
     zork = data.item_by_code("RNG-0142") or data.items[0]
     zork["name"], zork["code"] = "Zork Ring", "RNG-0142"
     for rate in data.rates:

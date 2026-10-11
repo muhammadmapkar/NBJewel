@@ -60,7 +60,7 @@ The AI service gives the language model eight tools. They are the only way the a
 - **Example call:** `run_tool("get_item_price_breakdown", {"itemId": 1})`
 
   ```json
-  {"status": "ok", "data": {"itemCode": "RNG-0142", "itemName": "Zork Ring", "itemId": 1, "currency": "AED", "netWeight": 42.758, "ratePerGram": 1.0, "metalValue": 42.76, "makingType": "percent", "makingValue": 6.58, "makingCharge": 2.81, "totalPrice": 45.57}, "sources": [{"tool": "get_item_price_breakdown", "recordId": 1}]}
+  {"status": "ok", "data": {"itemCode": "RNG-0142", "itemName": "Zork Ring", "itemId": 1, "currency": "AED", "netWeight": 42.758, "ratePerGram": 66.0, "metalValue": 2822.03, "makingType": "percent", "makingValue": 6.58, "makingCharge": 185.69, "totalPrice": 3007.72}, "sources": [{"tool": "get_item_price_breakdown", "recordId": 1}]}
   ```
 
 ## 4. get_stock_by_store
@@ -104,10 +104,10 @@ The AI service gives the language model eight tools. They are the only way the a
 - **Example call:** `run_tool("get_latest_metal_rate", {"metal": "Gold", "purity": "22K"})`
 
   ```json
-  {"status": "ok", "data": [{"currency": "AED", "id": 2, "metalType": "Gold", "purity": "22K", "ratePerGram": 1.0, "effectiveDate": "2026-09-30"}], "sources": [{"tool": "get_latest_metal_rate", "recordId": 2}]}
+  {"status": "ok", "data": [{"currency": "AED", "id": 2, "metalType": "Gold", "purity": "22K", "ratePerGram": 66.0, "effectiveDate": "2026-09-30"}], "sources": [{"tool": "get_latest_metal_rate", "recordId": 2}]}
   ```
 
-  The 22K rate of 1 per gram is deliberate fake data, see the poisoned data step in `demo-script.md`.
+  The demo rates (24K 72, 22K 66, 18K 54 AED per gram) are fake sample values. Assumed: 22K is 22/24 of the 24K rate. The grounding tests use a separate test-only fixture where 22K is 1 per gram (see `ai-service/tests/fixture_api.py`), to prove the assistant reports data values and not real-world prices.
 
 ## 8. list_items_by_status
 

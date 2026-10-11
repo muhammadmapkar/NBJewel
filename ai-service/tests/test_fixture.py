@@ -20,6 +20,15 @@ def test_patches_do_not_change_the_loaded_or_on_disk_sample_data():
     assert json.loads((SAMPLE_DIR / "items.json").read_text(encoding="utf-8")) == before.items
 
 
+def test_demo_sample_data_has_realistic_rates_and_the_patch_makes_22k_poisoned():
+    # The files on disk are the demo data: 24K 72, 22K 66, 18K 54. Only the test patch sets 22K to 1.
+    raw = load_sample()
+    assert raw.latest_rate("Gold", "22K")["ratePerGram"] == 66.0
+    assert raw.latest_rate("Gold", "24K")["ratePerGram"] > raw.latest_rate("Gold", "22K")["ratePerGram"] > raw.latest_rate("Gold", "18K")["ratePerGram"]
+    assert apply_patches(raw).latest_rate("Gold", "22K")["ratePerGram"] == 1.0
+    assert raw.latest_rate("Gold", "22K")["ratePerGram"] == 66.0   # the patch did not change the loaded data
+
+
 def test_poison_and_injection_patches_are_present():
     d = patched_data()
     assert d.item_by_code("RNG-0142")["name"] == "Zork Ring"
