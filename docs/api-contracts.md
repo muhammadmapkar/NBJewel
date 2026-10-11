@@ -18,7 +18,7 @@ Assumed shapes, built for the demo. Reads are used by the assistant. Writes are 
 | `GET /api/items/{id}/variants` | Variants of an item | 404 unknown item |
 | `GET /api/items/{id}/stock` | Stock rows per variant and store | 404 unknown item |
 | `POST /api/items/{id}/stock` | Add stock. Body `{variantId, storeId, quantity}`. Returns the new on-hand record. | 400 quantity 0 or less, unknown store, wrong or missing variant. 404 unknown item |
-| `PATCH /api/items/{id}/status` | Move to the next status. Body `{status}` | 409 backward, repeated or skipping move. 400 unknown status. 404 unknown item |
+| `PATCH /api/items/{id}/status` | Set a status. Body `{status}`. Any of the four, from any status (assumed). The same status returns 200 with no change. | 400 unknown status. 404 unknown item |
 | `GET /api/items?search=` | Search matches code, name and design code | 400 bad paging |
 
-Error bodies are plain text messages, for example `Cannot move from Draft to Complete. Next allowed status is With Smith.`
+Error bodies are plain text messages, for example `Unknown status 'Pending'. Allowed statuses: Draft, With Smith, Received, Complete.`

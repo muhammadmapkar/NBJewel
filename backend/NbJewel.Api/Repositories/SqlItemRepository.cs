@@ -161,8 +161,10 @@ public sealed class SqlItemRepository(string connectionString) : IItemRepository
         // UPDLOCK keeps two requests from moving the same item at the same time.
         var current = (await QueryAsync(connection, transaction, "SELECT Status FROM dbo.Item WITH (UPDLOCK, ROWLOCK) WHERE ItemId = @id", [new("@id", id)], r => r.GetString(0), cancellationToken)).FirstOrDefault();
         if (current is null) return null;
-        var next = ItemStatusRules.EnsureMove(current, status);
-        await ExecuteAsync(connection, transaction, "UPDATE dbo.Item SET Status = @status, UpdatedAt = SYSUTCDATETIME() WHERE ItemId = @id", [new("@status", next), new("@id", id)], cancellationToken);
+        var next = ItemStatusRules.Resolve(status);
+        // Any known status is allowed. Choosing the current one writes nothing.
+        if (!next.Equals(current, StringComparison.Ordinal))
+            await ExecuteAsync(connection, transaction, "UPDATE dbo.Item SET Status = @status, UpdatedAt = SYSUTCDATETIME() WHERE ItemId = @id", [new("@status", next), new("@id", id)], cancellationToken);
         var item = await GetItemAsync(connection, transaction, id, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return item;

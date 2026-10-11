@@ -95,7 +95,8 @@ public sealed class SampleItemRepository : IItemRepository
         {
             var item = items.FirstOrDefault(x => x.Id == id);
             if (item is null) return Task.FromResult<Item?>(null);
-            item.Status = ItemStatusRules.EnsureMove(item.Status, status);
+            // Any known status is allowed. Choosing the current one changes nothing.
+            item.Status = ItemStatusRules.Resolve(status);
             return Task.FromResult<Item?>(item);
         }
     }

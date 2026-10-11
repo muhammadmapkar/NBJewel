@@ -108,12 +108,14 @@ Writes happen only through the UI API: create and edit an item, move an item sta
 
 | Write | Endpoint | Rule |
 |---|---|---|
-| Move status | `PATCH /api/items/{id}/status` | Only the next status is allowed. Anything else returns 409 with a message. An unknown status returns 400. |
+| Set status | `PATCH /api/items/{id}/status` | Any of the four statuses, from any status (assumed). Choosing the current status is a harmless 200 and changes nothing. An unknown status returns 400. |
 | Add stock | `POST /api/items/{id}/stock` | Body `{variantId, storeId, quantity}`. The quantity is added to on-hand. 0 or less returns 400. |
 | Create item | `POST /api/items` | Always starts as Draft. `designId` must exist in the design master. |
 | Edit item | `PUT /api/items/{id}` | Never changes status. |
 
-The status rule lives in one class, `ItemStatusRules`, which both repositories call, so the sample and SQL versions cannot drift apart.
+The list of valid statuses lives in one class, `ItemStatusRules`, which both repositories call, so the sample and SQL versions cannot drift apart.
+
+Status and stock changes made in the default sample mode live in the API's memory only. They reset to the values in `sample-data/` whenever the API restarts. For example, if you move BNG-0011 to Complete and later restart the API, it is Draft again.
 
 Work the swap does not cover (not built):
 
@@ -137,7 +139,7 @@ Everything below is a guess about NB Jewel, used only to build the demo. None of
 - **Assumed:** Adding stock ADDS the entered quantity to on-hand. The quantity must be above 0. (The product manager wrote "0 or more". The project owner changed it to above 0, because adding 0 does nothing.)
 - **Assumed:** An item has a code (for example RNG-0142), a design (chosen from a design master), a HUID, gross, net and stone weights, and a status.
 - **Assumed:** The design master is what the product manager called the "master chit". It has a design id, a design code and a name. Many items can share one design. The demo has 10 designs.
-- **Assumed:** The status workflow is Draft, With Smith, Received, Complete. A status can only move forward one step. Draft is the start, "With Smith" means the piece is out with the craftsman, and Complete is the end. There is no way back.
+- **Assumed:** The status workflow is Draft, With Smith, Received, Complete. **Any-to-any is assumed:** a user can pick any of the four statuses at any time (forward, backward, or skipping), and Complete is not final. Only an unknown status is refused (HTTP 400). "With Smith" is assumed to mean the piece is out with the craftsman. The UI asks for confirmation before a backward move.
 - **Assumed:** Old sample statuses were remapped: Active to Complete, Discontinued to Complete, and Draft stays Draft. Discontinued has no place in the new workflow, so that information is lost in the demo data.
 - **Assumed:** Categories form a tree with one root ("Jewelry").
 - **Assumed:** Items can have variants (size and color) and images. The demo data for these is invented. Variants now come from the API (`sample-data/variants.json`). Images are still fake in the frontend.

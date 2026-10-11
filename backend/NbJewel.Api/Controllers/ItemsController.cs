@@ -1,7 +1,8 @@
 // Role: Exposes item search, details, variants, stock, price, and write
 // endpoints for the Angular client. Writes go through IItemRepository, which is
 // memory-only by default and saves to SQL Server when that provider is chosen.
-// Bad input returns 400. A status move the workflow forbids returns 409.
+// Bad input returns 400, including an unknown status. Any known status can be
+// set at any time, and choosing the current one is a harmless 200.
 
 using Microsoft.AspNetCore.Mvc;
 using NbJewel.Api.Models;
@@ -64,6 +65,5 @@ public sealed class ItemsController(IItemRepository repository) : ControllerBase
         if (string.IsNullOrWhiteSpace(request.Status)) return BadRequest("status is required.");
         try { return (await repository.UpdateStatusAsync(id, request.Status, cancellationToken)) is { } item ? Ok(item) : NotFound(); }
         catch (DomainValidationException ex) { return BadRequest(ex.Message); }
-        catch (InvalidStatusMoveException ex) { return Conflict(ex.Message); }
     }
 }

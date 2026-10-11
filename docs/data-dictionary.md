@@ -8,6 +8,6 @@ The JSON files in `sample-data/` define the initial fake fixture shapes.
 - `designs.json` is the design master (assumed to be the "master chit"): `designId`, `designCode`, `name`. 10 sample designs.
 - `variants.json` lists size and color variants for 20 of the 30 items. Every third item has none.
 - `items.json` has `designId` (the stored link) and `designCode` (copied from the design for display).
-- Item `status` is one of Draft, With Smith, Received, Complete (assumed). It can only move forward.
+- Item `status` is one of Draft, With Smith, Received, Complete (assumed). Assumed: any status can be set from any other, and Complete is not final.
 - `metal-rates.json` contains synthetic per-gram values for test grounding.
 - `huid` and `imageUrl` are fake placeholders and are not production values.

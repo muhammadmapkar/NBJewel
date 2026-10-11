@@ -18,7 +18,7 @@ Content-Type: application/json
 
 { "variantId": 11, "storeId": 1, "quantity": 5 }
 
-### Move status forward (Draft, With Smith, Received, Complete). A bad move returns 409.
+### Set status. Any of Draft, With Smith, Received, Complete, from any status. An unknown status returns 400.
 PATCH {{NbJewel.Api_HostAddress}}/api/items/11/status
 Content-Type: application/json
 

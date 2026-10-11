@@ -56,9 +56,10 @@ CREATE TABLE dbo.Item (
     DesignId      INT NOT NULL REFERENCES dbo.Design(DesignId),
     PurityId      INT NOT NULL REFERENCES dbo.Purity(PurityId),
     HuidNumber    NVARCHAR(20) NULL,              -- hallmark id, assumed
-    -- ASSUMED workflow: Draft, With Smith, Received, Complete. A status can only
-    -- move forward one step. The API enforces the order (ItemStatusRules in the
-    -- .NET project) and answers 409 on a bad move. This CHECK only limits the values.
+    -- ASSUMED statuses: Draft, With Smith, Received, Complete. ASSUMED any-to-any:
+    -- any status can be set from any other, and Complete is not final. The API
+    -- (ItemStatusRules in the .NET project) refuses an unknown value with 400.
+    -- This CHECK is a second guard on the values.
     Status        NVARCHAR(20) NOT NULL DEFAULT 'Draft'
                   CHECK (Status IN ('Draft','With Smith','Received','Complete')),
     GrossWeightG  DECIMAL(10,3) NOT NULL CHECK (GrossWeightG > 0),
@@ -201,7 +202,8 @@ GO
    The API checks the status order first, then runs one statement.
    ========================================================== */
 
--- Move an item one step forward (API has already checked Draft -> With Smith).
+-- Set a status (any of the four, from any status). The API skips this UPDATE
+-- when the item already has that status.
 UPDATE dbo.Item
 SET Status = N'With Smith', UpdatedAt = SYSUTCDATETIME()
 WHERE ItemId = 1;

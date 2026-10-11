@@ -1,7 +1,7 @@
 // Role: The item form screen, used for /catalog/new and /catalog/:id/edit.
 // It is a reactive form with validation, and saves through ItemDataService.
 // Design code is a dropdown fed by the design master. Status is not on the form:
-// new items start as Draft and status moves forward from the item page.
+// new items start as Draft and status is changed from the item page.
 
 import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';

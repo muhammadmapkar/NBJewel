@@ -1,7 +1,7 @@
 // Role: Defines the swappable item data boundary. SampleItemRepository (JSON,
 // memory only) and SqlItemRepository (SQL Server) both implement it.
-// Implementations throw DomainValidationException for bad input and
-// InvalidStatusMoveException for a status move the workflow does not allow.
+// Implementations throw DomainValidationException for bad input, including an
+// unknown status. Any known status can be set from any other (assumed).
 
 using NbJewel.Api.Models;
 

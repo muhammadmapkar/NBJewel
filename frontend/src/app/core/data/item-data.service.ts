@@ -20,7 +20,7 @@ export abstract class ItemDataService {
   abstract getLatestMetalRates(): Observable<MetalRate[]>;
   abstract createItem(request: ItemWriteRequest): Observable<Item>;
   abstract updateItem(id: number, request: ItemWriteRequest): Observable<Item>;
-  // The API only allows the next status in the workflow and replies 409 otherwise.
+  // Any of the four statuses can be set at any time. An unknown status returns 400.
   abstract updateItemStatus(id: number, status: string): Observable<Item>;
   abstract getVariants(itemId: number): Observable<ItemVariant[]>;
 

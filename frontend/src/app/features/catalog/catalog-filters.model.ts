@@ -20,11 +20,13 @@ export const DEFAULT_CATALOG_FILTERS: CatalogFilters = {
   inStockOnly: false
 };
 
-// Status workflow (assumed): an item moves forward one step at a time. The API enforces it too.
+// The four statuses, in display order. Assumed: any status can be chosen from any
+// other (forward, backward or skipping), and Complete is not final.
 export const ITEM_STATUSES = ['Draft', 'With Smith', 'Received', 'Complete'];
 
-// The only status an item may move to from this one, or null at the end of the workflow.
-export function nextStatus(current: string): string | null {
-  const index = ITEM_STATUSES.indexOf(current);
-  return index >= 0 && index < ITEM_STATUSES.length - 1 ? ITEM_STATUSES[index + 1] : null;
+// True when the new status comes earlier in the list than the current one.
+export function isBackward(current: string, next: string): boolean {
+  const from = ITEM_STATUSES.indexOf(current);
+  const to = ITEM_STATUSES.indexOf(next);
+  return from >= 0 && to >= 0 && to < from;
 }
