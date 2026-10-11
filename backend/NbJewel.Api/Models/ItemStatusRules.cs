@@ -38,7 +38,7 @@ public static class ItemStatusRules
         if (next is null)
             throw new InvalidStatusMoveException($"Cannot move from {from} to {target}. {from} is the last status.");
         if (!next.Equals(target, StringComparison.Ordinal))
-            throw new InvalidStatusMoveException($"Cannot move from {from} to {target}. The next allowed status is {next}.");
+            throw new InvalidStatusMoveException($"Cannot move from {from} to {target}. Next allowed status is {next}.");
         return target;
     }
 }

@@ -40,7 +40,7 @@ public sealed class ItemStatusRulesTests
     public void EnsureMove_ErrorNamesTheNextAllowedStatus()
     {
         var ex = Assert.Throws<InvalidStatusMoveException>(() => ItemStatusRules.EnsureMove("Draft", "Complete"));
-        Assert.Equal("Cannot move from Draft to Complete. The next allowed status is With Smith.", ex.Message);
+        Assert.Equal("Cannot move from Draft to Complete. Next allowed status is With Smith.", ex.Message);
     }
 
     [Theory]
@@ -92,7 +92,7 @@ public sealed class ItemStatusRulesTests
         var result = await controller.UpdateStatus(item.Id, new StatusUpdateRequest("Draft"), CancellationToken.None);
 
         var conflict = Assert.IsType<ConflictObjectResult>(result.Result);
-        Assert.Equal("Cannot move from With Smith to Draft. The next allowed status is Received.", conflict.Value);
+        Assert.Equal("Cannot move from With Smith to Draft. Next allowed status is Received.", conflict.Value);
     }
 
     [Fact]

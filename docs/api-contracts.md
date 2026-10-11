@@ -21,4 +21,4 @@ Assumed shapes, built for the demo. Reads are used by the assistant. Writes are 
 | `PATCH /api/items/{id}/status` | Move to the next status. Body `{status}` | 409 backward, repeated or skipping move. 400 unknown status. 404 unknown item |
 | `GET /api/items?search=` | Search matches code, name and design code | 400 bad paging |
 
-Error bodies are plain text messages, for example `Cannot move from Draft to Complete. The next allowed status is With Smith.`
+Error bodies are plain text messages, for example `Cannot move from Draft to Complete. Next allowed status is With Smith.`
