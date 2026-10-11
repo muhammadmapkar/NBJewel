@@ -16,3 +16,7 @@ These are open questions that change how the real version should be built. The d
 | 10 | React or Angular for the real front end? | The demo front end is Angular. A React prototype from earlier work is kept in `legacy-react-prototype/`. | Assumed: Angular. |
 | 11 | What is the demo date, and who will attend? | Sets the deadline and how much polish is needed. | Not set. |
 | 12 | How do users sign in, and should the assistant see different data for different users? | Authentication and permissions are not built. | Assumed: no login, one set of data for everyone. |
+| 13 | Is the "master chit" the design master? Is one design shared by many items? | Decides the design table and the dropdown. | Assumed: yes. A design has an id, a code and a name, and many items can share it. |
+| 14 | What are the real item statuses, and can a status ever move backward? | The demo uses Draft, With Smith, Received, Complete, forward only. What happens to old Active and Discontinued items is not known. | Assumed: the four statuses above. Active and Discontinued items were remapped to Complete. |
+| 15 | Should stock entry add to on-hand or replace it? Is 0 allowed? | Changes the stock form and audit needs. | Assumed: it adds, and the quantity must be above 0. |
+| 16 | Does the real schema have color, price delta and reserved stock? | The SQL repository returns empty or zero values for them. | Assumed: not in the schema. |

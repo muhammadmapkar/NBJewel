@@ -28,13 +28,15 @@ The AI service gives the language model eight tools. They are the only way the a
   - `category` (text, up to 60 characters, optional): a category name such as "Rings", or an id.
   - `metal` (optional), `purity` (optional).
   - `status` (optional): `Active`, `Draft` or `Discontinued`. Case is fixed automatically.
+  - `inStockOnly` (true or false, default false): keep only items with at least 1 unit on hand in any store.
   - `page` (number, 1 or more, default 1) and `pageSize` (1 to 50, default 10).
-- **Endpoints:** `GET /api/items`. If `category` is a name, `GET /api/categories` first to find its id.
-- **Returns:** `data.items` (id, code, name, categoryId, metalType, purity, netWt, status), `page`, `pageSize`, `totalCount`. `not_found` if nothing matches or the category name is unknown.
+- **Endpoints:** `GET /api/items`. If `category` is a name, `GET /api/categories` first to find its id. Then `GET /api/items/{id}/stock` for each item returned, run side by side, to fill in `onHand`. With `inStockOnly`, the tool reads every matching item and its stock, and pages the result itself, because the API cannot filter by stock. Assumed, no backend endpoint for stock in lists.
+- **Returns:** `data.items` (id, code, name, categoryId, metalType, purity, netWt, status, `onHand`), `page`, `pageSize`, `totalCount`. `onHand` is the total units in all stores. With `inStockOnly`, `totalCount` counts only in-stock items. `not_found` if nothing matches, the page is empty, or the category name is unknown.
+- **Why it matters:** one call answers "how many items are in stock" for any filter, so the model needs no extra round trip per item.
 - **Example call:** `run_tool("search_items", {"query": "zork"})`
 
   ```json
-  {"status": "ok", "data": {"items": [{"id": 1, "code": "RNG-0142", "name": "Zork Ring", "categoryId": 2, "metalType": "Gold", "purity": "22K", "netWt": 42.758, "status": "Active"}], "page": 1, "pageSize": 10, "totalCount": 1}, "sources": [{"tool": "search_items", "recordId": 1}]}
+  {"status": "ok", "data": {"items": [{"id": 1, "code": "RNG-0142", "name": "Zork Ring", "categoryId": 2, "metalType": "Gold", "purity": "22K", "netWt": 42.758, "status": "Active", "onHand": 7}], "page": 1, "pageSize": 10, "totalCount": 1}, "sources": [{"tool": "search_items", "recordId": 1}]}
   ```
 
 ## 2. get_item_details
@@ -77,7 +79,7 @@ The AI service gives the language model eight tools. They are the only way the a
 
 - **Purpose:** List items with few units on hand, in all stores or in one store.
 - **Arguments:** `threshold` (0 to 1000, default 5): items with this many units on hand or fewer are listed. `store` (store name or id, optional).
-- **Endpoints:** Assumed, no backend endpoint. The tool composes the answer from `GET /api/items` (all pages), `GET /api/items/{id}/stock` for every item, and `GET /api/stores` when a store is given. That is one request per item.
+- **Endpoints:** Assumed, no backend endpoint. The tool composes the answer from `GET /api/items` (all pages), `GET /api/items/{id}/stock` for every item, and `GET /api/stores` when a store is given. That is one stock request per item, run side by side.
 - **Returns:** threshold, store, `count` (all matches) and `items` (itemId, code, name, onHand), lowest first, at most 50 shown. Items with no stock records count as 0 on hand. `not_found` if nothing is low or the store is unknown.
 - **Example call:** `run_tool("list_low_stock", {"threshold": 5})`
 
@@ -110,13 +112,13 @@ The AI service gives the language model eight tools. They are the only way the a
 ## 8. list_items_by_status
 
 - **Purpose:** List items that have a given status.
-- **Arguments:** `status` (required): `Active`, `Draft` or `Discontinued`.
+- **Arguments:** `status` (required): `Draft`, `With Smith`, `Received` or `Complete` (assumed workflow, see `architecture.md`).
 - **Endpoint:** `GET /api/items?status={status}&page=1&pageSize=100`.
-- **Returns:** status, `totalCount`, `items` (same short fields as `search_items`) and `truncated` (true if there are more than 100). `not_found` if no item has that status.
+- **Returns:** status, `totalCount`, `items` (same short fields as `search_items`, including `onHand`) and `truncated` (true if there are more than 100). `not_found` if no item has that status.
 - **Example call:** `run_tool("list_items_by_status", {"status": "Draft"})`
 
   ```json
-  {"status": "ok", "data": {"status": "Draft", "totalCount": 2, "items": [{"id": 11, "code": "BNG-0011", "name": "Royal Bangle", "categoryId": 4, "metalType": "Gold", "purity": "18K", "netWt": 6.452, "status": "Draft"}, {"id": 22, "code": "EAR-0022", "name": "Classic Earrings", "categoryId": 6, "metalType": "Gold", "purity": "22K", "netWt": 24.868, "status": "Draft"}], "truncated": false}, "sources": [{"tool": "list_items_by_status", "recordId": 11}, {"tool": "list_items_by_status", "recordId": 22}]}
+  {"status": "ok", "data": {"status": "Draft", "totalCount": 2, "items": [{"id": 11, "code": "BNG-0011", "name": "Royal Bangle", "categoryId": 4, "metalType": "Gold", "purity": "18K", "netWt": 6.452, "status": "Draft", "onHand": 11}, {"id": 22, "code": "EAR-0022", "name": "Classic Earrings", "categoryId": 6, "metalType": "Gold", "purity": "22K", "netWt": 24.868, "status": "Draft", "onHand": 22}], "truncated": false}, "sources": [{"tool": "list_items_by_status", "recordId": 11}, {"tool": "list_items_by_status", "recordId": 22}]}
   ```
 
 ## Not built

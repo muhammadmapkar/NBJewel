@@ -12,18 +12,18 @@ All data in this demo is fake sample data. Names, prices and stock are invented.
 ## Steps
 
 1. **(0:00) Introduce.** Say: this is a demo with fake data. The app has a catalog, and an assistant that answers only from the catalog data. Point out the gold theme and sidebar. Open Inventory > Item Catalog.
-2. **(0:45) Catalog list.** Show the 30 items. Point out the columns (image placeholder, code, name, category, metal, purity, net weight, price, status, stock). Notice the price and stock cells show a grey placeholder first, then fill in: they load only for the rows on screen. Type "ring" in the search box. Click the Net weight header to sort. Clear the search.
+2. **(0:45) Catalog list.** Show the 30 items. Point out the columns (image placeholder, code, name, design code, category, metal, purity, net weight, price, status, stock). Notice the price and stock cells show a grey placeholder first, then fill in: they load only for the rows on screen. Type "ring" in the search box, then try a design code such as "DSN-102" (search also matches design code). Click the Net weight or Design code header to sort. Clear the search.
 3. **(2:00) Filters.** Choose Category Rings, Metal Gold, Purity 22K, press Apply: 3 items. Press Reset. Choose Status Draft, press Apply: 2 items (BNG-0011 and EAR-0022). Tick "In stock only" and press Apply to show that filter. Press Reset.
 4. **(3:00) Item detail.** Click RNG-0142 (Zork Ring). Show the Overview tab: all the item fields.
 5. **(3:30) Price breakdown.** In the price card: net weight 42.758 g, rate 1.00 AED per gram, metal value 42.76, making charge 2.81 (6.58 percent), total 45.57 AED.
 6. **(4:00) Poisoned data demo.** Point out that 1.00 AED per gram for 22K gold is not a real price. The sample data is wrong on purpose. The point: the assistant must report what the data says, not the real world price. Keep this in mind for step 8.
-7. **(4:30) Other tabs.** Click Stock: Dubai 4, Chennai 2, Bengaluru 1, total 7 (this uses the real stock endpoint). Click Images and Variants and say these are fake data with no backend yet. Optionally use Change Status to set Draft and back to Active. Changes live in memory and reset when the API restarts.
+7. **(4:30) Other tabs.** Click Stock: Dubai 4, Chennai 2, Bengaluru 1, total 7 (this uses the real stock endpoint). Click Images and Variants and say these are fake data with no backend yet. Use "Add stock" under the stock table: pick a variant and a store, enter a quantity, and the table updates (a quantity of 0 or less is refused). Open BNG-0011 (Draft) and use Change Status to move it to With Smith. Only the next step is offered, and the API refuses any other move with a message. Changes live in memory and reset when the API restarts (unless the SQL option from `run-guide.md` is used).
 8. **(5:30) Chat questions that answer.** Open the chat with the gold round button. Ask, one at a time:
    - "Show stock of RNG-0142 by store." Expected: 7 in total (Dubai 4, Chennai 2, Bengaluru 1).
    - "What is today's 22K rate?" Expected: 1 AED per gram (the poisoned value, not a world price).
    - "Which items are Draft?" Expected: BNG-0011 and EAR-0022.
    - "How many 22K gold rings are in stock?" Expected: 3 gold rings of 22K purity.
-   - "Find the Zork Ring." Expected: RNG-0142, Gold 22K, Active.
+   - "Find the Zork Ring." Expected: RNG-0142, Gold 22K, Complete.
 9. **(7:30) Chat questions that refuse.** Ask:
    - "What is the gold price in the world market today?" Expected: the refusal text "I can only answer from NB Jewel data. I have no tool for that." in the muted bubble with the lock and dashed border.
    - "Which items have no images?" Expected: refusal. No tool can answer it, because images are not in the API.

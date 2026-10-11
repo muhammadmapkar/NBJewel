@@ -33,20 +33,22 @@ Start the .NET API on 5155, the AI service on 8000 and the Angular app on 4200. 
 
 | Area | Status |
 |---|---|
-| Sample data (30 items, stock, stores, categories, rates) | Done |
-| .NET API: items, stock, price, categories, stores, metal rates, Swagger, CORS | Done |
+| Sample data (30 items, 10 designs, variants, stock, stores, categories, rates) | Done |
+| .NET API: items, designs, variants, stock (read and add), price, status workflow, categories, stores, metal rates, Swagger, CORS | Done |
 | .NET `POST /api/chat` forwarder (503 when the assistant is unavailable) | Done |
 | Angular themed shell and static pages (dashboard, scheme master, chit master, financial year, password) | Done, mock data only |
-| Angular catalog: list, filters, detail, price breakdown, stock, create and edit, status change | Done |
-| Angular images and variants tabs | Done with fake in-memory data, no backend endpoints |
+| Angular catalog: list (design code column, search, sort), filters, detail, price breakdown, stock entry, create and edit with design dropdown, status workflow badges | Done |
+| Angular images tab | Done with fake in-memory data, no backend endpoint |
+| Angular variants tab | Done, served by the API |
 | AI service: 8 read-only tools, chat loop, 4 answer guards, Gemini provider | Done |
 | Angular chat panel with source chips and refusal style | Done |
-| Offline tests: AI service (247) and .NET (11) | Done |
+| Offline tests: AI service (274) and .NET (47) | Done |
 | Live tests against Gemini (code written) | Not run, no result recorded |
 | Frontend unit tests | Not built |
 | Login, roles and permissions | Not built |
-| SQL Server or real NB Jewel API repository | Not built |
-| Backend endpoints for variants, images and stock history | Not built |
+| SQL Server repository (`SqlItemRepository`, switch with `Repository:Provider`) | Built, build-checked only, not run against a server |
+| Real NB Jewel API repository | Not built |
+| Backend endpoints for images and stock history | Not built |
 | Image upload and storage | Not built |
 | Theme pages connected to the API | Not built (mock data) |
 | Deployment, Docker, CI | Not built |

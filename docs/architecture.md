@@ -55,7 +55,7 @@ sequenceDiagram
   participant M as Gemini
   U->>F: types a question
   F->>N: POST /api/chat {question, history}
-  N->>S: POST /chat (30 second timeout)
+  N->>S: POST /chat (90 second timeout)
   S->>M: system prompt + history + question + tool declarations
   M-->>S: tool calls
   S->>N: GET endpoints (via the tools)
@@ -69,7 +69,7 @@ sequenceDiagram
 ```
 
 1. The user types a question in the chat panel (1 to 500 characters). `ChatService` sends `POST {apiBaseUrl}/api/chat` with the question and the last 6 messages as history.
-2. `ChatController` in the .NET API rejects blank or over-long questions with 400. Otherwise it forwards the request to `AI_SERVICE_URL` (default `http://localhost:8000`) with a 30 second timeout.
+2. `ChatController` in the .NET API rejects blank or over-long questions with 400. Otherwise it forwards the request to `AI_SERVICE_URL` (default `http://localhost:8000`) with a 90 second timeout.
 3. The AI service checks the request shape. `ChatService` builds the conversation: the system prompt, up to 6 history messages, the question, and the 8 tool declarations. It calls Gemini at temperature 0.1.
 4. If Gemini asks for tools, each one runs through `ToolRegistry.run_tool`. At most 5 tool calls are allowed per question. Each tool sends GET requests to the .NET API. Any other HTTP method is blocked in code.
 5. The .NET API answers from `IItemRepository`, which reads the sample JSON. The tool wraps the result as `{status, data, sources}` and it goes back to Gemini.
@@ -81,19 +81,47 @@ If the AI service is down, slow, or Gemini is not configured, the .NET API retur
 
 ## Swap plan: sample data to SQL Server or the real NB Jewel API
 
-The data source is hidden behind one interface, `IItemRepository` (`backend/NbJewel.Api/Repositories/IItemRepository.cs`). Today `SampleItemRepository` implements it by reading `sample-data/*.json`, and `Program.cs` registers it as a singleton.
+The data source is hidden behind one interface, `IItemRepository` (`backend/NbJewel.Api/Repositories/IItemRepository.cs`). Two classes implement it:
 
-To switch:
+- `SampleItemRepository` reads `sample-data/*.json` and keeps changes in memory only. This is the default.
+- `SqlItemRepository` reads and writes SQL Server, using the tables in `item_catalog_schema.sql`. It uses fixed, parameterized queries only (no free SQL).
 
-1. Write a new class that implements `IItemRepository`, for example `SqlItemRepository` (SQL Server) or `ErpApiItemRepository` (an HTTP client to the real NB Jewel API). **Assumed:** one of these two is the real target. This is an open question, see `questions-for-sakthivel.md`.
-2. In `Program.cs`, register the new class instead of `SampleItemRepository`.
+`Program.cs` registers one of them as a singleton, chosen by a config setting:
+
+| Setting | Value | Effect |
+|---|---|---|
+| `Repository:Provider` (in `appsettings.json`) | `Sample` (default) | Sample JSON, in memory |
+| `Repository:Provider` | `Sql` | SQL Server |
+| `NBJEWEL_SQL_CONNECTION` (environment variable) | a SQL Server connection string | Required when the provider is `Sql`. The API stops at start with a clear message if it is missing. It is never stored in the repo. |
+
+To switch to a different source later:
+
+1. Write another class that implements `IItemRepository`, for example `ErpApiItemRepository` (an HTTP client to the real NB Jewel API). **Assumed:** SQL Server or the real NB Jewel API is the real target. This is an open question, see `questions-for-sakthivel.md`.
+2. Add it to the provider switch in `Program.cs`.
 3. Nothing else changes for the existing features. The controllers, the response shapes, the AI service tools and the Angular screens all depend on the API contract, not on the repository.
+
+`SqlItemRepository` is build-checked only. It has not been run against a SQL Server in this repository, because no server was available.
+
+## Writes and the chatbot
+
+Writes happen only through the UI API: create and edit an item, move an item status, and add stock. The AI service can only send GET requests (`ReadOnlyApiClient`), so the chatbot tools stay read-only and none of the write endpoints is reachable from them.
+
+| Write | Endpoint | Rule |
+|---|---|---|
+| Move status | `PATCH /api/items/{id}/status` | Only the next status is allowed. Anything else returns 409 with a message. An unknown status returns 400. |
+| Add stock | `POST /api/items/{id}/stock` | Body `{variantId, storeId, quantity}`. The quantity is added to on-hand. 0 or less returns 400. |
+| Create item | `POST /api/items` | Always starts as Draft. `designId` must exist in the design master. |
+| Edit item | `PUT /api/items/{id}` | Never changes status. |
+
+The status rule lives in one class, `ItemStatusRules`, which both repositories call, so the sample and SQL versions cannot drift apart.
 
 Work the swap does not cover (not built):
 
-- The repository interface includes create, update and status change. A real ERP may be read-only for this app, so those methods may need to be removed or refused.
-- The price calculation lives inside `SampleItemRepository.GetPriceAsync`. A real implementation must reproduce the real pricing rules or call the ERP for the price.
-- Variants and images have no .NET endpoints. The frontend serves them from `InMemorySampleDataService` (fake, resets on reload). Real endpoints and a matching change in `HttpItemDataService` are needed.
+- The repository interface includes create, update, status change and add stock. A real ERP may be read-only for this app, so those methods may need to be removed or refused.
+- The price calculation lives in `ItemPricing` (used by both repositories). A real implementation must reproduce the real pricing rules or call the ERP for the price. It ignores the stone charge column in the SQL schema.
+- Images have no .NET endpoints. The frontend serves them from `InMemorySampleDataService` (fake, resets on reload). Real endpoints and a matching change in `HttpItemDataService` are needed.
+- The SQL schema has no color, price delta, reserved or currency columns. `SqlItemRepository` returns an empty color, a price delta of 0, reserved 0 and the currency AED for these. This is assumed and needs the real schema.
+- In the SQL schema, stock belongs to a variant, so an item with no variant cannot hold stock there. The sample repository allows stock on an item with no variant.
 - The stock API has no "last updated" value. The Stock tab shows "Not available".
 - `list_low_stock` is built in the AI service from many calls (one per item). With real data it needs a proper API endpoint.
 - Authentication and authorization are not built anywhere.
@@ -105,9 +133,13 @@ Everything below is a guess about NB Jewel, used only to build the demo. None of
 - **Assumed:** The business sells jewelry items made of a metal and a purity (22K, 18K, 24K, 925), priced from a daily rate per gram plus a making charge.
 - **Assumed:** Making charge comes in three types: per gram, percent of metal value, or a flat amount.
 - **Assumed:** There is one rate per metal and purity, in AED, with an effective date. The "latest" rate is the one with the newest date.
-- **Assumed:** Stock is tracked per item per store, with on hand and reserved counts. The demo uses three stores (Dubai, Chennai, Bengaluru).
-- **Assumed:** An item has a code (for example RNG-0142), a design code, a HUID, gross, net and stone weights, and a status of Active, Draft or Discontinued.
+- **Assumed:** Stock is tracked per variant per store (or per item per store when an item has no variants), with on hand and reserved counts. The demo uses three stores (Dubai, Chennai, Bengaluru).
+- **Assumed:** Adding stock ADDS the entered quantity to on-hand. The quantity must be above 0. (The product manager wrote "0 or more". The project owner changed it to above 0, because adding 0 does nothing.)
+- **Assumed:** An item has a code (for example RNG-0142), a design (chosen from a design master), a HUID, gross, net and stone weights, and a status.
+- **Assumed:** The design master is what the product manager called the "master chit". It has a design id, a design code and a name. Many items can share one design. The demo has 10 designs.
+- **Assumed:** The status workflow is Draft, With Smith, Received, Complete. A status can only move forward one step. Draft is the start, "With Smith" means the piece is out with the craftsman, and Complete is the end. There is no way back.
+- **Assumed:** Old sample statuses were remapped: Active to Complete, Discontinued to Complete, and Draft stays Draft. Discontinued has no place in the new workflow, so that information is lost in the demo data.
 - **Assumed:** Categories form a tree with one root ("Jewelry").
-- **Assumed:** Items can have variants (size and color) and images. The demo data for these is invented.
+- **Assumed:** Items can have variants (size and color) and images. The demo data for these is invented. Variants now come from the API (`sample-data/variants.json`). Images are still fake in the frontend.
 - **Assumed:** The real system is either Business Central or a .NET application on SQL Server.
 - **Assumed:** Field names in the sample data are illustrative and do not match NB Jewel's real schema.
