@@ -15,6 +15,8 @@ class Settings(BaseSettings):
 
     gemini_api_key: SecretStr | None = None
     gemini_model: str = ""
+    # How much the model thinks before answering: minimal, low, medium or high. Empty means the model default.
+    gemini_thinking_level: str = "low"
     nbjewel_api_url: str = "http://localhost:5155"
 
     def safe_summary(self) -> dict[str, object]:
@@ -22,6 +24,7 @@ class Settings(BaseSettings):
         return {
             "gemini_api_key_set": self.gemini_api_key is not None and bool(self.gemini_api_key.get_secret_value()),
             "gemini_model": self.gemini_model,
+            "gemini_thinking_level": self.gemini_thinking_level,
             "nbjewel_api_url": self.nbjewel_api_url,
         }
 

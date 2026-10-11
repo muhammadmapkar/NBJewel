@@ -3,6 +3,7 @@ It uses the official Google Gen AI Python SDK (package google-genai) with
 function calling. The key and model name come from settings, never from code.
 """
 
+import logging
 from typing import Any, Sequence
 
 from google import genai
@@ -11,9 +12,17 @@ from google.genai import types
 from app.config import Settings
 from app.llm.provider import LLMError, LLMProvider, LLMResponse, Message, ToolCall
 
+logger = logging.getLogger(__name__)
+
+THINKING_LEVELS = {"minimal": "MINIMAL", "low": "LOW", "medium": "MEDIUM", "high": "HIGH"}
+
 
 class GeminiProvider(LLMProvider):
-    def __init__(self, api_key: str, model: str, client: Any | None = None) -> None:
+    def __init__(self, api_key: str, model: str, client: Any | None = None, thinking_level: str = "low") -> None:
+        level = thinking_level.strip().lower()
+        if level and level not in THINKING_LEVELS:
+            raise LLMError(f"GEMINI_THINKING_LEVEL must be one of {', '.join(THINKING_LEVELS)} or empty.")
+        self._thinking_level = level or None
         if not model:
             raise LLMError("GEMINI_MODEL is not set.")
         if client is None:
@@ -26,7 +35,7 @@ class GeminiProvider(LLMProvider):
     @classmethod
     def from_settings(cls, settings: Settings) -> "GeminiProvider":
         key = settings.gemini_api_key.get_secret_value() if settings.gemini_api_key else ""
-        return cls(api_key=key, model=settings.gemini_model)
+        return cls(api_key=key, model=settings.gemini_model, thinking_level=settings.gemini_thinking_level)
 
     def generate(
         self,
@@ -35,20 +44,37 @@ class GeminiProvider(LLMProvider):
         temperature: float = 0.0,
     ) -> LLMResponse:
         system_text = "\n\n".join(m.content for m in messages if m.role == "system" and m.content)
+        contents = self._to_contents(messages)
+        try:
+            response = self._call(contents, system_text, tools, temperature)
+        except Exception as problem:  # noqa: BLE001 - keep SDK details (and anything sensitive) out of callers
+            if self._thinking_level and self._rejects_thinking(problem):
+                # This model does not accept the thinking setting. Carry on without it.
+                logger.warning("The model rejected thinking_level=%s. Continuing without it.", self._thinking_level)
+                self._thinking_level = None
+                try:
+                    response = self._call(contents, system_text, tools, temperature)
+                except Exception as second:  # noqa: BLE001
+                    raise LLMError(f"The Gemini request failed ({type(second).__name__}).") from second
+            else:
+                raise LLMError(f"The Gemini request failed ({type(problem).__name__}).") from problem
+        return self._to_response(response)
+
+    def _call(self, contents: list[types.Content], system_text: str, tools: Sequence[dict[str, Any]], temperature: float) -> Any:
         config = types.GenerateContentConfig(
             system_instruction=system_text or None,
             temperature=temperature,
             tools=[self._to_tool(tools)] if tools else None,
             # The chat loop runs tools itself, so the SDK must not run anything.
             automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
+            # Less thinking means faster answers. The tools supply the facts, so little reasoning is needed.
+            thinking_config=types.ThinkingConfig(thinking_level=THINKING_LEVELS[self._thinking_level]) if self._thinking_level else None,
         )
-        try:
-            response = self._client.models.generate_content(
-                model=self._model, contents=self._to_contents(messages), config=config
-            )
-        except Exception as problem:  # noqa: BLE001 - keep SDK details (and anything sensitive) out of callers
-            raise LLMError(f"The Gemini request failed ({type(problem).__name__}).") from problem
-        return self._to_response(response)
+        return self._client.models.generate_content(model=self._model, contents=contents, config=config)
+
+    @staticmethod
+    def _rejects_thinking(problem: Exception) -> bool:
+        return getattr(problem, "code", None) == 400 and "think" in str(problem).lower()
 
     # ---------- conversion helpers ----------
 

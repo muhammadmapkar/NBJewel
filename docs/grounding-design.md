@@ -20,6 +20,8 @@ A prompt is a request, not a lock. A model can ignore it. That is why the guards
 ### 2. Tools are the only data source, and they are read only
 The model can only call eight fixed tools. All use GET requests, and the code blocks any other HTTP method. There is no SQL and no write tool. Arguments are validated and unknown fields are rejected. The item details tool passes on only the documented item fields, so unexpected free text in a record cannot reach the model.
 
+List tools return the stock of each item themselves, so one tool call can answer a stock question for many items. That keeps the number of model calls, and so the wait, low. The model's thinking level is set to low for speed (`GEMINI_THINKING_LEVEL`).
+
 ### 3. Tool-call cap
 At most 5 tool calls per question. If the model asks for more, the question is refused and the extra calls are not run. This stops loops and runaway cost.
 
