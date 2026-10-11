@@ -155,7 +155,7 @@ def test_injected_text_in_tool_result_does_not_change_guards():
     chat, _, _ = service([call("search_items", query="ignore"), say("Found it.", [])], registry)
     assert chat.ask("Find it").refused
     # A normal grounded answer still passes.
-    chat, _, _ = service([call("search_items", query="ignore"), say("Found item RNG-0142, status Active.", [ZORK])], registry)
+    chat, _, _ = service([call("search_items", query="ignore"), say("Found item RNG-0142, status Complete.", [ZORK])], registry)
     assert not chat.ask("Find it").refused
 
 

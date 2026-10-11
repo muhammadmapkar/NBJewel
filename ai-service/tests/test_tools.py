@@ -11,10 +11,10 @@ from app.tools.registry import ToolRegistry
 ITEMS = [
     {"id": 1, "code": "RNG-0142", "name": "Zork Ring", "categoryId": 2, "designCode": "DSN-ZORK", "metalType": "Gold",
      "purity": "22K", "grossWt": 42.758, "netWt": 42.758, "stoneWt": 0.0, "makingType": "percent", "makingValue": 6.58,
-     "huid": "D8PCF3", "status": "Active", "imageUrl": None},
+     "huid": "D8PCF3", "status": "Complete", "imageUrl": None},
     {"id": 2, "code": "RNG-0002", "name": "Classic Ring", "categoryId": 2, "designCode": "DSN-102", "metalType": "Gold",
      "purity": "18K", "grossWt": 5.167, "netWt": 5.004, "stoneWt": 0.163, "makingType": "percent", "makingValue": 10.52,
-     "huid": None, "status": "Active", "imageUrl": None},
+     "huid": None, "status": "Complete", "imageUrl": None},
     {"id": 3, "code": "CHN-0003", "name": "Silver Chain", "categoryId": 5, "designCode": "DSN-300", "metalType": "Silver",
      "purity": "925", "grossWt": 10.0, "netWt": 10.0, "stoneWt": 0.0, "makingType": "flat", "makingValue": 2.0,
      "huid": None, "status": "Draft", "imageUrl": None},
@@ -106,7 +106,7 @@ VALID_ARGS = {
     "list_low_stock": {"threshold": 2},
     "list_categories": {},
     "get_latest_metal_rate": {"metal": "Gold"},
-    "list_items_by_status": {"status": "Active"},
+    "list_items_by_status": {"status": "Complete"},
 }
 
 
@@ -126,7 +126,7 @@ def test_run_tool_search_items_returns_zork_ring():
 
 def test_search_items_filters_by_category_name_and_status():
     registry, _ = make_registry()
-    result = registry.run_tool("search_items", {"category": "rings", "status": "active"})
+    result = registry.run_tool("search_items", {"category": "rings", "status": "complete"})
     assert result["status"] == "ok"
     assert [i["id"] for i in result["data"]["items"]] == [1, 2]
 
@@ -201,7 +201,7 @@ def test_list_items_by_status_ok():
     ("get_stock_by_store", {"itemId": 3}),  # no stock records
     ("list_low_stock", {"threshold": 0, "store": "Nowhere"}),
     ("get_latest_metal_rate", {"metal": "Platinum"}),
-    ("list_items_by_status", {"status": "Discontinued"}),
+    ("list_items_by_status", {"status": "With Smith"}),
 ])
 def test_not_found(name, args):
     registry, _ = make_registry()
@@ -249,7 +249,7 @@ def test_api_server_error_returns_error():
     ("list_low_stock", {"threshold": -1}),
     ("list_categories", {"extra": True}),                   # takes no arguments
     ("get_latest_metal_rate", {}),
-    ("list_items_by_status", {"status": "Active", "page": 2}),
+    ("list_items_by_status", {"status": "Complete", "page": 2}),
 ])
 def test_bad_arguments_return_error_without_calling_the_api(name, args):
     registry, fake = make_registry()
@@ -283,7 +283,7 @@ def test_declarations_list_all_eight_tools_with_json_schema():
         assert d["parameters"]["type"] == "object"
         assert "title" not in d["parameters"] and "additionalProperties" not in d["parameters"]
     search = next(d for d in declarations if d["name"] == "search_items")
-    assert search["parameters"]["properties"]["status"]["enum"] == ["Active", "Draft", "Discontinued"]
+    assert search["parameters"]["properties"]["status"]["enum"] == ["Draft", "With Smith", "Received", "Complete"]
     assert search["parameters"]["properties"]["query"]["type"] == "string"
     details = next(d for d in declarations if d["name"] == "get_item_details")
     assert "required" not in details["parameters"]

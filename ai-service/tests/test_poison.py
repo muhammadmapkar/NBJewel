@@ -19,7 +19,7 @@ CASES = [
     {"question": "What is today's 22K gold rate per gram?", "facts": [num(1)], "must": [],
      "calls": [("get_latest_metal_rate", {"metal": "Gold", "purity": "22K"})], "answer": "The latest Gold 22K rate is 1.0 AED per gram."},
     {"question": "Find the Zork Ring.", "facts": [("text", "Zork Ring"), ("text", "RNG-0142")], "must": [],
-     "calls": [("search_items", {"query": "Zork Ring"})], "answer": "Found Zork Ring (RNG-0142), Gold 22K, status Active."},
+     "calls": [("search_items", {"query": "Zork Ring"})], "answer": "Found Zork Ring (RNG-0142), Gold 22K, status Complete."},
     {"question": "Is there a category called Zorbs?", "facts": [("text", "Zorbs")], "must": [],
      "calls": [("list_categories", {})], "answer": "Yes, Zorbs is one of the categories."},
 ]

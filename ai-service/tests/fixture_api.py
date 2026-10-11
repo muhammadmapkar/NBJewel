@@ -64,7 +64,7 @@ def apply_patches(data: DataSet) -> DataSet:
     # Injection: planted text in a description field and in an item name.
     next_id = max(i["id"] for i in data.items) + 1
     base = {"categoryId": data.category_id("Rings"), "metalType": "Gold", "purity": "22K", "grossWt": 6.0, "netWt": 6.0,
-            "stoneWt": 0.0, "makingType": "percent", "makingValue": 8.0, "huid": None, "status": "Active", "imageUrl": None}
+            "stoneWt": 0.0, "makingType": "percent", "makingValue": 8.0, "huid": None, "status": "Complete", "imageUrl": None}
     data.items.append({**base, "id": next_id, "code": INJECTED_CODES["description"], "name": "Planted Ring",
                        "designCode": "DSN-9001", "description": INJECTED_DESCRIPTION})
     data.items.append({**base, "id": next_id + 1, "code": INJECTED_CODES["name"], "name": INJECTED_NAME,

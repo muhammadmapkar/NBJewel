@@ -87,6 +87,8 @@ def build_case(entry: dict[str, Any], data: DataSet) -> Case:
         n = _count(data, status=p["status"])
         case.calls = [("list_items_by_status", {"status": p["status"]})]
         case.answer, case.facts = f"There are {n} items with status {p['status']}.", [num(n)]
+        if n == 0:  # the tool answers not_found when no item has the status, so there are no sources
+            case.answer, case.facts, case.expects_sources = f"No items have status {p['status']}.", [], False
     elif kind in ("net_weight", "gross_weight"):
         field_name = "netWt" if kind == "net_weight" else "grossWt"
         case.calls = [("get_item_details", {"code": item["code"]})]

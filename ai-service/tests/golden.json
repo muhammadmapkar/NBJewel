@@ -44,7 +44,7 @@
     "kind": "count_by_status",
     "question": "How many items have the status {status}?",
     "params": {
-      "status": "Active"
+      "status": "Complete"
     }
   },
   {
@@ -60,7 +60,7 @@
     "kind": "count_by_status",
     "question": "How many items have the status {status}?",
     "params": {
-      "status": "Discontinued"
+      "status": "With Smith"
     }
   },
   {

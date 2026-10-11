@@ -3,8 +3,12 @@ model (unknown fields are rejected) and a handler that calls GET endpoints of
 the .NET API through ReadOnlyApiClient. No tool writes data or runs SQL.
 
 Every handler returns {"status": "ok" | "not_found" | "error", "data": ..., "sources": [...]}.
+
+List tools add the stock of each item themselves (assumed, no backend endpoint for stock in lists), so the
+model needs one tool call, not one call per item.
 """
 
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Any, Callable, Literal
 
@@ -13,9 +17,10 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from app.tools.api_client import ReadOnlyApiClient
 
 ToolResult = dict[str, Any]
-Status = Literal["Active", "Draft", "Discontinued"]
+Status = Literal["Draft", "With Smith", "Received", "Complete"]
 MAX_PAGE_SIZE = 100
 LOW_STOCK_LIMIT = 50
+STOCK_WORKERS = 8
 
 
 # ---------- result helpers ----------
@@ -62,6 +67,7 @@ class SearchItemsArgs(_Args):
     status: Status | None = Field(None, description="Item status.")
     page: int = Field(1, ge=1, description="Page number, starting at 1.")
     pageSize: int = Field(10, ge=1, le=50, description="Items per page, 1 to 50.")
+    inStockOnly: bool = Field(False, description="If true, return only items with at least 1 unit on hand in any store.")
 
     _trim = field_validator("query", "category", "metal", "purity", mode="before")(_clean_text)
     _status = field_validator("status", mode="before")(_title_status)
@@ -152,21 +158,48 @@ def _fetch_all_items(client: ReadOnlyApiClient, params: dict[str, Any] | None = 
         page += 1
 
 
+def _stock_records(client: ReadOnlyApiClient, item_ids: list[int]) -> dict[int, list[dict[str, Any]]]:
+    """Stock rows of many items. The requests run side by side, so one tool call stays fast
+    and the model does not need a separate round trip per item."""
+    ids = list(dict.fromkeys(item_ids))
+    if not ids:
+        return {}
+
+    def fetch(item_id: int) -> tuple[int, list[dict[str, Any]]]:
+        _, records = client.get(f"/api/items/{item_id}/stock")
+        return item_id, records if isinstance(records, list) else []
+
+    with ThreadPoolExecutor(max_workers=STOCK_WORKERS) as pool:
+        return dict(pool.map(fetch, ids))
+
+
+def _on_hand(records: list[dict[str, Any]], store_id: int | None = None) -> int:
+    return sum(r["onHand"] for r in records if store_id is None or r["storeId"] == store_id)
+
+
 def search_items(client: ReadOnlyApiClient, args: SearchItemsArgs) -> ToolResult:
     category_id = None
     if args.category:
         category_id = _resolve_category(client, args.category)
         if category_id is None:
             return not_found(f"No category named '{args.category}'.")
-    _, body = client.get("/api/items", {
-        "search": args.query, "category": category_id, "metal": args.metal, "purity": args.purity,
-        "status": args.status, "page": args.page, "pageSize": args.pageSize,
-    })
-    items = body.get("items", [])
+    filters = {"search": args.query, "category": category_id, "metal": args.metal, "purity": args.purity, "status": args.status}
+    if args.inStockOnly:
+        # The API cannot filter by stock, so read every match, check stock, then page the result here.
+        matches = _fetch_all_items(client, filters)
+        stock = _stock_records(client, [i["id"] for i in matches])
+        matches = [i for i in matches if _on_hand(stock[i["id"]]) > 0]
+        total = len(matches)
+        start = (args.page - 1) * args.pageSize
+        items = matches[start:start + args.pageSize]
+    else:
+        _, body = client.get("/api/items", {**filters, "page": args.page, "pageSize": args.pageSize})
+        items, total = body.get("items", []), body.get("totalCount")
+        stock = _stock_records(client, [i["id"] for i in items])
     if not items:
-        return not_found("No items match the search.")
-    data = {"items": [_item_summary(i) for i in items], "page": body.get("page"),
-            "pageSize": body.get("pageSize"), "totalCount": body.get("totalCount")}
+        return not_found("No items match the search." if not total else "That page has no items.")
+    data = {"items": [{**_item_summary(i), "onHand": _on_hand(stock[i["id"]])} for i in items],
+            "page": args.page, "pageSize": args.pageSize, "totalCount": total}
     return ok(data, [source("search_items", i["id"]) for i in items])
 
 
@@ -219,7 +252,8 @@ def get_stock_by_store(client: ReadOnlyApiClient, args: ItemIdArgs) -> ToolResul
 
 
 def list_low_stock(client: ReadOnlyApiClient, args: ListLowStockArgs) -> ToolResult:
-    # Assumed, no backend endpoint: this is composed from GET /api/items and each item's stock.
+    # Assumed, no backend endpoint: this is composed from GET /api/items and each item's stock
+    # (the stock requests run side by side).
     store_id: int | None = None
     if args.store:
         stores = _stores_by_id(client)
@@ -230,10 +264,10 @@ def list_low_stock(client: ReadOnlyApiClient, args: ListLowStockArgs) -> ToolRes
         if store_id is None:
             return not_found(f"No store named '{args.store}'.")
     low: list[dict[str, Any]] = []
-    for item in _fetch_all_items(client):
-        _, records = client.get(f"/api/items/{item['id']}/stock")
-        counted = [r for r in records if store_id is None or r["storeId"] == store_id]
-        on_hand = sum(r["onHand"] for r in counted)
+    all_items = _fetch_all_items(client)
+    stock = _stock_records(client, [i["id"] for i in all_items])
+    for item in all_items:
+        on_hand = _on_hand(stock[item["id"]], store_id)
         if on_hand <= args.threshold:
             low.append({"itemId": item["id"], "code": item["code"], "name": item["name"], "onHand": on_hand})
     if not low:
@@ -265,8 +299,10 @@ def list_items_by_status(client: ReadOnlyApiClient, args: ListItemsByStatusArgs)
     items = body.get("items", [])
     if not items:
         return not_found(f"No items have status {args.status}.")
+    stock = _stock_records(client, [i["id"] for i in items])
     data = {"status": args.status, "totalCount": body.get("totalCount"),
-            "items": [_item_summary(i) for i in items], "truncated": body.get("totalCount", 0) > len(items)}
+            "items": [{**_item_summary(i), "onHand": _on_hand(stock[i["id"]])} for i in items],
+            "truncated": body.get("totalCount", 0) > len(items)}
     return ok(data, [source("list_items_by_status", i["id"]) for i in items])
 
 
@@ -281,12 +317,12 @@ class Tool:
 
 
 ALL_TOOLS: list[Tool] = [
-    Tool("search_items", "Search the item catalog by text, category, metal, purity or status. Returns a page of items.", SearchItemsArgs, search_items),
+    Tool("search_items", "Search the item catalog by text, category, metal, purity or status. Each item includes onHand, the units in stock across all stores. Set inStockOnly to keep only items with stock; totalCount then counts only those. Use totalCount to count items.", SearchItemsArgs, search_items),
     Tool("get_item_details", "Get every field of one item, by item id or by item code.", GetItemDetailsArgs, get_item_details),
     Tool("get_item_price_breakdown", "Get the price breakdown of one item: net weight, rate per gram, metal value, making charge and total.", ItemIdArgs, get_item_price_breakdown),
     Tool("get_stock_by_store", "Get on hand, reserved and available stock of one item in each store.", ItemIdArgs, get_stock_by_store),
     Tool("list_low_stock", "List items with a threshold number of units on hand or fewer, across all stores or in one store.", ListLowStockArgs, list_low_stock),
     Tool("list_categories", "List all product categories.", NoArgs, list_categories),
     Tool("get_latest_metal_rate", "Get the latest rate per gram for a metal, optionally for one purity.", GetLatestMetalRateArgs, get_latest_metal_rate),
-    Tool("list_items_by_status", "List items that have a given status (Active, Draft or Discontinued).", ListItemsByStatusArgs, list_items_by_status),
+    Tool("list_items_by_status", "List items that have a given status (Draft, With Smith, Received or Complete). Each item includes onHand, the units in stock across all stores.", ListItemsByStatusArgs, list_items_by_status),
 ]
