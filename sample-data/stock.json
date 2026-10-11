@@ -1,36 +1,42 @@
 [
   {
     "itemId": 1,
+    "variantId": 11,
     "storeId": 1,
     "onHand": 4,
     "reserved": 0
   },
   {
     "itemId": 1,
+    "variantId": 11,
     "storeId": 2,
     "onHand": 2,
     "reserved": 0
   },
   {
     "itemId": 1,
+    "variantId": 11,
     "storeId": 3,
     "onHand": 1,
     "reserved": 0
   },
   {
     "itemId": 2,
+    "variantId": 21,
     "storeId": 1,
     "onHand": 0,
     "reserved": 0
   },
   {
     "itemId": 2,
+    "variantId": 21,
     "storeId": 2,
     "onHand": 1,
     "reserved": 0
   },
   {
     "itemId": 2,
+    "variantId": 21,
     "storeId": 3,
     "onHand": 1,
     "reserved": 1
@@ -55,36 +61,42 @@
   },
   {
     "itemId": 4,
+    "variantId": 41,
     "storeId": 1,
     "onHand": 6,
     "reserved": 1
   },
   {
     "itemId": 4,
+    "variantId": 41,
     "storeId": 2,
     "onHand": 8,
     "reserved": 0
   },
   {
     "itemId": 4,
+    "variantId": 41,
     "storeId": 3,
     "onHand": 2,
     "reserved": 0
   },
   {
     "itemId": 5,
+    "variantId": 51,
     "storeId": 1,
     "onHand": 3,
     "reserved": 0
   },
   {
     "itemId": 5,
+    "variantId": 51,
     "storeId": 2,
     "onHand": 2,
     "reserved": 0
   },
   {
     "itemId": 5,
+    "variantId": 51,
     "storeId": 3,
     "onHand": 0,
     "reserved": 0
@@ -109,36 +121,42 @@
   },
   {
     "itemId": 7,
+    "variantId": 71,
     "storeId": 1,
     "onHand": 12,
     "reserved": 1
   },
   {
     "itemId": 7,
+    "variantId": 71,
     "storeId": 2,
     "onHand": 2,
     "reserved": 0
   },
   {
     "itemId": 7,
+    "variantId": 71,
     "storeId": 3,
     "onHand": 6,
     "reserved": 0
   },
   {
     "itemId": 8,
+    "variantId": 81,
     "storeId": 1,
     "onHand": 4,
     "reserved": 0
   },
   {
     "itemId": 8,
+    "variantId": 81,
     "storeId": 2,
     "onHand": 0,
     "reserved": 0
   },
   {
     "itemId": 8,
+    "variantId": 81,
     "storeId": 3,
     "onHand": 3,
     "reserved": 1
@@ -163,36 +181,42 @@
   },
   {
     "itemId": 10,
+    "variantId": 101,
     "storeId": 1,
     "onHand": 12,
     "reserved": 1
   },
   {
     "itemId": 10,
+    "variantId": 101,
     "storeId": 2,
     "onHand": 8,
     "reserved": 1
   },
   {
     "itemId": 10,
+    "variantId": 101,
     "storeId": 3,
     "onHand": 4,
     "reserved": 1
   },
   {
     "itemId": 11,
+    "variantId": 111,
     "storeId": 1,
     "onHand": 3,
     "reserved": 0
   },
   {
     "itemId": 11,
+    "variantId": 111,
     "storeId": 2,
     "onHand": 6,
     "reserved": 0
   },
   {
     "itemId": 11,
+    "variantId": 111,
     "storeId": 3,
     "onHand": 2,
     "reserved": 0
@@ -217,36 +241,42 @@
   },
   {
     "itemId": 13,
+    "variantId": 131,
     "storeId": 1,
     "onHand": 4,
     "reserved": 0
   },
   {
     "itemId": 13,
+    "variantId": 131,
     "storeId": 2,
     "onHand": 2,
     "reserved": 0
   },
   {
     "itemId": 13,
+    "variantId": 131,
     "storeId": 3,
     "onHand": 1,
     "reserved": 1
   },
   {
     "itemId": 14,
+    "variantId": 141,
     "storeId": 1,
     "onHand": 8,
     "reserved": 1
   },
   {
     "itemId": 14,
+    "variantId": 141,
     "storeId": 2,
     "onHand": 4,
     "reserved": 1
   },
   {
     "itemId": 14,
+    "variantId": 141,
     "storeId": 3,
     "onHand": 3,
     "reserved": 1
@@ -271,36 +301,42 @@
   },
   {
     "itemId": 16,
+    "variantId": 161,
     "storeId": 1,
     "onHand": 12,
     "reserved": 0
   },
   {
     "itemId": 16,
+    "variantId": 161,
     "storeId": 2,
     "onHand": 4,
     "reserved": 0
   },
   {
     "itemId": 16,
+    "variantId": 161,
     "storeId": 3,
     "onHand": 6,
     "reserved": 1
   },
   {
     "itemId": 17,
+    "variantId": 171,
     "storeId": 1,
     "onHand": 6,
     "reserved": 0
   },
   {
     "itemId": 17,
+    "variantId": 171,
     "storeId": 2,
     "onHand": 0,
     "reserved": 0
   },
   {
     "itemId": 17,
+    "variantId": 171,
     "storeId": 3,
     "onHand": 3,
     "reserved": 0
@@ -325,36 +361,42 @@
   },
   {
     "itemId": 19,
+    "variantId": 191,
     "storeId": 1,
     "onHand": 4,
     "reserved": 1
   },
   {
     "itemId": 19,
+    "variantId": 191,
     "storeId": 2,
     "onHand": 3,
     "reserved": 0
   },
   {
     "itemId": 19,
+    "variantId": 191,
     "storeId": 3,
     "onHand": 0,
     "reserved": 0
   },
   {
     "itemId": 20,
+    "variantId": 201,
     "storeId": 1,
     "onHand": 4,
     "reserved": 0
   },
   {
     "itemId": 20,
+    "variantId": 201,
     "storeId": 2,
     "onHand": 2,
     "reserved": 0
   },
   {
     "itemId": 20,
+    "variantId": 201,
     "storeId": 3,
     "onHand": 0,
     "reserved": 0
@@ -379,36 +421,42 @@
   },
   {
     "itemId": 22,
+    "variantId": 221,
     "storeId": 1,
     "onHand": 2,
     "reserved": 1
   },
   {
     "itemId": 22,
+    "variantId": 221,
     "storeId": 2,
     "onHand": 8,
     "reserved": 0
   },
   {
     "itemId": 22,
+    "variantId": 221,
     "storeId": 3,
     "onHand": 12,
     "reserved": 0
   },
   {
     "itemId": 23,
+    "variantId": 231,
     "storeId": 1,
     "onHand": 4,
     "reserved": 1
   },
   {
     "itemId": 23,
+    "variantId": 231,
     "storeId": 2,
     "onHand": 2,
     "reserved": 0
   },
   {
     "itemId": 23,
+    "variantId": 231,
     "storeId": 3,
     "onHand": 8,
     "reserved": 1
@@ -433,36 +481,42 @@
   },
   {
     "itemId": 25,
+    "variantId": 251,
     "storeId": 1,
     "onHand": 0,
     "reserved": 0
   },
   {
     "itemId": 25,
+    "variantId": 251,
     "storeId": 2,
     "onHand": 2,
     "reserved": 1
   },
   {
     "itemId": 25,
+    "variantId": 251,
     "storeId": 3,
     "onHand": 6,
     "reserved": 0
   },
   {
     "itemId": 26,
+    "variantId": 261,
     "storeId": 1,
     "onHand": 8,
     "reserved": 0
   },
   {
     "itemId": 26,
+    "variantId": 261,
     "storeId": 2,
     "onHand": 0,
     "reserved": 0
   },
   {
     "itemId": 26,
+    "variantId": 261,
     "storeId": 3,
     "onHand": 0,
     "reserved": 0
@@ -487,36 +541,42 @@
   },
   {
     "itemId": 28,
+    "variantId": 281,
     "storeId": 1,
     "onHand": 1,
     "reserved": 1
   },
   {
     "itemId": 28,
+    "variantId": 281,
     "storeId": 2,
     "onHand": 1,
     "reserved": 1
   },
   {
     "itemId": 28,
+    "variantId": 281,
     "storeId": 3,
     "onHand": 12,
     "reserved": 0
   },
   {
     "itemId": 29,
+    "variantId": 291,
     "storeId": 1,
     "onHand": 1,
     "reserved": 0
   },
   {
     "itemId": 29,
+    "variantId": 291,
     "storeId": 2,
     "onHand": 3,
     "reserved": 1
   },
   {
     "itemId": 29,
+    "variantId": 291,
     "storeId": 3,
     "onHand": 3,
     "reserved": 0
