@@ -41,3 +41,7 @@ coverage/
 
 # AI service live test report
 ai-service/tests/report.md
+
+# Local tool folders
+.claude/
+.serena/
