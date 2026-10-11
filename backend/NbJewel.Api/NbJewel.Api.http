@@ -1,7 +1,27 @@
-### Role: Provides a small manual smoke-test request for the local API.
+### Role: Provides small manual smoke-test requests for the local API.
 @NbJewel.Api_HostAddress = http://localhost:5155
 
 GET {{NbJewel.Api_HostAddress}}/api/items/1/price
 Accept: application/json
+
+### Design master list (feeds the design code dropdown)
+GET {{NbJewel.Api_HostAddress}}/api/designs
+Accept: application/json
+
+### Variants of an item
+GET {{NbJewel.Api_HostAddress}}/api/items/1/variants
+Accept: application/json
+
+### Add stock (adds to on-hand, quantity must be above 0)
+POST {{NbJewel.Api_HostAddress}}/api/items/1/stock
+Content-Type: application/json
+
+{ "variantId": 11, "storeId": 1, "quantity": 5 }
+
+### Move status forward (Draft, With Smith, Received, Complete). A bad move returns 409.
+PATCH {{NbJewel.Api_HostAddress}}/api/items/11/status
+Content-Type: application/json
+
+{ "status": "With Smith" }
 
 ###

@@ -1,5 +1,7 @@
-// Role: Exposes item search, details, stock, price, and memory-only write
-// endpoints for the future Angular client.
+// Role: Exposes item search, details, variants, stock, price, and write
+// endpoints for the Angular client. Writes go through IItemRepository, which is
+// memory-only by default and saves to SQL Server when that provider is chosen.
+// Bad input returns 400. A status move the workflow forbids returns 409.
 
 using Microsoft.AspNetCore.Mvc;
 using NbJewel.Api.Models;
@@ -24,6 +26,16 @@ public sealed class ItemsController(IItemRepository repository) : ControllerBase
     [HttpGet("{id:int}/stock")]
     public async Task<ActionResult<IReadOnlyList<StockRecord>>> GetStock(int id, CancellationToken cancellationToken) => (await repository.GetItemAsync(id, cancellationToken)) is null ? NotFound() : Ok(await repository.GetStockAsync(id, cancellationToken));
 
+    [HttpGet("{id:int}/variants")]
+    public async Task<ActionResult<IReadOnlyList<ItemVariant>>> GetVariants(int id, CancellationToken cancellationToken) => (await repository.GetItemAsync(id, cancellationToken)) is null ? NotFound() : Ok(await repository.GetVariantsAsync(id, cancellationToken));
+
+    [HttpPost("{id:int}/stock")]
+    public async Task<ActionResult<StockRecord>> AddStock(int id, StockAddRequest request, CancellationToken cancellationToken)
+    {
+        try { return (await repository.AddStockAsync(id, request, cancellationToken)) is { } record ? Ok(record) : NotFound(); }
+        catch (DomainValidationException ex) { return BadRequest(ex.Message); }
+    }
+
     [HttpGet("{id:int}/price")]
     public async Task<ActionResult<ItemPrice>> GetPrice(int id, CancellationToken cancellationToken)
     {
@@ -33,11 +45,25 @@ public sealed class ItemsController(IItemRepository repository) : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<Item>> Create(ItemCreateRequest request, CancellationToken cancellationToken) { var item = await repository.CreateAsync(request, cancellationToken); return CreatedAtAction(nameof(GetItem), new { id = item.Id }, item); }
+    public async Task<ActionResult<Item>> Create(ItemCreateRequest request, CancellationToken cancellationToken)
+    {
+        try { var item = await repository.CreateAsync(request, cancellationToken); return CreatedAtAction(nameof(GetItem), new { id = item.Id }, item); }
+        catch (DomainValidationException ex) { return BadRequest(ex.Message); }
+    }
 
     [HttpPut("{id:int}")]
-    public async Task<ActionResult<Item>> Update(int id, ItemUpdateRequest request, CancellationToken cancellationToken) => (await repository.UpdateAsync(id, request, cancellationToken)) is { } item ? Ok(item) : NotFound();
+    public async Task<ActionResult<Item>> Update(int id, ItemUpdateRequest request, CancellationToken cancellationToken)
+    {
+        try { return (await repository.UpdateAsync(id, request, cancellationToken)) is { } item ? Ok(item) : NotFound(); }
+        catch (DomainValidationException ex) { return BadRequest(ex.Message); }
+    }
 
     [HttpPatch("{id:int}/status")]
-    public async Task<ActionResult<Item>> UpdateStatus(int id, StatusUpdateRequest request, CancellationToken cancellationToken) => string.IsNullOrWhiteSpace(request.Status) ? BadRequest("status is required.") : (await repository.UpdateStatusAsync(id, request.Status, cancellationToken)) is { } item ? Ok(item) : NotFound();
+    public async Task<ActionResult<Item>> UpdateStatus(int id, StatusUpdateRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.Status)) return BadRequest("status is required.");
+        try { return (await repository.UpdateStatusAsync(id, request.Status, cancellationToken)) is { } item ? Ok(item) : NotFound(); }
+        catch (DomainValidationException ex) { return BadRequest(ex.Message); }
+        catch (InvalidStatusMoveException ex) { return Conflict(ex.Message); }
+    }
 }

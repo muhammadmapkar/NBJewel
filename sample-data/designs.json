@@ -1,0 +1,52 @@
+[
+  {
+    "designId": 1,
+    "designCode": "DSN-ZORK",
+    "name": "Zork"
+  },
+  {
+    "designId": 2,
+    "designCode": "DSN-102",
+    "name": "Classic"
+  },
+  {
+    "designId": 3,
+    "designCode": "DSN-103",
+    "name": "Floral"
+  },
+  {
+    "designId": 4,
+    "designCode": "DSN-104",
+    "name": "Twist"
+  },
+  {
+    "designId": 5,
+    "designCode": "DSN-105",
+    "name": "Temple"
+  },
+  {
+    "designId": 6,
+    "designCode": "DSN-106",
+    "name": "Minimal"
+  },
+  {
+    "designId": 7,
+    "designCode": "DSN-107",
+    "name": "Vintage"
+  },
+  {
+    "designId": 8,
+    "designCode": "DSN-108",
+    "name": "Bridal"
+  },
+  {
+    "designId": 9,
+    "designCode": "DSN-109",
+    "name": "Daily Wear"
+  },
+  {
+    "designId": 10,
+    "designCode": "DSN-110",
+    "name": "Coin Style"
+  }
+]

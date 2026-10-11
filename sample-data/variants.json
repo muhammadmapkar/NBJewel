@@ -1,0 +1,402 @@
+[
+  {
+    "id": 11,
+    "itemId": 1,
+    "size": "6",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0001-1",
+    "priceDelta": 0
+  },
+  {
+    "id": 12,
+    "itemId": 1,
+    "size": "7",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0001-2",
+    "priceDelta": 5
+  },
+  {
+    "id": 13,
+    "itemId": 1,
+    "size": "7",
+    "color": "Rose gold",
+    "variantCode": "VAR-0001-3",
+    "priceDelta": 10
+  },
+  {
+    "id": 21,
+    "itemId": 2,
+    "size": "6",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0002-1",
+    "priceDelta": 0
+  },
+  {
+    "id": 22,
+    "itemId": 2,
+    "size": "7",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0002-2",
+    "priceDelta": 5
+  },
+  {
+    "id": 41,
+    "itemId": 4,
+    "size": "6",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0004-1",
+    "priceDelta": 0
+  },
+  {
+    "id": 42,
+    "itemId": 4,
+    "size": "7",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0004-2",
+    "priceDelta": 5
+  },
+  {
+    "id": 43,
+    "itemId": 4,
+    "size": "7",
+    "color": "Rose gold",
+    "variantCode": "VAR-0004-3",
+    "priceDelta": 10
+  },
+  {
+    "id": 51,
+    "itemId": 5,
+    "size": "6",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0005-1",
+    "priceDelta": 0
+  },
+  {
+    "id": 52,
+    "itemId": 5,
+    "size": "7",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0005-2",
+    "priceDelta": 5
+  },
+  {
+    "id": 71,
+    "itemId": 7,
+    "size": "6",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0007-1",
+    "priceDelta": 0
+  },
+  {
+    "id": 72,
+    "itemId": 7,
+    "size": "7",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0007-2",
+    "priceDelta": 5
+  },
+  {
+    "id": 73,
+    "itemId": 7,
+    "size": "7",
+    "color": "Rose gold",
+    "variantCode": "VAR-0007-3",
+    "priceDelta": 10
+  },
+  {
+    "id": 81,
+    "itemId": 8,
+    "size": "6",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0008-1",
+    "priceDelta": 0
+  },
+  {
+    "id": 82,
+    "itemId": 8,
+    "size": "7",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0008-2",
+    "priceDelta": 5
+  },
+  {
+    "id": 101,
+    "itemId": 10,
+    "size": "6",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0010-1",
+    "priceDelta": 0
+  },
+  {
+    "id": 102,
+    "itemId": 10,
+    "size": "7",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0010-2",
+    "priceDelta": 5
+  },
+  {
+    "id": 103,
+    "itemId": 10,
+    "size": "7",
+    "color": "Rose gold",
+    "variantCode": "VAR-0010-3",
+    "priceDelta": 10
+  },
+  {
+    "id": 111,
+    "itemId": 11,
+    "size": "6",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0011-1",
+    "priceDelta": 0
+  },
+  {
+    "id": 112,
+    "itemId": 11,
+    "size": "7",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0011-2",
+    "priceDelta": 5
+  },
+  {
+    "id": 131,
+    "itemId": 13,
+    "size": "6",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0013-1",
+    "priceDelta": 0
+  },
+  {
+    "id": 132,
+    "itemId": 13,
+    "size": "7",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0013-2",
+    "priceDelta": 5
+  },
+  {
+    "id": 133,
+    "itemId": 13,
+    "size": "7",
+    "color": "Rose gold",
+    "variantCode": "VAR-0013-3",
+    "priceDelta": 10
+  },
+  {
+    "id": 141,
+    "itemId": 14,
+    "size": "6",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0014-1",
+    "priceDelta": 0
+  },
+  {
+    "id": 142,
+    "itemId": 14,
+    "size": "7",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0014-2",
+    "priceDelta": 5
+  },
+  {
+    "id": 161,
+    "itemId": 16,
+    "size": "6",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0016-1",
+    "priceDelta": 0
+  },
+  {
+    "id": 162,
+    "itemId": 16,
+    "size": "7",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0016-2",
+    "priceDelta": 5
+  },
+  {
+    "id": 163,
+    "itemId": 16,
+    "size": "7",
+    "color": "Rose gold",
+    "variantCode": "VAR-0016-3",
+    "priceDelta": 10
+  },
+  {
+    "id": 171,
+    "itemId": 17,
+    "size": "6",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0017-1",
+    "priceDelta": 0
+  },
+  {
+    "id": 172,
+    "itemId": 17,
+    "size": "7",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0017-2",
+    "priceDelta": 5
+  },
+  {
+    "id": 191,
+    "itemId": 19,
+    "size": "6",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0019-1",
+    "priceDelta": 0
+  },
+  {
+    "id": 192,
+    "itemId": 19,
+    "size": "7",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0019-2",
+    "priceDelta": 5
+  },
+  {
+    "id": 193,
+    "itemId": 19,
+    "size": "7",
+    "color": "Rose gold",
+    "variantCode": "VAR-0019-3",
+    "priceDelta": 10
+  },
+  {
+    "id": 201,
+    "itemId": 20,
+    "size": "6",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0020-1",
+    "priceDelta": 0
+  },
+  {
+    "id": 202,
+    "itemId": 20,
+    "size": "7",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0020-2",
+    "priceDelta": 5
+  },
+  {
+    "id": 221,
+    "itemId": 22,
+    "size": "6",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0022-1",
+    "priceDelta": 0
+  },
+  {
+    "id": 222,
+    "itemId": 22,
+    "size": "7",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0022-2",
+    "priceDelta": 5
+  },
+  {
+    "id": 223,
+    "itemId": 22,
+    "size": "7",
+    "color": "Rose gold",
+    "variantCode": "VAR-0022-3",
+    "priceDelta": 10
+  },
+  {
+    "id": 231,
+    "itemId": 23,
+    "size": "6",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0023-1",
+    "priceDelta": 0
+  },
+  {
+    "id": 232,
+    "itemId": 23,
+    "size": "7",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0023-2",
+    "priceDelta": 5
+  },
+  {
+    "id": 251,
+    "itemId": 25,
+    "size": "6",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0025-1",
+    "priceDelta": 0
+  },
+  {
+    "id": 252,
+    "itemId": 25,
+    "size": "7",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0025-2",
+    "priceDelta": 5
+  },
+  {
+    "id": 253,
+    "itemId": 25,
+    "size": "7",
+    "color": "Rose gold",
+    "variantCode": "VAR-0025-3",
+    "priceDelta": 10
+  },
+  {
+    "id": 261,
+    "itemId": 26,
+    "size": "6",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0026-1",
+    "priceDelta": 0
+  },
+  {
+    "id": 262,
+    "itemId": 26,
+    "size": "7",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0026-2",
+    "priceDelta": 5
+  },
+  {
+    "id": 281,
+    "itemId": 28,
+    "size": "6",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0028-1",
+    "priceDelta": 0
+  },
+  {
+    "id": 282,
+    "itemId": 28,
+    "size": "7",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0028-2",
+    "priceDelta": 5
+  },
+  {
+    "id": 283,
+    "itemId": 28,
+    "size": "7",
+    "color": "Rose gold",
+    "variantCode": "VAR-0028-3",
+    "priceDelta": 10
+  },
+  {
+    "id": 291,
+    "itemId": 29,
+    "size": "6",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0029-1",
+    "priceDelta": 0
+  },
+  {
+    "id": 292,
+    "itemId": 29,
+    "size": "7",
+    "color": "Yellow gold",
+    "variantCode": "VAR-0029-2",
+    "priceDelta": 5
+  }
+]
