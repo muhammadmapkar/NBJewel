@@ -125,7 +125,7 @@ Work the swap does not cover (not built):
 - The SQL schema has no color, price delta, reserved or currency columns. `SqlItemRepository` returns an empty color, a price delta of 0, reserved 0 and the currency AED for these. This is assumed and needs the real schema.
 - In the SQL schema, stock belongs to a variant, so an item with no variant cannot hold stock there. The sample repository allows stock on an item with no variant.
 - The stock API has no "last updated" value. The Stock tab shows "Not available".
-- `list_low_stock` is built in the AI service from many calls (one per item). With real data it needs a proper API endpoint.
+- `list_low_stock` is built in the AI service from many calls (one per item). It uses the same rule as the dashboard (fewer than 2 available) but judges the total per item. The read-only endpoint `GET /api/stock/low` exists now for the dashboard; moving the tool onto it is a later option and would change the answers from per item to per variant and store.
 - Authentication and authorization are not built anywhere.
 
 ## Assumed details

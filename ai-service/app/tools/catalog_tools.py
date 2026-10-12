@@ -20,6 +20,9 @@ ToolResult = dict[str, Any]
 Status = Literal["Draft", "With Smith", "Received", "Complete"]
 MAX_PAGE_SIZE = 100
 LOW_STOCK_LIMIT = 50
+# Same rule as the dashboard Needs attention card (the .NET endpoint GET /api/stock/low):
+# low means fewer than this many units available (on hand minus reserved). Assumed.
+LOW_STOCK_DEFAULT_THRESHOLD = 2
 STOCK_WORKERS = 8
 
 
@@ -91,7 +94,7 @@ class ItemIdArgs(_Args):
 
 
 class ListLowStockArgs(_Args):
-    threshold: int = Field(5, ge=0, le=1000, description="Items with this many units on hand or fewer are listed.")
+    threshold: int = Field(LOW_STOCK_DEFAULT_THRESHOLD, ge=1, le=1000, description="Items with fewer than this many units available (on hand minus reserved) are listed.")
     store: str | None = Field(None, max_length=60, description="Optional store name or store id to check only that store.")
 
     _trim = field_validator("store", mode="before")(_clean_text)
@@ -175,6 +178,10 @@ def _stock_records(client: ReadOnlyApiClient, item_ids: list[int]) -> dict[int, 
 
 def _on_hand(records: list[dict[str, Any]], store_id: int | None = None) -> int:
     return sum(r["onHand"] for r in records if store_id is None or r["storeId"] == store_id)
+
+
+def _available(records: list[dict[str, Any]], store_id: int | None = None) -> int:
+    return sum(r["onHand"] - r.get("reserved", 0) for r in records if store_id is None or r["storeId"] == store_id)
 
 
 def search_items(client: ReadOnlyApiClient, args: SearchItemsArgs) -> ToolResult:
@@ -267,12 +274,12 @@ def list_low_stock(client: ReadOnlyApiClient, args: ListLowStockArgs) -> ToolRes
     all_items = _fetch_all_items(client)
     stock = _stock_records(client, [i["id"] for i in all_items])
     for item in all_items:
-        on_hand = _on_hand(stock[item["id"]], store_id)
-        if on_hand <= args.threshold:
-            low.append({"itemId": item["id"], "code": item["code"], "name": item["name"], "onHand": on_hand})
+        available = _available(stock[item["id"]], store_id)
+        if available < args.threshold:
+            low.append({"itemId": item["id"], "code": item["code"], "name": item["name"], "available": available})
     if not low:
-        return not_found(f"No items have {args.threshold} or fewer units on hand.")
-    low.sort(key=lambda r: (r["onHand"], r["itemId"]))
+        return not_found(f"No items have fewer than {args.threshold} units available.")
+    low.sort(key=lambda r: (r["available"], r["itemId"]))
     shown = low[:LOW_STOCK_LIMIT]
     data = {"threshold": args.threshold, "store": args.store, "count": len(low), "items": shown}
     return ok(data, [source("list_low_stock", r["itemId"]) for r in shown])
@@ -321,7 +328,7 @@ ALL_TOOLS: list[Tool] = [
     Tool("get_item_details", "Get every field of one item, by item id or by item code.", GetItemDetailsArgs, get_item_details),
     Tool("get_item_price_breakdown", "Get the price breakdown of one item: net weight, rate per gram, metal value, making charge and total.", ItemIdArgs, get_item_price_breakdown),
     Tool("get_stock_by_store", "Get on hand, reserved and available stock of one item in each store.", ItemIdArgs, get_stock_by_store),
-    Tool("list_low_stock", "List items with a threshold number of units on hand or fewer, across all stores or in one store.", ListLowStockArgs, list_low_stock),
+    Tool("list_low_stock", "List items with fewer than a threshold number of units available (on hand minus reserved, default 2), across all stores or in one store.", ListLowStockArgs, list_low_stock),
     Tool("list_categories", "List all product categories.", NoArgs, list_categories),
     Tool("get_latest_metal_rate", "Get the latest rate per gram for a metal, optionally for one purity.", GetLatestMetalRateArgs, get_latest_metal_rate),
     Tool("list_items_by_status", "List items that have a given status (Draft, With Smith, Received or Complete). Each item includes onHand, the units in stock across all stores.", ListItemsByStatusArgs, list_items_by_status),

@@ -158,11 +158,30 @@ def test_get_stock_by_store_ok_joins_store_names():
 
 def test_list_low_stock_ok_across_stores_and_for_one_store():
     registry, _ = make_registry()
-    everywhere = registry.run_tool("list_low_stock", {"threshold": 1})
+    everywhere = registry.run_tool("list_low_stock", {"threshold": 2})
     assert everywhere["status"] == "ok"
-    assert [r["itemId"] for r in everywhere["data"]["items"]] == [3, 2]  # 0 and 1 on hand
-    chennai = registry.run_tool("list_low_stock", {"threshold": 0, "store": "Chennai"})
-    assert [r["itemId"] for r in chennai["data"]["items"]] == [2, 3]
+    assert [r["itemId"] for r in everywhere["data"]["items"]] == [3, 2]  # 0 and 1 available
+    assert [r["available"] for r in everywhere["data"]["items"]] == [0, 1]
+    chennai = registry.run_tool("list_low_stock", {"threshold": 1, "store": "Chennai"})
+    assert [r["itemId"] for r in chennai["data"]["items"]] == [2, 3]  # 0 available there
+
+
+def test_list_low_stock_default_threshold_is_the_dashboard_rule():
+    # Same rule as the dashboard card: fewer than 2 available, so exactly 2 available is NOT low.
+    from app.tools.catalog_tools import LOW_STOCK_DEFAULT_THRESHOLD
+    assert LOW_STOCK_DEFAULT_THRESHOLD == 2
+    registry, _ = make_registry()
+    default = registry.run_tool("list_low_stock", {})
+    assert default["data"]["threshold"] == 2
+    assert [r["itemId"] for r in default["data"]["items"]] == [3, 2]
+    assert [r["itemId"] for r in registry.run_tool("list_low_stock", {"threshold": 1})["data"]["items"]] == [3]  # 1 available is not under 1
+
+
+def test_list_low_stock_counts_available_not_on_hand():
+    # Item 1 has 6 on hand but 1 reserved, so 5 available: low only when the threshold is above 5.
+    registry, _ = make_registry()
+    assert 1 not in [r["itemId"] for r in registry.run_tool("list_low_stock", {"threshold": 5})["data"]["items"]]
+    assert 1 in [r["itemId"] for r in registry.run_tool("list_low_stock", {"threshold": 6})["data"]["items"]]
 
 
 def test_list_categories_ok():
@@ -199,7 +218,7 @@ def test_list_items_by_status_ok():
     ("get_item_price_breakdown", {"itemId": 3}),  # 422: no metal rate
     ("get_stock_by_store", {"itemId": 99}),
     ("get_stock_by_store", {"itemId": 3}),  # no stock records
-    ("list_low_stock", {"threshold": 0, "store": "Nowhere"}),
+    ("list_low_stock", {"threshold": 1, "store": "Nowhere"}),
     ("get_latest_metal_rate", {"metal": "Platinum"}),
     ("list_items_by_status", {"status": "With Smith"}),
 ])
@@ -247,6 +266,7 @@ def test_api_server_error_returns_error():
     ("get_item_price_breakdown", {"itemId": 0}),
     ("get_stock_by_store", {}),                             # missing required
     ("list_low_stock", {"threshold": -1}),
+    ("list_low_stock", {"threshold": 0}),
     ("list_categories", {"extra": True}),                   # takes no arguments
     ("get_latest_metal_rate", {}),
     ("list_items_by_status", {"status": "Complete", "page": 2}),

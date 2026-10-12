@@ -222,15 +222,15 @@
   {
     "id": "g28",
     "kind": "low_stock",
-    "question": "Which items have {threshold} or fewer units on hand?",
+    "question": "Which items have fewer than {threshold} units available?",
     "params": {
-      "threshold": 5
+      "threshold": 2
     }
   },
   {
     "id": "g29",
     "kind": "low_stock",
-    "question": "Which items have {threshold} or fewer units on hand?",
+    "question": "Which items have fewer than {threshold} units available?",
     "params": {
       "threshold": 7
     }
@@ -238,7 +238,7 @@
   {
     "id": "g30",
     "kind": "low_stock",
-    "question": "Which items have {threshold} or fewer units on hand in {store}?",
+    "question": "Which items have fewer than {threshold} units available in {store}?",
     "params": {
       "threshold": 3,
       "store": "Dubai"

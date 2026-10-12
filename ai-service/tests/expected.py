@@ -65,10 +65,10 @@ def low_stock(data: DataSet, threshold: int, store: str | None = None) -> list[d
     store_id = next(s["id"] for s in data.stores if s["name"] == store) if store else None
     found = []
     for item in data.items:
-        on_hand = sum(s["onHand"] for s in data.stock_for(item["id"]) if store_id is None or s["storeId"] == store_id)
-        if on_hand <= threshold:
-            found.append({"itemId": item["id"], "code": item["code"], "name": item["name"], "onHand": on_hand})
-    return sorted(found, key=lambda r: (r["onHand"], r["itemId"]))
+        available = sum(s["onHand"] - s.get("reserved", 0) for s in data.stock_for(item["id"]) if store_id is None or s["storeId"] == store_id)
+        if available < threshold:
+            found.append({"itemId": item["id"], "code": item["code"], "name": item["name"], "available": available})
+    return sorted(found, key=lambda r: (r["available"], r["itemId"]))
 
 
 def build_case(entry: dict[str, Any], data: DataSet) -> Case:
@@ -107,7 +107,7 @@ def build_case(entry: dict[str, Any], data: DataSet) -> Case:
         args: dict[str, Any] = {"threshold": p["threshold"], **({"store": p["store"]} if p.get("store") else {})}
         shown = found[:3]
         case.calls = [("list_low_stock", args)]
-        case.answer = f"{len(found)} items have {p['threshold']} or fewer units on hand, for example " + ", ".join(r["code"] for r in shown) + "."
+        case.answer = f"{len(found)} items have fewer than {p['threshold']} units available, for example " + ", ".join(r["code"] for r in shown) + "."
         case.facts = [num(len(found)), ("text", shown[0]["code"])]
     elif kind == "price_breakdown":
         price = price_for(item, data)

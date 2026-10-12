@@ -77,15 +77,17 @@ The AI service gives the language model eight tools. They are the only way the a
 
 ## 5. list_low_stock
 
-- **Purpose:** List items with few units on hand, in all stores or in one store.
-- **Arguments:** `threshold` (0 to 1000, default 5): items with this many units on hand or fewer are listed. `store` (store name or id, optional).
+- **Purpose:** List items with few units available, in all stores or in one store. Uses the same rule as the dashboard Needs attention card: fewer than 2 available, where available is on hand minus reserved (assumed). The constant is `LOW_STOCK_DEFAULT_THRESHOLD` in `catalog_tools.py`; the dashboard and the .NET endpoint `GET /api/stock/low` default to 2 as well, kept in step by hand because they are separate programs.
+- **Arguments:** `threshold` (1 to 1000, default 2): items with fewer than this many units available are listed (strictly under, so exactly 2 is not low). `store` (store name or id, optional).
 - **Endpoints:** Assumed, no backend endpoint. The tool composes the answer from `GET /api/items` (all pages), `GET /api/items/{id}/stock` for every item, and `GET /api/stores` when a store is given. That is one stock request per item, run side by side.
-- **Returns:** threshold, store, `count` (all matches) and `items` (itemId, code, name, onHand), lowest first, at most 50 shown. Items with no stock records count as 0 on hand. `not_found` if nothing is low or the store is unknown.
-- **Example call:** `run_tool("list_low_stock", {"threshold": 5})`
+- **Returns:** threshold, store, `count` (all matches) and `items` (itemId, code, name, available), lowest first, at most 50 shown. Items with no stock records count as 0 on hand. `not_found` if nothing is low or the store is unknown.
+- **Example call:** `run_tool("list_low_stock", {})` (threshold 2)
 
   ```json
-  {"status": "ok", "data": {"threshold": 5, "store": null, "count": 3, "items": [{"itemId": 2, "code": "RNG-0002", "name": "Classic Ring", "onHand": 2}, {"itemId": 5, "code": "RNG-0005", "name": "Temple Ring", "onHand": 5}, {"itemId": 24, "code": "EAR-0024", "name": "Modern Earrings", "onHand": 5}]}, "sources": [{"tool": "list_low_stock", "recordId": 2}, {"tool": "list_low_stock", "recordId": 5}, {"tool": "list_low_stock", "recordId": 24}]}
+  {"status": "ok", "data": {"threshold": 2, "store": null, "count": 1, "items": [{"itemId": 2, "code": "RNG-0002", "name": "Classic Ring", "available": 1}]}, "sources": [{"tool": "list_low_stock", "recordId": 2}]}
   ```
+
+- **Difference from the dashboard (assumed, not hidden):** the dashboard card and `GET /api/stock/low` judge each variant and store row on its own. This tool adds up the stock of one item (all stores, or one store) and judges the total, so one item can be low on the dashboard row but not low here.
 
 ## 6. list_categories
 
