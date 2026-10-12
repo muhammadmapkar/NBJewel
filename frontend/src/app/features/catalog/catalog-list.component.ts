@@ -32,7 +32,7 @@ const FETCH_PAGE_SIZE = 100;
     <div class="page-head">
       <div>
         <h1>Item Catalog</h1>
-        <p>Inventory　›　Item Catalog</p>
+        <p class="crumbs"><a routerLink="/catalog">Inventory</a>　›　Item Catalog</p>
       </div>
       <a class="add" routerLink="/catalog/new">＋ Add</a>
     </div>
@@ -129,6 +129,7 @@ const FETCH_PAGE_SIZE = 100;
     .add { font-weight:700; color:#333; text-decoration:none; }
     h1 { margin:0 0 5px; font-size:25px; }
     p { margin:0; color:var(--muted); font-size:12px; }
+    .crumbs a { color:inherit; text-decoration:none; cursor:pointer; } .crumbs a:hover, .crumbs a:focus-visible { color:var(--gold); text-decoration:underline; }
     .card { background:white; padding:16px; border-radius:8px; margin-bottom:14px; }
     .table-card { padding:0; overflow:hidden; }
     .toolbar { display:flex; align-items:center; gap:14px; padding:14px 16px; border-bottom:1px solid var(--line); }

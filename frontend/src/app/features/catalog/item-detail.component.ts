@@ -44,7 +44,7 @@ type TabId = 'overview' | 'images' | 'variants' | 'stock';
           <div class="page-head">
             <div>
               <h1>{{ it.name }}</h1>
-              <p>Inventory　›　Item Catalog　›　{{ it.code }}</p>
+              <p class="crumbs"><a routerLink="/catalog">Inventory</a>　›　<a routerLink="/catalog">Item Catalog</a>　›　{{ it.code }}</p>
             </div>
             <div class="actions">
               <a routerLink="/catalog">☷ List</a>
@@ -121,6 +121,7 @@ type TabId = 'overview' | 'images' | 'variants' | 'stock';
     .page-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
     h1 { margin:0 0 5px; font-size:25px; }
     p { margin:0; color:var(--muted); font-size:12px; }
+    .crumbs a { color:inherit; text-decoration:none; cursor:pointer; } .crumbs a:hover, .crumbs a:focus-visible { color:var(--gold); text-decoration:underline; }
     .actions { display:flex; gap:25px; }
     .actions a, .actions button { border:0; background:transparent; font-weight:700; color:#333; text-decoration:none; padding:0; }
     .columns { display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:start; }

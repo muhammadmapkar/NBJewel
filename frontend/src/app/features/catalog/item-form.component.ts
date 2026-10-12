@@ -52,7 +52,7 @@ function netNotAboveGross(group: AbstractControl): ValidationErrors | null {
           <div class="page-head">
             <div>
               <h1>{{ isEdit() ? 'Edit item' : 'New item' }}</h1>
-              <p>Inventory　›　Item Catalog　›　{{ isEdit() ? 'Edit' : 'New' }}</p>
+              <p class="crumbs"><a routerLink="/catalog">Inventory</a>　›　<a routerLink="/catalog">Item Catalog</a>　›　{{ isEdit() ? 'Edit' : 'New' }}</p>
             </div>
           </div>
 
@@ -137,6 +137,7 @@ function netNotAboveGross(group: AbstractControl): ValidationErrors | null {
     .page-head { margin-bottom:12px; }
     h1 { margin:0 0 5px; font-size:25px; }
     p { margin:0; color:var(--muted); font-size:12px; }
+    .crumbs a { color:inherit; text-decoration:none; cursor:pointer; } .crumbs a:hover, .crumbs a:focus-visible { color:var(--gold); text-decoration:underline; }
     .card { background:white; padding:16px; border-radius:8px; }
     .message { text-align:center; color:var(--muted); padding:40px 16px; }
     .message a, .link { color:var(--gold); font-weight:700; }
