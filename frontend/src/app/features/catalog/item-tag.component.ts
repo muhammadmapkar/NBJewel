@@ -29,7 +29,7 @@ const PRINT_CLASS = 'print-tag';
             <span class="name">{{ it.name }}</span>
             <span>{{ it.metalType }} {{ it.purity }}, design {{ it.designCode }}</span>
             <span>Net weight {{ it.netWt | number:'1.3-3' }} g</span>
-            @if (price(); as p) { <b class="price">{{ p.totalPrice | number:'1.2-2' }} {{ p.currency }}</b> }
+            @if (price(); as p) { <span class="price-label">Price at print time</span><b class="price">{{ p.totalPrice | number:'1.2-2' }} {{ p.currency }}</b> }
             @else { <span class="note">Price unavailable</span> }
           </div>
           @if (qr()) { <img class="qr" [src]="qr()" [alt]="'QR code for ' + it.code" width="120" height="120" /> }
@@ -40,7 +40,7 @@ const PRINT_CLASS = 'print-tag';
   styles: [`
     .bar { display:flex; justify-content:space-between; align-items:center; max-width:420px; margin-bottom:12px; } .bar a { color:var(--gold); text-decoration:none; } .bar button { border:0; border-radius:6px; background:var(--button); color:#3e3100; padding:9px 16px; font-weight:700; cursor:pointer; } .bar button:disabled { opacity:.5; cursor:default; }
     .tag { max-width:420px; background:white; border:1px solid var(--gold); border-radius:8px; overflow:hidden; } .brand { padding:8px 14px; background:var(--widget); color:var(--gold); font-weight:800; letter-spacing:3px; font-size:13px; }
-    .body { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:14px; } .info { display:grid; gap:4px; font-size:13px; } .code { font-size:20px; } .name { font-weight:600; } .price { margin-top:6px; font-size:18px; color:var(--gold); }
+    .body { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:14px; } .info { display:grid; gap:4px; font-size:13px; } .code { font-size:20px; } .name { font-weight:600; } .price-label { margin-top:6px; color:var(--muted); font-size:11px; } .price { margin-top:0; font-size:18px; color:var(--gold); }
     .note { color:var(--muted); font-size:13px; }
   `]
 })
