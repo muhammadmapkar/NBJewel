@@ -34,7 +34,7 @@ function readCollapsed(): boolean {
       <nb-sidebar [collapsed]="collapsed()" (collapseChange)="setCollapsed($event)" />
       @if (!collapsed()) { <div class="scrim" (click)="setCollapsed(true)" aria-hidden="true"></div> }
       <main class="main-area">
-        <nb-topbar (menu)="setCollapsed(false)" />
+        <nb-topbar [collapsed]="collapsed()" (menu)="setCollapsed(false)" />
         <section class="page-content"><router-outlet /></section>
       </main>
       <button class="chat-button" (click)="chatOpen.set(!chatOpen())" aria-label="Open chat">◔</button>

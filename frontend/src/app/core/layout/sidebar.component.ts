@@ -1,7 +1,7 @@
 // Role: Renders the visual navigation menu and its allowed collapse and
-// submenu interactions without performing navigation logic. The collapse
-// toggle stays visible in the collapsed state, so the sidebar can always be
-// reopened. On phone widths the topbar menu button reopens it.
+// submenu interactions without performing navigation logic. The NB Jewel logo
+// is the only sidebar toggle. It is a real button and stays visible when the
+// sidebar is collapsed. On phone widths the topbar shows the logo too.
 
 import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
@@ -11,7 +11,7 @@ import { menuItems, MenuItem } from '../mock/mock-data';
   selector: 'nb-sidebar', standalone: true, imports: [RouterLink, RouterLinkActive],
   template: `
     <aside class="sidebar" [class.collapsed]="collapsed">
-      <div class="brand"><span class="brand-name">NB <small>JEWEL</small></span><button class="toggle" type="button" (click)="collapseChange.emit(!collapsed)" [attr.aria-label]="collapsed ? 'Open sidebar' : 'Collapse sidebar'" [attr.aria-expanded]="!collapsed">{{ collapsed ? '↦' : '↤' }}</button></div>
+      <div class="brand"><button class="brand-toggle" type="button" title="Toggle menu" aria-label="Toggle menu" [attr.aria-expanded]="!collapsed" (click)="collapseChange.emit(!collapsed)"><span class="brand-name">NB <small>JEWEL</small></span></button></div>
       <nav>
         @for (item of items; track item.label) {
           <div class="nav-group">
@@ -33,9 +33,9 @@ import { menuItems, MenuItem } from '../mock/mock-data';
   `,
   styles: [`
     .sidebar { position: fixed; inset: 0 auto 0 0; z-index: 20; width: var(--sidebar-width); padding: 14px 10px; color: white; background: var(--sidebar); transition: width .2s; overflow-y: auto; }
-    .sidebar.collapsed { width: 74px; } .brand { height: 68px; display:flex; justify-content:space-between; align-items:center; padding: 0 12px; border-bottom:1px solid #fff4; margin-bottom: 14px; }
+    .sidebar.collapsed { width: 74px; } .brand { height: 68px; display:flex; justify-content:flex-start; align-items:center; padding: 0 12px; border-bottom:1px solid #fff4; margin-bottom: 14px; }
     .brand-name { font-size: 26px; font-weight: 800; line-height: .7; } .brand-name small { display:block; font-size:7px; letter-spacing: 3px; margin-left: 3px; }
-    .brand button { border:0; background:transparent; color:white; font-size:20px; cursor:pointer; } .collapsed .brand { height:auto; flex-direction:column; justify-content:center; gap:10px; padding:10px 0; } .collapsed .brand-name small { margin-left:0; } .collapsed .brand-name { line-height:1; }
+    .brand-toggle { border:0; background:transparent; color:white; padding:4px 0; font:inherit; text-align:left; cursor:pointer; } .brand-toggle:hover { color:var(--gold); } .brand-toggle:focus-visible { outline:2px solid var(--gold); outline-offset:3px; } .collapsed .brand { height:auto; flex-direction:column; justify-content:center; gap:10px; padding:10px 0; } .collapsed .brand-name small { margin-left:0; } .collapsed .brand-name { line-height:1; }
     .nav-item, .logout { width:100%; display:flex; align-items:center; gap:12px; min-height:45px; padding: 0 14px; border-radius:5px; color:white; text-decoration:none; font-weight:600; }
     .nav-item:hover, .nav-item.active { color: var(--gold); background: var(--pale); } .nav-icon { width:18px; text-align:center; font-size:16px; } .nav-label { white-space:nowrap; overflow:hidden; }
     .chevron { margin-left:auto; font-size:19px; } .submenu { margin-left: 27px; border-left: 1px solid #fff6; } .submenu a { display:flex; justify-content:space-between; color:white; padding: 10px 10px; text-decoration:none; font-size:13px; border-radius: 4px; }
