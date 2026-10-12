@@ -17,6 +17,7 @@
             "tsConfig": "tsconfig.app.json",
             "assets": [],
             "styles": ["src/styles.css"],
+            "allowedCommonJsDependencies": ["qrcode"],
             "outputPath": "dist/nbjewel-frontend"
           }
         },

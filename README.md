@@ -38,6 +38,7 @@ Start the .NET API on 5155, the AI service on 8000 and the Angular app on 4200. 
 | .NET `POST /api/chat` forwarder (503 when the assistant is unavailable) | Done |
 | Angular themed shell and static pages (dashboard, scheme master, chit master, financial year, password) | Done, mock data only |
 | Angular catalog: list (design code column, search, sort), filters, detail, price breakdown, stock entry, create and edit with design dropdown, status workflow badges | Done |
+| Angular printable item tag with a QR code of the item code (`/catalog/:id/tag`, uses the `qrcode` npm package) | Done, print preview not checked |
 | Angular images tab | Done with fake in-memory data, no backend endpoint |
 | Angular variants tab | Done, served by the API |
 | AI service: 8 read-only tools, chat loop, 4 answer guards, Gemini provider | Done |

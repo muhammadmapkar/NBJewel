@@ -49,6 +49,7 @@ type TabId = 'overview' | 'images' | 'variants' | 'stock';
             <div class="actions">
               <a routerLink="/catalog">☷ List</a>
               <a [routerLink]="['/catalog', it.id, 'edit']">✎ Edit</a>
+              <a [routerLink]="['/catalog', it.id, 'tag']">⎙ Print tag</a>
               <button type="button" (click)="openStatus()">⇄ Change Status</button>
             </div>
           </div>

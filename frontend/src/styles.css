@@ -6,3 +6,10 @@ html, body { min-height: 100%; margin: 0; }
 body { font-family: Inter, Arial, sans-serif; color: var(--ink); background: var(--page); font-size: 14px; }
 button, input, select { font: inherit; }
 button { cursor: pointer; }
+
+/* Print only: while the item tag page is open, hide the shell so just the tag prints. */
+@media print {
+  .print-tag nb-sidebar, .print-tag nb-topbar, .print-tag nb-chat-panel, .print-tag .chat-button, .print-tag .scrim, .print-tag .no-print { display: none !important; }
+  .print-tag .main-area { margin-left: 0 !important; }
+  .print-tag .page-content { padding: 0 !important; background: white !important; }
+}
