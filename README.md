@@ -42,7 +42,7 @@ Start the .NET API on 5155, the AI service on 8000 and the Angular app on 4200. 
 | Angular variants tab | Done, served by the API |
 | AI service: 8 read-only tools, chat loop, 4 answer guards, Gemini provider | Done |
 | Angular chat panel with source chips and refusal style | Done |
-| Offline tests: AI service (275) and .NET (49) | Done |
+| Offline tests: AI service (275) and .NET (56) | Done |
 | Live tests against Gemini (code written) | Not run, no result recorded |
 | Frontend unit tests | Not built |
 | Login, roles and permissions | Not built |

@@ -51,6 +51,7 @@ public sealed class SampleItemRepository : IItemRepository
 
     public Task<Item?> GetItemAsync(int id, CancellationToken cancellationToken) { lock (sync) { return Task.FromResult(items.FirstOrDefault(x => x.Id == id)); } }
     public Task<IReadOnlyList<StockRecord>> GetStockAsync(int itemId, CancellationToken cancellationToken) { lock (sync) { return Task.FromResult<IReadOnlyList<StockRecord>>(stock.Where(x => x.ItemId == itemId).Select(Copy).ToList()); } }
+    public Task<IReadOnlyList<StockRecord>> GetLowStockAsync(int threshold, CancellationToken cancellationToken) { lock (sync) { return Task.FromResult<IReadOnlyList<StockRecord>>(stock.Where(x => x.OnHand - x.Reserved < threshold).OrderBy(x => x.ItemId).ThenBy(x => x.VariantId).ThenBy(x => x.StoreId).Select(Copy).ToList()); } }
     public Task<IReadOnlyList<ItemVariant>> GetVariantsAsync(int itemId, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<ItemVariant>>(variants.Where(x => x.ItemId == itemId).ToList());
     public Task<IReadOnlyList<Category>> GetCategoriesAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Category>>(categories);
     public Task<IReadOnlyList<Store>> GetStoresAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Store>>(stores);

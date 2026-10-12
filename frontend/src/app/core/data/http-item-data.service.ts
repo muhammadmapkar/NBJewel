@@ -45,6 +45,10 @@ export class HttpItemDataService extends ItemDataService {
     return this.http.post<StockLevel>(`${this.baseUrl}/api/items/${itemId}/stock`, request);
   }
 
+  override getLowStock(threshold: number): Observable<StockLevel[]> {
+    return this.http.get<StockLevel[]>(`${this.baseUrl}/api/stock/low`, { params: new HttpParams().set('threshold', threshold) });
+  }
+
   override getPrice(itemId: number): Observable<PriceBreakdown> {
     return this.http.get<PriceBreakdown>(`${this.baseUrl}/api/items/${itemId}/price`);
   }

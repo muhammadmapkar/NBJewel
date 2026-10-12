@@ -12,6 +12,8 @@ public interface IItemRepository
     Task<PagedResult<Item>> SearchItemsAsync(string? search, int? categoryId, string? metal, string? purity, string? status, int page, int pageSize, CancellationToken cancellationToken);
     Task<Item?> GetItemAsync(int id, CancellationToken cancellationToken);
     Task<IReadOnlyList<StockRecord>> GetStockAsync(int itemId, CancellationToken cancellationToken);
+    // Read-only. Stock rows whose available quantity (on hand minus reserved) is below the threshold.
+    Task<IReadOnlyList<StockRecord>> GetLowStockAsync(int threshold, CancellationToken cancellationToken);
     Task<IReadOnlyList<ItemVariant>> GetVariantsAsync(int itemId, CancellationToken cancellationToken);
     Task<ItemPrice?> GetPriceAsync(int itemId, CancellationToken cancellationToken);
     Task<IReadOnlyList<Category>> GetCategoriesAsync(CancellationToken cancellationToken);

@@ -11,7 +11,7 @@ All data in this demo is fake sample data. Names, prices and stock are invented.
 
 ## Steps
 
-1. **(0:00) Introduce.** Say: this is a demo with fake data. The app has a catalog, and an assistant that answers only from the catalog data. Point out the gold theme and sidebar. Open Inventory > Item Catalog.
+1. **(0:00) Introduce.** Say: this is a demo with fake data. The app has a catalog, and an assistant that answers only from the catalog data. Point out the gold theme and sidebar. Optional: open Dashboard, then the Inventory tab, and show the Needs attention card. It lists items still With Smith and stock rows under 3 available (3 is assumed), and each row opens the item. This card is live data, the other dashboard cards are mock. Then open Inventory > Item Catalog.
 2. **(0:45) Catalog list.** Show the 30 items. Point out the columns (image placeholder, code, name, design code, category, metal, purity, net weight, price, status, stock). Notice the price and stock cells show a grey placeholder first, then fill in: they load only for the rows on screen. Type "ring" in the search box, then try a design code such as "DSN-102" (search also matches design code). Click the Net weight or Design code header to sort. Clear the search.
 3. **(2:00) Filters.** Choose Category Rings, Metal Gold, Purity 22K, press Apply: 3 items. Press Reset. Choose Status Draft, press Apply: 2 items (BNG-0011 and EAR-0022). Tick "In stock only" and press Apply to show that filter. Press Reset.
 4. **(3:00) Item detail.** Click RNG-0142 (Zork Ring). Show the Overview tab: all the item fields.

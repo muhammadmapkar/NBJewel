@@ -13,6 +13,8 @@ export abstract class ItemDataService {
   abstract getStock(itemId: number): Observable<StockLevel[]>;
   // Adds the quantity to on-hand stock. The API rejects a quantity of 0 or less.
   abstract addStock(itemId: number, request: StockAddRequest): Observable<StockLevel>;
+  // Read-only. Stock rows with fewer than this many units available.
+  abstract getLowStock(threshold: number): Observable<StockLevel[]>;
   abstract getPrice(itemId: number): Observable<PriceBreakdown>;
   abstract getCategories(): Observable<Category[]>;
   abstract getStores(): Observable<Store[]>;

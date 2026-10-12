@@ -1,12 +1,14 @@
 // Role: Builds the static dashboard tabs, charts, KPI cards, and widget drawer
-// shown on the home route.
+// shown on the home route. The Needs attention widget on the Inventory tab is the
+// one live-data part, the rest is mock data.
 
 import { Component, signal } from '@angular/core';
+import { NeedsAttentionComponent } from './needs-attention.component';
 import { WidgetCardComponent } from '../../shared/ui/widget-card.component';
 import { dashboardKpis, dashboardRings, dashboardTabRows, dashboardTabs, saleBars, stockRows } from '../../core/mock/mock-data';
 
 @Component({
-  selector: 'nb-dashboard', standalone: true, imports: [WidgetCardComponent],
+  selector: 'nb-dashboard', standalone: true, imports: [WidgetCardComponent, NeedsAttentionComponent],
   template: `
     <div class="page-head"><h1>Dashboard</h1><button class="primary" (click)="drawer.set(true)">＋ Add Widgets</button></div>
     <div class="tabs"><button [class.selected]="tab() === 'MAIN'" (click)="tab.set('MAIN')">MAIN</button><button [class.selected]="tab() === 'Inventory'" (click)="tab.set('Inventory')">Inventory</button><button [class.selected]="tab() === 'Sales'" (click)="tab.set('Sales')">Sales</button></div>
@@ -21,7 +23,7 @@ import { dashboardKpis, dashboardRings, dashboardTabRows, dashboardTabs, saleBar
         <div class="right-column">@for (kpi of kpis; track kpi.title; let i = $index) {<nb-widget-card [title]="kpi.title" [visible]="kpiVisible[i]" (closed)="kpiVisible[i] = false"><div class="kpi">{{ kpi.value }}</div></nb-widget-card>}</div>
       </div>
     } @else if (tab() === 'Inventory') {
-      <div class="inventory-grid"><nb-widget-card title="Purchase Summary"><div class="rings">@for (ring of rings; track ring.name) {<div class="ring-card"><div class="ring" [style.--progress]="ring.progress + '%'"><b>{{ ring.progress }}%</b></div><span>{{ ring.name }}</span><small>Total: {{ ring.total }}</small></div>}</div></nb-widget-card><nb-widget-card title="Sectionwise Stock"><table><thead><tr><th>Section</th><th>Pieces</th><th>Net Weight</th><th>Gross Weight</th></tr></thead><tbody>@for (row of stock; track row[0]) {<tr>@for (cell of row; track cell) {<td>{{ cell }}</td>}</tr>}</tbody></table></nb-widget-card></div>
+      <div class="inventory-grid"><nb-needs-attention /><nb-widget-card title="Purchase Summary"><div class="rings">@for (ring of rings; track ring.name) {<div class="ring-card"><div class="ring" [style.--progress]="ring.progress + '%'"><b>{{ ring.progress }}%</b></div><span>{{ ring.name }}</span><small>Total: {{ ring.total }}</small></div>}</div></nb-widget-card><nb-widget-card title="Sectionwise Stock"><table><thead><tr><th>Section</th><th>Pieces</th><th>Net Weight</th><th>Gross Weight</th></tr></thead><tbody>@for (row of stock; track row[0]) {<tr>@for (cell of row; track cell) {<td>{{ cell }}</td>}</tr>}</tbody></table></nb-widget-card></div>
     } @else { <div class="empty-tab">Sales widgets are ready for a later visual pass.</div> }
     @if (drawer()) { <div class="drawer-backdrop" (click)="drawer.set(false)"></div><aside class="widgets-drawer"><header><h2>Add Widgets</h2><button (click)="drawer.set(false)">×</button></header><div class="drawer-tabs">@for (item of drawerTabs; track item) {<button [class.selected]="drawerTab() === item" (click)="drawerTab.set(item)">{{ item }}</button>}</div>@if (drawerTab() === 'Create Tab') {<div class="tab-master"><div class="master-head"><b>Tab Master</b><button class="primary">＋ New</button></div><table><thead><tr><th>TabName</th><th>Tab Order</th><th>Default Tab Flag</th><th>Action</th></tr></thead><tbody>@for (row of tabRows; track row.name) {<tr><td>{{ row.name }}</td><td>{{ row.order }}</td><td>{{ row.default }}</td><td>✎　♜</td></tr>}</tbody></table></div>} @else {<div class="drawer-placeholder">Choose a widget builder to preview available dashboard blocks.</div>}</aside> }
   `,

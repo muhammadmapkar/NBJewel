@@ -63,6 +63,16 @@ public sealed class SqlItemRepository(string connectionString) : IItemRepository
             cancellationToken);
     }
 
+    public async Task<IReadOnlyList<StockRecord>> GetLowStockAsync(int threshold, CancellationToken cancellationToken)
+    {
+        await using var connection = await OpenAsync(cancellationToken);
+        return await QueryAsync(connection, null,
+            "SELECT v.ItemId, s.VariantId, s.StoreId, s.Quantity FROM dbo.StockByStore s JOIN dbo.ItemVariant v ON v.VariantId = s.VariantId WHERE s.Quantity < @threshold ORDER BY v.ItemId, s.VariantId, s.StoreId",
+            [new("@threshold", threshold)],
+            r => new StockRecord { ItemId = r.GetInt32(0), VariantId = r.GetInt32(1), StoreId = r.GetInt32(2), OnHand = r.GetInt32(3), Reserved = 0 }, // no Reserved column in the schema, assumed 0
+            cancellationToken);
+    }
+
     public async Task<IReadOnlyList<ItemVariant>> GetVariantsAsync(int itemId, CancellationToken cancellationToken)
     {
         await using var connection = await OpenAsync(cancellationToken);
