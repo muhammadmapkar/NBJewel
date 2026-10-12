@@ -32,7 +32,7 @@ const FETCH_PAGE_SIZE = 100;
     <div class="page-head">
       <div>
         <h1>Item Catalog</h1>
-        <p class="crumbs"><a routerLink="/catalog">Inventory</a>　›　Item Catalog</p>
+        <p class="crumbs">Inventory　›　Item Catalog</p>
       </div>
       <a class="add" routerLink="/catalog/new">＋ Add</a>
     </div>
