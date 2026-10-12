@@ -1,5 +1,5 @@
 // Role: Dashboard widget that lists items still With Smith and stock rows with
-// fewer than 3 units available (the threshold of 3 is assumed). It only reads
+// fewer than 2 units available (the threshold of 2 is assumed). It only reads
 // data through ItemDataService, and each row opens the item page. This is live
 // data, unlike the mock dashboard widgets.
 
@@ -10,7 +10,7 @@ import { WidgetCardComponent } from '../../shared/ui/widget-card.component';
 import { ItemDataService } from '../../core/data/item-data.service';
 import { Item, StockLevel, Store } from '../../core/models';
 
-const LOW_STOCK_THRESHOLD = 3;
+const LOW_STOCK_THRESHOLD = 2;
 const SHOWN = 6;
 
 @Component({

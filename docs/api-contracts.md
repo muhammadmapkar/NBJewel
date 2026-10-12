@@ -17,7 +17,7 @@ Assumed shapes, built for the demo. Reads are used by the assistant. Writes are 
 | `GET /api/designs` | Design master list for the dropdown | none |
 | `GET /api/items/{id}/variants` | Variants of an item | 404 unknown item |
 | `GET /api/items/{id}/stock` | Stock rows per variant and store | 404 unknown item |
-| `GET /api/stock/low?threshold=3` | Read-only. Stock rows with fewer than `threshold` units available (on hand minus reserved). Default 3 (assumed). | 400 threshold outside 1 to 1000 |
+| `GET /api/stock/low?threshold=2` | Read-only. Stock rows with fewer than `threshold` units available (on hand minus reserved). Default 2 (assumed). | 400 threshold outside 1 to 1000 |
 | `POST /api/items/{id}/stock` | Add stock. Body `{variantId, storeId, quantity}`. Returns the new on-hand record. | 400 quantity 0 or less, unknown store, wrong or missing variant. 404 unknown item |
 | `PATCH /api/items/{id}/status` | Set a status. Body `{status}`. Any of the four, from any status (assumed). The same status returns 200 with no change. | 400 unknown status. 404 unknown item |
 | `GET /api/items?search=` | Search matches code, name and design code | 400 bad paging |

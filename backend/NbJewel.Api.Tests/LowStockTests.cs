@@ -16,18 +16,18 @@ public sealed class LowStockTests
     public async Task LowStock_IncludesRowsBelowTheThreshold()
     {
         var repository = SampleRepositoryFactory.Create();
-        await repository.AddStockAsync(1, new StockAddRequest(12, 1, 2), Ct);
-        var low = await repository.GetLowStockAsync(3, Ct);
+        await repository.AddStockAsync(1, new StockAddRequest(12, 1, 1), Ct);
+        var low = await repository.GetLowStockAsync(2, Ct);
         Assert.Contains(low, x => x.ItemId == 1 && x.VariantId == 12 && x.StoreId == 1);
-        Assert.All(low, x => Assert.True(x.OnHand - x.Reserved < 3));
+        Assert.All(low, x => Assert.True(x.OnHand - x.Reserved < 2));
     }
 
     [Fact]
     public async Task LowStock_ExcludesRowsEqualToOrAboveTheThreshold()
     {
         var repository = SampleRepositoryFactory.Create();
-        await repository.AddStockAsync(1, new StockAddRequest(12, 1, 3), Ct);
-        var low = await repository.GetLowStockAsync(3, Ct);
+        await repository.AddStockAsync(1, new StockAddRequest(12, 1, 2), Ct);
+        var low = await repository.GetLowStockAsync(2, Ct);
         Assert.DoesNotContain(low, x => x.ItemId == 1 && x.VariantId == 12 && x.StoreId == 1);
     }
 
@@ -54,8 +54,9 @@ public sealed class LowStockTests
     [Fact]
     public async Task Controller_ReturnsTheListForTheDefaultThreshold()
     {
-        var controller = new ReferenceDataController(SampleRepositoryFactory.Create());
-        var result = await controller.GetLowStock(cancellationToken: Ct);
-        Assert.IsType<OkObjectResult>(result.Result);
+        var repository = SampleRepositoryFactory.Create();
+        var result = await new ReferenceDataController(repository).GetLowStock(cancellationToken: Ct);
+        var rows = Assert.IsAssignableFrom<IReadOnlyList<StockRecord>>(Assert.IsType<OkObjectResult>(result.Result).Value);
+        Assert.Equal((await repository.GetLowStockAsync(2, Ct)).Count, rows.Count);
     }
 }
