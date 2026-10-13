@@ -126,7 +126,6 @@ Done on 2026-09-30 over the 12 commits in this repository. Result only, no secre
 | Frontend has no key | Pass. No key or LLM host name appears in `frontend/src`. |
 | Frontend makes no direct LLM call | Pass. The chat code sends `POST /api/chat` to the .NET API only. The source chips look up an item with the catalog's normal `GET /api/items/:id` call. |
 | .NET project has no key | Pass. No key reference in `backend/`. `appsettings.json` holds only the AI service URL and the storage choice (`Repository:Provider`). The SQL connection string is read from the `NBJEWEL_SQL_CONNECTION` environment variable and is not in any file. |
-| `legacy-react-prototype/` has no keys | Pass. No key strings and no network calls. A loose text search matched `ask-data-transcript` and `js-tokens`, which are harmless names. |
 | Where the key is read | Only in `ai-service/app/config.py` and `ai-service/app/llm/gemini.py`, from the environment, as a secret value that is never logged. |
 
 Not checked: files outside this repository, your shell history, and the terminal output you have shared elsewhere.

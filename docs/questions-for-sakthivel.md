@@ -13,7 +13,7 @@ These are open questions that change how the real version should be built. The d
 | 7 | Where are images stored, and how are they served and uploaded? | The demo has fake images and no upload storage. | Assumed: images have a URL and one primary image. |
 | 8 | Do items have variants such as size and color? How are they stocked and priced? | The demo variants and price delta are invented. | Assumed: variants have size, color, a price delta and their own stock. |
 | 9 | Which AI vendors and models are approved, and in which regions? | Decides whether Gemini can be used at all. See `data-privacy-checklist.md`. | Assumed: Gemini is fine for the demo with fake data only. |
-| 10 | React or Angular for the real front end? | The demo front end is Angular. A React prototype from earlier work is kept in `legacy-react-prototype/`. | Assumed: Angular. |
+| 10 | React or Angular for the real front end? | The demo front end is Angular. An earlier React prototype was removed. | Assumed: Angular. |
 | 11 | What is the demo date, and who will attend? | Sets the deadline and how much polish is needed. | Not set. |
 | 12 | How do users sign in, and should the assistant see different data for different users? | Authentication and permissions are not built. | Assumed: no login, one set of data for everyone. |
 | 13 | Is the "master chit" the design master? Is one design shared by many items? | Decides the design table and the dropdown. | Assumed: yes. A design has an id, a code and a name, and many items can share it. |
