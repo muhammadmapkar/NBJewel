@@ -32,6 +32,7 @@ public sealed class ItemVariant { public int Id { get; set; } public int ItemId 
 public sealed class MetalRate { public int Id { get; set; } public string MetalType { get; set; } = ""; public string Purity { get; set; } = ""; public decimal RatePerGram { get; set; } public string Currency { get; set; } = "AED"; public DateOnly EffectiveDate { get; set; } }
 public sealed record ItemPrice(int ItemId, string Currency, decimal NetWeight, decimal RatePerGram, decimal MetalValue, string MakingType, decimal MakingValue, decimal MakingCharge, decimal TotalPrice);
 public sealed record PagedResult<T>(IReadOnlyList<T> Items, int Page, int PageSize, int TotalCount);
+// NetWt is kept in both requests for compatibility, but the API ignores it: net weight is always GrossWt minus StoneWt (see ItemWriteRules).
 // New items always start as Draft, and an update never changes status. Status moves only through the status endpoint.
 public sealed record ItemCreateRequest(string Code, string Name, int CategoryId, int DesignId, string MetalType, string Purity, decimal GrossWt, decimal NetWt, decimal StoneWt, string MakingType, decimal MakingValue, string? Huid, string? ImageUrl);
 public sealed record ItemUpdateRequest(string Code, string Name, int CategoryId, int DesignId, string MetalType, string Purity, decimal GrossWt, decimal NetWt, decimal StoneWt, string MakingType, decimal MakingValue, string? Huid, string? ImageUrl);

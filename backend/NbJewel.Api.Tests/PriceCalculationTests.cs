@@ -11,10 +11,11 @@ public sealed class PriceCalculationTests
 {
     private static readonly CancellationToken Ct = CancellationToken.None;
 
-    [Fact]
-    public async Task ZorkRing_UsesLatest22KRateAndPercentMakingCharge()
+    [Theory]
+    [MemberData(nameof(Repos.Providers), MemberType = typeof(Repos))]
+    public async Task ZorkRing_UsesLatest22KRateAndPercentMakingCharge(string provider)
     {
-        var price = await SampleRepositoryFactory.Create().GetPriceAsync(1, Ct);
+        var price = await Repos.Create(provider).GetPriceAsync(1, Ct);
 
         Assert.NotNull(price);
         Assert.Equal(66m, price.RatePerGram);
@@ -24,10 +25,11 @@ public sealed class PriceCalculationTests
         Assert.Equal(3007.72m, price.TotalPrice);
     }
 
-    [Fact]
-    public async Task ClassicRing_18K_UsesThe18KRate()
+    [Theory]
+    [MemberData(nameof(Repos.Providers), MemberType = typeof(Repos))]
+    public async Task ClassicRing_18K_UsesThe18KRate(string provider)
     {
-        var price = await SampleRepositoryFactory.Create().GetPriceAsync(2, Ct);
+        var price = await Repos.Create(provider).GetPriceAsync(2, Ct);
 
         Assert.NotNull(price);
         Assert.Equal(54m, price.RatePerGram);
@@ -36,22 +38,24 @@ public sealed class PriceCalculationTests
         Assert.Equal(298.64m, price.TotalPrice);
     }
 
-    [Fact]
-    public async Task DemoRates_AreOrdered24KAbove22KAbove18K()
+    [Theory]
+    [MemberData(nameof(Repos.Providers), MemberType = typeof(Repos))]
+    public async Task DemoRates_AreOrdered24KAbove22KAbove18K(string provider)
     {
-        var rates = await SampleRepositoryFactory.Create().GetLatestRatesAsync(Ct);
+        var rates = await Repos.Create(provider).GetLatestRatesAsync(Ct);
         decimal Rate(string purity) => rates.Single(r => r.MetalType == "Gold" && r.Purity == purity).RatePerGram;
 
         Assert.True(Rate("24K") > Rate("22K"));
         Assert.True(Rate("22K") > Rate("18K"));
     }
 
-    [Fact]
-    public async Task A22KItemIsNotPricedBelowALighter18KItemWithTheSameMakingType()
+    [Theory]
+    [MemberData(nameof(Repos.Providers), MemberType = typeof(Repos))]
+    public async Task A22KItemIsNotPricedBelowALighter18KItemWithTheSameMakingType(string provider)
     {
         // Both items use a percent making charge. The 22K ring is far heavier, but even per gram
         // of metal the 22K rate must be higher, so a 22K ring of equal weight costs more.
-        var repository = SampleRepositoryFactory.Create();
+        var repository = Repos.Create(provider);
         var item22 = (await repository.GetItemAsync(1, Ct))!;
         var item18 = (await repository.GetItemAsync(2, Ct))!;
         Assert.Equal("22K", item22.Purity);
@@ -64,10 +68,11 @@ public sealed class PriceCalculationTests
         Assert.True(price22.RatePerGram > price18.RatePerGram);
     }
 
-    [Fact]
-    public async Task PoisonedFixture_PricesFromThePoisonedRate_NotFromTheDemoData()
+    [Theory]
+    [MemberData(nameof(Repos.Providers), MemberType = typeof(Repos))]
+    public async Task PoisonedFixture_PricesFromThePoisonedRate_NotFromTheDemoData(string provider)
     {
-        var price = await SampleRepositoryFactory.CreateWithPoisonedRates().GetPriceAsync(1, Ct);
+        var price = await Repos.CreateWithRates(provider, "metal-rates.poisoned.json").GetPriceAsync(1, Ct);
 
         Assert.NotNull(price);
         Assert.Equal(1m, price.RatePerGram);

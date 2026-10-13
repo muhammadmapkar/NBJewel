@@ -3,18 +3,22 @@
    ALL table and column names are ASSUMED.
    Real NB Jewel schema is unconfirmed.
    Target: SQL Server (T-SQL). Sample data only.
-   ========================================================== */
 
-IF DB_ID('NBJewelSample') IS NULL CREATE DATABASE NBJewelSample;
-GO
-USE NBJewelSample;
-GO
+   HOW THIS FILE IS USED
+   - It holds tables and views only. It does not create the database
+     and it holds no sample rows.
+   - "dotnet run --project backend/NbJewel.Api -- --setup-db" creates the
+     database named in NBJEWEL_SQL_CONNECTION, runs this file (GO splits it
+     into batches), then loads sample-data/*.json (the seed step).
+   - Run it only on an empty database. The setup tool skips it when
+     dbo.Item already exists.
+   ========================================================== */
 
 /* ---------- 1. LOOKUP TABLES ---------- */
 
 CREATE TABLE dbo.Category (
     CategoryId   INT IDENTITY(1,1) PRIMARY KEY,
-    Name         NVARCHAR(100) NOT NULL UNIQUE,   -- Ring, Necklace
+    Name         NVARCHAR(100) NOT NULL UNIQUE,   -- Rings, Necklaces
     ParentId     INT NULL REFERENCES dbo.Category(CategoryId)
 );
 
@@ -26,14 +30,14 @@ CREATE TABLE dbo.Metal (
 CREATE TABLE dbo.Purity (
     PurityId     INT IDENTITY(1,1) PRIMARY KEY,
     MetalId      INT NOT NULL REFERENCES dbo.Metal(MetalId),
-    Label        NVARCHAR(20) NOT NULL,           -- 22K, 18K, 925
+    Label        NVARCHAR(20) NOT NULL,           -- 24K, 22K, 18K, 925
     Fineness     DECIMAL(5,4) NOT NULL,           -- 0.9160 for 22K
     CONSTRAINT UQ_Purity UNIQUE (MetalId, Label)
 );
 
 CREATE TABLE dbo.Store (
     StoreId      INT IDENTITY(1,1) PRIMARY KEY,
-    Code         NVARCHAR(20) NOT NULL UNIQUE,
+    Code         NVARCHAR(20) NOT NULL UNIQUE,    -- ASSUMED: the seed makes ST01, ST02 ...
     Name         NVARCHAR(100) NOT NULL,
     City         NVARCHAR(100) NULL
 );
@@ -45,6 +49,7 @@ CREATE TABLE dbo.Design (
     DesignCode   NVARCHAR(30)  NOT NULL UNIQUE,   -- DSN-ZORK
     Name         NVARCHAR(100) NOT NULL
 );
+GO
 
 /* ---------- 2. ITEM MASTER ---------- */
 
@@ -64,6 +69,7 @@ CREATE TABLE dbo.Item (
                   CHECK (Status IN ('Draft','With Smith','Received','Complete')),
     GrossWeightG  DECIMAL(10,3) NOT NULL CHECK (GrossWeightG > 0),
     StoneWeightG  DECIMAL(10,3) NOT NULL DEFAULT 0 CHECK (StoneWeightG >= 0),
+    -- Net weight is always computed: gross minus stone. The API never writes it.
     NetWeightG    AS (GrossWeightG - StoneWeightG) PERSISTED,
     MakingType    NVARCHAR(10) NOT NULL DEFAULT 'PERCENT'
                   CHECK (MakingType IN ('PERCENT','PER_GRAM','FIXED')),
@@ -78,15 +84,18 @@ CREATE INDEX IX_Item_Category ON dbo.Item(CategoryId);
 CREATE INDEX IX_Item_Design   ON dbo.Item(DesignId);
 CREATE INDEX IX_Item_Purity   ON dbo.Item(PurityId);
 CREATE INDEX IX_Item_Status   ON dbo.Item(Status);
+GO
 
 /* ---------- 3. VARIANTS (size etc.) ---------- */
 
 CREATE TABLE dbo.ItemVariant (
     VariantId     INT IDENTITY(1,1) PRIMARY KEY,
     ItemId        INT NOT NULL REFERENCES dbo.Item(ItemId) ON DELETE CASCADE,
-    Sku           NVARCHAR(40) NOT NULL UNIQUE,   -- RNG-0142-S14
+    Sku           NVARCHAR(40) NOT NULL UNIQUE,   -- RNG-0142-S14 (the API calls it variantCode)
     SizeLabel     NVARCHAR(20) NULL,
-    Barcode       NVARCHAR(40) NULL
+    Barcode       NVARCHAR(40) NULL,
+    Color         NVARCHAR(30) NOT NULL DEFAULT N'',        -- ASSUMED column, added to match the API
+    PriceDelta    DECIMAL(12,2) NOT NULL DEFAULT 0          -- ASSUMED column, added to match the API
 );
 CREATE INDEX IX_Variant_Item ON dbo.ItemVariant(ItemId);
 
@@ -102,17 +111,26 @@ CREATE TABLE dbo.ItemImage (
 -- Only one primary image per item
 CREATE UNIQUE INDEX UX_ItemImage_Primary
     ON dbo.ItemImage(ItemId) WHERE IsPrimary = 1;
+GO
 
 /* ---------- 5. STOCK PER STORE ---------- */
 
+-- ASSUMED redesign: stock is kept per item, optional variant, and store.
+-- VariantId is NULL for an item that has no variants (the sample data has such
+-- items, and the sample repository stores their stock at item level).
+-- VariantKey turns NULL into 0 so the unique index treats "no variant" as one value.
 CREATE TABLE dbo.StockByStore (
-    VariantId     INT NOT NULL REFERENCES dbo.ItemVariant(VariantId) ON DELETE CASCADE,
+    StockId       INT IDENTITY(1,1) PRIMARY KEY,
+    ItemId        INT NOT NULL REFERENCES dbo.Item(ItemId) ON DELETE CASCADE,
+    VariantId     INT NULL REFERENCES dbo.ItemVariant(VariantId),
     StoreId       INT NOT NULL REFERENCES dbo.Store(StoreId),
-    Quantity      INT NOT NULL DEFAULT 0 CHECK (Quantity >= 0),
-    PRIMARY KEY (VariantId, StoreId)
+    Quantity      INT NOT NULL DEFAULT 0 CHECK (Quantity >= 0),   -- on hand
+    Reserved      INT NOT NULL DEFAULT 0 CHECK (Reserved >= 0),   -- ASSUMED column, added to match the API
+    VariantKey    AS ISNULL(VariantId, 0) PERSISTED
 );
--- Stock entry in the API ADDS to Quantity (see "HOW STOCK IS ADDED" below).
--- The API refuses an entry of 0 or less. The CHECK above is a second guard.
+CREATE UNIQUE INDEX UX_Stock_Row ON dbo.StockByStore(ItemId, VariantKey, StoreId);
+-- Stock entry in the API ADDS to Quantity. The API refuses an entry of 0 or less.
+-- The CHECK above is a second guard. A low-stock row means Quantity - Reserved is below the threshold.
 
 /* ---------- 6. DAILY METAL RATES ---------- */
 
@@ -120,100 +138,11 @@ CREATE TABLE dbo.MetalRate (
     RateId        INT IDENTITY(1,1) PRIMARY KEY,
     PurityId      INT NOT NULL REFERENCES dbo.Purity(PurityId),
     RatePerGram   DECIMAL(12,2) NOT NULL CHECK (RatePerGram > 0),
+    Currency      NVARCHAR(3) NOT NULL DEFAULT N'AED',   -- ASSUMED column, added to match the API
     EffectiveAt   DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
 );
+-- "Latest rate" rule, same in both providers: newest EffectiveAt per purity, higher RateId wins a tie.
 CREATE INDEX IX_MetalRate_Latest ON dbo.MetalRate(PurityId, EffectiveAt DESC);
-GO
-
-/* ==========================================================
-   SAMPLE DATA
-   ========================================================== */
-
-INSERT dbo.Category (Name) VALUES (N'Ring'), (N'Necklace'), (N'Bangle');
-INSERT dbo.Metal (Name) VALUES (N'Gold'), (N'Silver');
-
--- 10 sample designs (same as sample-data/designs.json).
-INSERT dbo.Design (DesignCode, Name) VALUES
- (N'DSN-ZORK', N'Zork'),     (N'DSN-102', N'Classic'),    (N'DSN-103', N'Floral'),
- (N'DSN-104',  N'Twist'),    (N'DSN-105', N'Temple'),     (N'DSN-106', N'Minimal'),
- (N'DSN-107',  N'Vintage'),  (N'DSN-108', N'Bridal'),     (N'DSN-109', N'Daily Wear'),
- (N'DSN-110',  N'Coin Style');
-
-INSERT dbo.Purity (MetalId, Label, Fineness) VALUES
- (1, N'22K', 0.9160),
- (1, N'18K', 0.7500),
- (2, N'925', 0.9250);
-
-INSERT dbo.Store (Code, Name, City) VALUES
- (N'ST01', N'Main Store',   N'Chennai'),
- (N'ST02', N'Second Store', N'Bengaluru'),
- (N'ST03', N'Third Store',  N'Dubai');
-
-INSERT dbo.MetalRate (PurityId, RatePerGram) VALUES
- (1, 6500.00),   -- 22K sample rate
- (2, 5300.00),   -- 18K sample rate
- (3,   85.00);   -- 925 sample rate
-GO
-
-/* ==========================================================
-   HOW A NEW ITEM IS SAVED (what the API runs on POST)
-   One transaction. All rows save, or none.
-   ========================================================== */
-
-BEGIN TRY
-    BEGIN TRANSACTION;
-
-    DECLARE @ItemId INT, @VariantId INT;
-
-    -- Step 1. Item master row
-    INSERT dbo.Item
-        (ItemCode, Name, CategoryId, DesignId, PurityId, HuidNumber,
-         GrossWeightG, StoneWeightG, MakingType, MakingValue, StoneCharge)
-    VALUES
-        (N'RNG-0142', N'Zork Ring', 1, 1, 1, N'HUID000142',
-         5.200, 0.300, 'PERCENT', 12.00, 1500.00);   -- Status defaults to Draft
-    SET @ItemId = SCOPE_IDENTITY();
-
-    -- Step 2. Variant row
-    INSERT dbo.ItemVariant (ItemId, Sku, SizeLabel)
-    VALUES (@ItemId, N'RNG-0142-S14', N'14');
-    SET @VariantId = SCOPE_IDENTITY();
-
-    -- Step 3. Image row (path only)
-    INSERT dbo.ItemImage (ItemId, Url, IsPrimary)
-    VALUES (@ItemId, N'/images/rng-0142-1.jpg', 1);
-
-    -- Step 4. Opening stock per store
-    INSERT dbo.StockByStore (VariantId, StoreId, Quantity) VALUES
-        (@VariantId, 1, 4),
-        (@VariantId, 2, 2),
-        (@VariantId, 3, 0);
-
-    COMMIT TRANSACTION;
-END TRY
-BEGIN CATCH
-    IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
-    THROW;   -- API turns this into a validation error
-END CATCH;
-GO
-
-/* ==========================================================
-   HOW A STATUS MOVES AND HOW STOCK IS ADDED (what the API runs)
-   The API checks the status order first, then runs one statement.
-   ========================================================== */
-
--- Set a status (any of the four, from any status). The API skips this UPDATE
--- when the item already has that status.
-UPDATE dbo.Item
-SET Status = N'With Smith', UpdatedAt = SYSUTCDATETIME()
-WHERE ItemId = 1;
-
--- Add 5 units for variant 1 in store 1. Creates the row if it is missing.
-MERGE dbo.StockByStore WITH (HOLDLOCK) AS t
-USING (SELECT 1 AS VariantId, 1 AS StoreId) AS s
-  ON t.VariantId = s.VariantId AND t.StoreId = s.StoreId
-WHEN MATCHED THEN UPDATE SET Quantity = t.Quantity + 5
-WHEN NOT MATCHED THEN INSERT (VariantId, StoreId, Quantity) VALUES (1, 1, 5);
 GO
 
 /* ==========================================================
@@ -238,9 +167,8 @@ JOIN dbo.Metal    m ON m.MetalId    = p.MetalId
 LEFT JOIN dbo.ItemImage img ON img.ItemId = i.ItemId AND img.IsPrimary = 1
 OUTER APPLY (
     SELECT SUM(sbs.Quantity) AS TotalQty
-    FROM dbo.ItemVariant v
-    JOIN dbo.StockByStore sbs ON sbs.VariantId = v.VariantId
-    WHERE v.ItemId = i.ItemId
+    FROM dbo.StockByStore sbs
+    WHERE sbs.ItemId = i.ItemId
 ) s;
 GO
 
@@ -261,32 +189,26 @@ CROSS APPLY (
     SELECT TOP 1 RatePerGram
     FROM dbo.MetalRate mr
     WHERE mr.PurityId = i.PurityId
-    ORDER BY mr.EffectiveAt DESC
+    ORDER BY mr.EffectiveAt DESC, mr.RateId DESC
 ) r;
 GO
 
 /* ==========================================================
-   CHECK QUERIES (run these live in the demo)
+   CHECK QUERIES (run these live in the demo, after the seed step)
    ========================================================== */
 
 -- 1. List screen data
-SELECT * FROM dbo.vw_ItemList;
-
+--   SELECT * FROM dbo.vw_ItemList;
 -- 2. Price breakdown
-SELECT *, (MetalValue + MakingCharge + StoneCharge) AS PreTaxTotal
-FROM dbo.vw_ItemPrice
-WHERE ItemCode = N'RNG-0142';
-
--- 3. Items with their design code and status
-SELECT ItemCode, Name, DesignCode, Status FROM dbo.vw_ItemList;
-
--- 4. Stock by store
-SELECT st.Name AS Store, v.Sku, sbs.Quantity
-FROM dbo.StockByStore sbs
-JOIN dbo.ItemVariant v ON v.VariantId = sbs.VariantId
-JOIN dbo.Store st      ON st.StoreId  = sbs.StoreId
-JOIN dbo.Item i        ON i.ItemId    = v.ItemId
-WHERE i.ItemCode = N'RNG-0142';
+--   SELECT *, (MetalValue + MakingCharge + StoneCharge) AS PreTaxTotal
+--   FROM dbo.vw_ItemPrice WHERE ItemCode = N'RNG-0142';
+-- 3. Stock by store
+--   SELECT st.Name AS Store, i.ItemCode, v.Sku, sbs.Quantity, sbs.Reserved
+--   FROM dbo.StockByStore sbs
+--   JOIN dbo.Store st ON st.StoreId = sbs.StoreId
+--   JOIN dbo.Item i   ON i.ItemId   = sbs.ItemId
+--   LEFT JOIN dbo.ItemVariant v ON v.VariantId = sbs.VariantId
+--   WHERE i.ItemCode = N'RNG-0142';
 
 /* ==========================================================
    READ-ONLY LOGIN FOR THE CHATBOT (Rule 3)

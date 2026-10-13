@@ -1,6 +1,8 @@
 // Role: Loads synthetic JSON fixtures and provides read operations plus
 // memory-only item, status, and stock changes for local API demonstrations.
 // Changes reset when the API restarts. This is the default repository.
+// It must behave like SqlItemRepository: same validation (ItemWriteRules), same
+// computed net weight, same ordering (by id), same "latest rate" rule.
 
 using System.Text.Json;
 using NbJewel.Api.Models;
@@ -16,6 +18,8 @@ public sealed class SampleItemRepository : IItemRepository
     private readonly List<Store> stores;
     private readonly List<Design> designs;
     private readonly List<MetalRate> rates;
+    // Valid (metal, purity) pairs, taken from the rates and the items. The SQL schema keeps these in its Purity table.
+    private readonly List<(string Metal, string Purity)> purities;
     private readonly object sync = new();
 
     public SampleItemRepository(IWebHostEnvironment environment)
@@ -31,7 +35,13 @@ public sealed class SampleItemRepository : IItemRepository
         stores = Load<Store>(directory, "stores.json");
         designs = Load<Design>(directory, "designs.json");
         rates = Load<MetalRate>(directory, "metal-rates.json");
-        foreach (var item in items) ApplyDesign(item);
+        purities = rates.Select(x => (x.MetalType, x.Purity)).Concat(items.Select(x => (x.MetalType, x.Purity)))
+            .DistinctBy(x => (x.Item1.ToLowerInvariant(), x.Item2.ToLowerInvariant())).ToList();
+        foreach (var item in items)
+        {
+            ApplyDesign(item);
+            item.NetWt = item.GrossWt - item.StoneWt; // net weight is always computed, never trusted from the file
+        }
     }
 
     public Task<PagedResult<Item>> SearchItemsAsync(string? search, int? categoryId, string? metal, string? purity, string? status, int page, int pageSize, CancellationToken cancellationToken)
@@ -50,28 +60,36 @@ public sealed class SampleItemRepository : IItemRepository
     }
 
     public Task<Item?> GetItemAsync(int id, CancellationToken cancellationToken) { lock (sync) { return Task.FromResult(items.FirstOrDefault(x => x.Id == id)); } }
-    public Task<IReadOnlyList<StockRecord>> GetStockAsync(int itemId, CancellationToken cancellationToken) { lock (sync) { return Task.FromResult<IReadOnlyList<StockRecord>>(stock.Where(x => x.ItemId == itemId).Select(Copy).ToList()); } }
-    public Task<IReadOnlyList<StockRecord>> GetLowStockAsync(int threshold, CancellationToken cancellationToken) { lock (sync) { return Task.FromResult<IReadOnlyList<StockRecord>>(stock.Where(x => x.OnHand - x.Reserved < threshold).OrderBy(x => x.ItemId).ThenBy(x => x.VariantId).ThenBy(x => x.StoreId).Select(Copy).ToList()); } }
-    public Task<IReadOnlyList<ItemVariant>> GetVariantsAsync(int itemId, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<ItemVariant>>(variants.Where(x => x.ItemId == itemId).ToList());
-    public Task<IReadOnlyList<Category>> GetCategoriesAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Category>>(categories);
-    public Task<IReadOnlyList<Store>> GetStoresAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Store>>(stores);
-    public Task<IReadOnlyList<Design>> GetDesignsAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Design>>(designs);
-    public Task<IReadOnlyList<MetalRate>> GetLatestRatesAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<MetalRate>>(rates.GroupBy(x => $"{x.MetalType}|{x.Purity}").Select(x => x.OrderByDescending(r => r.EffectiveDate).First()).ToList());
+    public Task<IReadOnlyList<StockRecord>> GetStockAsync(int itemId, CancellationToken cancellationToken) { lock (sync) { return Task.FromResult<IReadOnlyList<StockRecord>>(stock.Where(x => x.ItemId == itemId).OrderBy(x => x.VariantId ?? 0).ThenBy(x => x.StoreId).Select(Copy).ToList()); } }
+    public Task<IReadOnlyList<StockRecord>> GetLowStockAsync(int threshold, CancellationToken cancellationToken) { lock (sync) { return Task.FromResult<IReadOnlyList<StockRecord>>(stock.Where(x => x.OnHand - x.Reserved < threshold).OrderBy(x => x.ItemId).ThenBy(x => x.VariantId ?? 0).ThenBy(x => x.StoreId).Select(Copy).ToList()); } }
+    public Task<IReadOnlyList<ItemVariant>> GetVariantsAsync(int itemId, CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<ItemVariant>>(variants.Where(x => x.ItemId == itemId).OrderBy(x => x.Id).ToList());
+    public Task<IReadOnlyList<Category>> GetCategoriesAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Category>>(categories.OrderBy(x => x.Id).ToList());
+    public Task<IReadOnlyList<Store>> GetStoresAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Store>>(stores.OrderBy(x => x.Id).ToList());
+    public Task<IReadOnlyList<Design>> GetDesignsAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Design>>(designs.OrderBy(x => x.DesignId).ToList());
 
-    public Task<ItemPrice?> GetPriceAsync(int itemId, CancellationToken cancellationToken)
+    // Latest rate per metal and purity: newest date wins, and the higher id wins a tie. Listed by id.
+    public Task<IReadOnlyList<MetalRate>> GetLatestRatesAsync(CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<MetalRate>>(rates
+            .GroupBy(x => (x.MetalType.ToLowerInvariant(), x.Purity.ToLowerInvariant()))
+            .Select(g => g.OrderByDescending(r => r.EffectiveDate).ThenByDescending(r => r.Id).First())
+            .OrderBy(x => x.Id).ToList());
+
+    public async Task<ItemPrice?> GetPriceAsync(int itemId, CancellationToken cancellationToken)
     {
         var item = items.FirstOrDefault(x => x.Id == itemId);
-        if (item is null) return Task.FromResult<ItemPrice?>(null);
-        var rate = rates.Where(x => x.MetalType.Equals(item.MetalType, StringComparison.OrdinalIgnoreCase) && x.Purity.Equals(item.Purity, StringComparison.OrdinalIgnoreCase)).OrderByDescending(x => x.EffectiveDate).FirstOrDefault();
-        return Task.FromResult(rate is null ? null : ItemPricing.Calculate(item, rate));
+        if (item is null) return null;
+        var latest = await GetLatestRatesAsync(cancellationToken);
+        var rate = latest.FirstOrDefault(x => x.MetalType.Equals(item.MetalType, StringComparison.OrdinalIgnoreCase) && x.Purity.Equals(item.Purity, StringComparison.OrdinalIgnoreCase));
+        return rate is null ? null : ItemPricing.Calculate(item, rate);
     }
 
     public Task<Item> CreateAsync(ItemCreateRequest request, CancellationToken cancellationToken)
     {
         lock (sync)
         {
-            EnsureDesign(request.DesignId);
-            var item = Map(request, items.Max(x => x.Id) + 1);
+            var valid = ItemWriteRules.Validate(request.Code, request.Name, request.GrossWt, request.StoneWt, request.MakingType, request.MakingValue, request.Huid, request.ImageUrl);
+            EnsureLinks(request.DesignId, request.CategoryId, request.MetalType, request.Purity, valid.Code, null);
+            var item = Build(valid, items.Count == 0 ? 1 : items.Max(x => x.Id) + 1, request.CategoryId, request.DesignId, request.MetalType, request.Purity, ItemStatusRules.Draft);
             items.Add(item);
             return Task.FromResult(item);
         }
@@ -83,8 +101,9 @@ public sealed class SampleItemRepository : IItemRepository
         {
             var index = items.FindIndex(x => x.Id == id);
             if (index < 0) return Task.FromResult<Item?>(null);
-            EnsureDesign(request.DesignId);
-            var item = Map(request, id, items[index].Status);
+            var valid = ItemWriteRules.Validate(request.Code, request.Name, request.GrossWt, request.StoneWt, request.MakingType, request.MakingValue, request.Huid, request.ImageUrl);
+            EnsureLinks(request.DesignId, request.CategoryId, request.MetalType, request.Purity, valid.Code, id);
+            var item = Build(valid, id, request.CategoryId, request.DesignId, request.MetalType, request.Purity, items[index].Status);
             items[index] = item;
             return Task.FromResult<Item?>(item);
         }
@@ -135,9 +154,27 @@ public sealed class SampleItemRepository : IItemRepository
         }
     }
 
-    private void EnsureDesign(int designId)
+    // Checks the same links the SQL foreign keys and unique code check enforce. Code match ignores case, like SQL Server's default.
+    private void EnsureLinks(int designId, int categoryId, string metal, string purity, string code, int? ownId)
     {
         if (designs.All(x => x.DesignId != designId)) throw new DomainValidationException($"Design {designId} does not exist.");
+        if (categories.All(x => x.Id != categoryId)) throw new DomainValidationException($"Category {categoryId} does not exist.");
+        if (!purities.Any(x => x.Metal.Equals(metal, StringComparison.OrdinalIgnoreCase) && x.Purity.Equals(purity, StringComparison.OrdinalIgnoreCase)))
+            throw new DomainValidationException($"No purity '{purity}' exists for metal '{metal}'.");
+        if (items.Any(x => x.Id != ownId && x.Code.Equals(code, StringComparison.OrdinalIgnoreCase))) throw new DomainValidationException("That item code already exists.");
+    }
+
+    private Item Build(ValidItem v, int id, int categoryId, int designId, string metal, string purity, string status)
+    {
+        var pair = purities.First(x => x.Metal.Equals(metal, StringComparison.OrdinalIgnoreCase) && x.Purity.Equals(purity, StringComparison.OrdinalIgnoreCase));
+        var item = new Item
+        {
+            Id = id, Code = v.Code, Name = v.Name, CategoryId = categoryId, DesignId = designId,
+            MetalType = pair.Metal, Purity = pair.Purity, GrossWt = v.GrossWt, NetWt = v.NetWt, StoneWt = v.StoneWt,
+            MakingType = v.MakingType, MakingValue = v.MakingValue, Huid = v.Huid, ImageUrl = v.ImageUrl, Status = status
+        };
+        ApplyDesign(item);
+        return item;
     }
 
     private void ApplyDesign(Item item)
@@ -148,14 +185,4 @@ public sealed class SampleItemRepository : IItemRepository
 
     private static List<T> Load<T>(string directory, string fileName) => JsonSerializer.Deserialize<List<T>>(File.ReadAllText(Path.Combine(directory, fileName)), new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? [];
     private static StockRecord Copy(StockRecord x) => new() { ItemId = x.ItemId, VariantId = x.VariantId, StoreId = x.StoreId, OnHand = x.OnHand, Reserved = x.Reserved };
-
-    private Item Map(ItemCreateRequest x, int id) => Fill(new Item { Id = id, Code = x.Code, Name = x.Name, CategoryId = x.CategoryId, DesignId = x.DesignId, MetalType = x.MetalType, Purity = x.Purity, GrossWt = x.GrossWt, NetWt = x.NetWt, StoneWt = x.StoneWt, MakingType = x.MakingType, MakingValue = x.MakingValue, Huid = x.Huid, ImageUrl = x.ImageUrl }, ItemStatusRules.Draft);
-    private Item Map(ItemUpdateRequest x, int id, string status) => Fill(new Item { Id = id, Code = x.Code, Name = x.Name, CategoryId = x.CategoryId, DesignId = x.DesignId, MetalType = x.MetalType, Purity = x.Purity, GrossWt = x.GrossWt, NetWt = x.NetWt, StoneWt = x.StoneWt, MakingType = x.MakingType, MakingValue = x.MakingValue, Huid = x.Huid, ImageUrl = x.ImageUrl }, status);
-
-    private Item Fill(Item item, string status)
-    {
-        item.Status = status;
-        ApplyDesign(item);
-        return item;
-    }
 }

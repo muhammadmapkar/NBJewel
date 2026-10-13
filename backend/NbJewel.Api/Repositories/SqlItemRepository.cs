@@ -1,8 +1,11 @@
 // Role: SQL Server implementation of IItemRepository, using the tables in
-// docs/item_catalog_schema.sql. Every query is fixed and parameterized (no free
-// SQL). It is only used when Repository:Provider is "Sql". All table and column
-// names are assumed. This class is build-checked only, not run against a server.
+// docs/item_catalog_schema.sql. Every query is fixed text with @parameters (no
+// free SQL, no values pasted into SQL). It is only used when Repository:Provider
+// is "Sql". All table and column names are assumed. It must behave like
+// SampleItemRepository: same validation (ItemWriteRules), same ordering (by id),
+// same computed net weight (the database column NetWeightG = gross - stone).
 
+using System.Data;
 using Microsoft.Data.SqlClient;
 using NbJewel.Api.Models;
 
@@ -23,6 +26,9 @@ public sealed class SqlItemRepository(string connectionString) : IItemRepository
         LEFT JOIN dbo.ItemImage img ON img.ItemId = i.ItemId AND img.IsPrimary = 1
         """;
 
+    // Stock is kept per item, optional variant and store. Rows with no variant sort first, like the sample repository.
+    private const string StockSelect = "SELECT s.ItemId, s.VariantId, s.StoreId, s.Quantity, s.Reserved FROM dbo.StockByStore s";
+
     public async Task<PagedResult<Item>> SearchItemsAsync(string? search, int? categoryId, string? metal, string? purity, string? status, int page, int pageSize, CancellationToken cancellationToken)
     {
         var where = new List<string>();
@@ -36,7 +42,7 @@ public sealed class SqlItemRepository(string connectionString) : IItemRepository
         if (!string.IsNullOrWhiteSpace(metal)) { where.Add("m.Name = @metal"); parameters.Add(new("@metal", metal)); }
         if (!string.IsNullOrWhiteSpace(purity)) { where.Add("p.Label = @purity"); parameters.Add(new("@purity", purity)); }
         if (!string.IsNullOrWhiteSpace(status)) { where.Add("i.Status = @status"); parameters.Add(new("@status", status)); }
-        var clause = where.Count == 0 ? "" : " WHERE " + string.Join(" AND ", where);
+        var clause = where.Count == 0 ? "" : " WHERE " + string.Join(" AND ", where); // only fixed text from the lines above, values stay in parameters
 
         await using var connection = await OpenAsync(cancellationToken);
         var total = await ScalarAsync<int>(connection, null, "SELECT COUNT(*) FROM dbo.Item i JOIN dbo.Purity p ON p.PurityId = i.PurityId JOIN dbo.Metal m ON m.MetalId = p.MetalId LEFT JOIN dbo.Design d ON d.DesignId = i.DesignId" + clause, Clone(parameters), cancellationToken);
@@ -56,21 +62,14 @@ public sealed class SqlItemRepository(string connectionString) : IItemRepository
     public async Task<IReadOnlyList<StockRecord>> GetStockAsync(int itemId, CancellationToken cancellationToken)
     {
         await using var connection = await OpenAsync(cancellationToken);
-        return await QueryAsync(connection, null,
-            "SELECT v.ItemId, s.VariantId, s.StoreId, s.Quantity FROM dbo.StockByStore s JOIN dbo.ItemVariant v ON v.VariantId = s.VariantId WHERE v.ItemId = @itemId ORDER BY s.VariantId, s.StoreId",
-            [new("@itemId", itemId)],
-            r => new StockRecord { ItemId = r.GetInt32(0), VariantId = r.GetInt32(1), StoreId = r.GetInt32(2), OnHand = r.GetInt32(3), Reserved = 0 }, // no Reserved column in the schema, assumed 0
-            cancellationToken);
+        return await QueryAsync(connection, null, StockSelect + " WHERE s.ItemId = @itemId ORDER BY ISNULL(s.VariantId, 0), s.StoreId", [new("@itemId", itemId)], ReadStock, cancellationToken);
     }
 
+    // Low means on hand minus reserved is below the threshold, the same rule as the sample repository.
     public async Task<IReadOnlyList<StockRecord>> GetLowStockAsync(int threshold, CancellationToken cancellationToken)
     {
         await using var connection = await OpenAsync(cancellationToken);
-        return await QueryAsync(connection, null,
-            "SELECT v.ItemId, s.VariantId, s.StoreId, s.Quantity FROM dbo.StockByStore s JOIN dbo.ItemVariant v ON v.VariantId = s.VariantId WHERE s.Quantity < @threshold ORDER BY v.ItemId, s.VariantId, s.StoreId",
-            [new("@threshold", threshold)],
-            r => new StockRecord { ItemId = r.GetInt32(0), VariantId = r.GetInt32(1), StoreId = r.GetInt32(2), OnHand = r.GetInt32(3), Reserved = 0 }, // no Reserved column in the schema, assumed 0
-            cancellationToken);
+        return await QueryAsync(connection, null, StockSelect + " WHERE s.Quantity - s.Reserved < @threshold ORDER BY s.ItemId, ISNULL(s.VariantId, 0), s.StoreId", [new("@threshold", threshold)], ReadStock, cancellationToken);
     }
 
     public async Task<IReadOnlyList<ItemVariant>> GetVariantsAsync(int itemId, CancellationToken cancellationToken)
@@ -106,7 +105,7 @@ public sealed class SqlItemRepository(string connectionString) : IItemRepository
     public async Task<IReadOnlyList<Design>> GetDesignsAsync(CancellationToken cancellationToken)
     {
         await using var connection = await OpenAsync(cancellationToken);
-        return await QueryAsync(connection, null, "SELECT DesignId, DesignCode, Name FROM dbo.Design ORDER BY DesignCode", [],
+        return await QueryAsync(connection, null, "SELECT DesignId, DesignCode, Name FROM dbo.Design ORDER BY DesignId", [],
             r => new Design { DesignId = r.GetInt32(0), DesignCode = r.GetString(1), Name = r.GetString(2) }, cancellationToken);
     }
 
@@ -118,19 +117,22 @@ public sealed class SqlItemRepository(string connectionString) : IItemRepository
 
     public async Task<Item> CreateAsync(ItemCreateRequest request, CancellationToken cancellationToken)
     {
+        var valid = ItemWriteRules.Validate(request.Code, request.Name, request.GrossWt, request.StoneWt, request.MakingType, request.MakingValue, request.Huid, request.ImageUrl);
         await using var connection = await OpenAsync(cancellationToken);
         await using var transaction = (SqlTransaction)await connection.BeginTransactionAsync(cancellationToken);
         try
         {
-            await EnsureDesignAsync(connection, transaction, request.DesignId, cancellationToken);
+            await EnsureLinksAsync(connection, transaction, request.DesignId, request.CategoryId, cancellationToken);
             var purityId = await FindPurityAsync(connection, transaction, request.MetalType, request.Purity, cancellationToken);
+            // NetWeightG is a computed column (gross minus stone), so it is never written here.
             var id = await ScalarAsync<int>(connection, transaction, """
                 INSERT dbo.Item (ItemCode, Name, CategoryId, DesignId, PurityId, HuidNumber, Status, GrossWeightG, StoneWeightG, MakingType, MakingValue)
                 OUTPUT INSERTED.ItemId
                 VALUES (@code, @name, @category, @design, @purity, @huid, @status, @gross, @stone, @makingType, @makingValue)
                 """,
-                [.. WriteParameters(request.Code, request.Name, request.CategoryId, request.DesignId, purityId, request.Huid, request.GrossWt, request.StoneWt, request.MakingType, request.MakingValue), new("@status", ItemStatusRules.Draft)],
+                [.. WriteParameters(valid, request.CategoryId, request.DesignId, purityId), new("@status", ItemStatusRules.Draft)],
                 cancellationToken);
+            await SetImageAsync(connection, transaction, id, valid.ImageUrl, cancellationToken);
             var item = await GetItemAsync(connection, transaction, id, cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             return item!;
@@ -145,7 +147,8 @@ public sealed class SqlItemRepository(string connectionString) : IItemRepository
         try
         {
             if (await GetItemAsync(connection, transaction, id, cancellationToken) is null) return null;
-            await EnsureDesignAsync(connection, transaction, request.DesignId, cancellationToken);
+            var valid = ItemWriteRules.Validate(request.Code, request.Name, request.GrossWt, request.StoneWt, request.MakingType, request.MakingValue, request.Huid, request.ImageUrl);
+            await EnsureLinksAsync(connection, transaction, request.DesignId, request.CategoryId, cancellationToken);
             var purityId = await FindPurityAsync(connection, transaction, request.MetalType, request.Purity, cancellationToken);
             // Status is not touched here. It only changes through UpdateStatusAsync.
             await ExecuteAsync(connection, transaction, """
@@ -155,8 +158,9 @@ public sealed class SqlItemRepository(string connectionString) : IItemRepository
                     MakingType = @makingType, MakingValue = @makingValue, UpdatedAt = SYSUTCDATETIME()
                 WHERE ItemId = @id
                 """,
-                [.. WriteParameters(request.Code, request.Name, request.CategoryId, request.DesignId, purityId, request.Huid, request.GrossWt, request.StoneWt, request.MakingType, request.MakingValue), new("@id", id)],
+                [.. WriteParameters(valid, request.CategoryId, request.DesignId, purityId), new("@id", id)],
                 cancellationToken);
+            await SetImageAsync(connection, transaction, id, valid.ImageUrl, cancellationToken);
             var item = await GetItemAsync(connection, transaction, id, cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             return item;
@@ -191,24 +195,32 @@ public sealed class SqlItemRepository(string connectionString) : IItemRepository
             if (await ScalarAsync<int>(connection, transaction, "SELECT COUNT(*) FROM dbo.Store WHERE StoreId = @store", [new("@store", request.StoreId)], cancellationToken) == 0)
                 throw new DomainValidationException($"Store {request.StoreId} does not exist.");
 
-            // The schema keeps stock per variant, so an item needs a variant to hold stock.
+            // Same rules as the sample repository: an item with variants needs one of its own variants, an item without variants takes none.
             var itemVariants = await GetVariantsAsync(connection, transaction, itemId, cancellationToken);
-            if (itemVariants.Count == 0) throw new DomainValidationException("This item has no variants, and stock is stored per variant. Add a variant first.");
-            if (request.VariantId is null) throw new DomainValidationException("variantId is required for an item that has variants.");
-            if (itemVariants.All(x => x.Id != request.VariantId)) throw new DomainValidationException($"Variant {request.VariantId} does not belong to item {itemId}.");
+            if (itemVariants.Count > 0)
+            {
+                if (request.VariantId is null) throw new DomainValidationException("variantId is required for an item that has variants.");
+                if (itemVariants.All(x => x.Id != request.VariantId)) throw new DomainValidationException($"Variant {request.VariantId} does not belong to item {itemId}.");
+            }
+            else if (request.VariantId is not null)
+            {
+                throw new DomainValidationException("This item has no variants, so variantId must be empty.");
+            }
 
-            var onHand = await ScalarAsync<int>(connection, transaction, """
+            // One statement adds to the row or creates it. VariantKey is the variant id, or 0 when there is no variant.
+            var rows = await QueryAsync(connection, transaction, """
                 MERGE dbo.StockByStore WITH (HOLDLOCK) AS t
-                USING (SELECT @variant AS VariantId, @store AS StoreId) AS s
-                  ON t.VariantId = s.VariantId AND t.StoreId = s.StoreId
+                USING (SELECT @item AS ItemId, ISNULL(@variant, 0) AS VariantKey, @store AS StoreId) AS s
+                  ON t.ItemId = s.ItemId AND t.VariantKey = s.VariantKey AND t.StoreId = s.StoreId
                 WHEN MATCHED THEN UPDATE SET Quantity = t.Quantity + @qty
-                WHEN NOT MATCHED THEN INSERT (VariantId, StoreId, Quantity) VALUES (@variant, @store, @qty)
-                OUTPUT INSERTED.Quantity;
+                WHEN NOT MATCHED THEN INSERT (ItemId, VariantId, StoreId, Quantity) VALUES (@item, @variant, @store, @qty)
+                OUTPUT INSERTED.Quantity, INSERTED.Reserved;
                 """,
-                [new("@variant", request.VariantId.Value), new("@store", request.StoreId), new("@qty", request.Quantity)],
+                [new("@item", itemId), NullableInt("@variant", request.VariantId), new("@store", request.StoreId), new("@qty", request.Quantity)],
+                r => (OnHand: r.GetInt32(0), Reserved: r.GetInt32(1)),
                 cancellationToken);
             await transaction.CommitAsync(cancellationToken);
-            return new StockRecord { ItemId = itemId, VariantId = request.VariantId, StoreId = request.StoreId, OnHand = onHand, Reserved = 0 };
+            return new StockRecord { ItemId = itemId, VariantId = request.VariantId, StoreId = request.StoreId, OnHand = rows[0].OnHand, Reserved = rows[0].Reserved };
         }
         catch (SqlException ex) { throw Translate(ex); }
     }
@@ -226,21 +238,24 @@ public sealed class SqlItemRepository(string connectionString) : IItemRepository
         (await QueryAsync(connection, transaction, ItemSelect + " WHERE i.ItemId = @id", [new("@id", id)], ReadItem, cancellationToken)).FirstOrDefault();
 
     private static Task<IReadOnlyList<ItemVariant>> GetVariantsAsync(SqlConnection connection, SqlTransaction? transaction, int itemId, CancellationToken cancellationToken) =>
-        QueryAsync(connection, transaction, "SELECT VariantId, ItemId, ISNULL(SizeLabel, N''), Sku FROM dbo.ItemVariant WHERE ItemId = @itemId ORDER BY VariantId", [new("@itemId", itemId)],
-            r => new ItemVariant { Id = r.GetInt32(0), ItemId = r.GetInt32(1), Size = r.GetString(2), Color = "", VariantCode = r.GetString(3), PriceDelta = 0 }, // schema has no color or price delta, assumed empty
+        QueryAsync(connection, transaction, "SELECT VariantId, ItemId, ISNULL(SizeLabel, N''), Sku, Color, PriceDelta FROM dbo.ItemVariant WHERE ItemId = @itemId ORDER BY VariantId", [new("@itemId", itemId)],
+            r => new ItemVariant { Id = r.GetInt32(0), ItemId = r.GetInt32(1), Size = r.GetString(2), VariantCode = r.GetString(3), Color = r.GetString(4), PriceDelta = r.GetDecimal(5) },
             cancellationToken);
 
+    // Latest rate per purity: newest EffectiveAt wins, the higher RateId wins a tie. Listed by RateId.
     private static Task<IReadOnlyList<MetalRate>> GetLatestRatesAsync(SqlConnection connection, CancellationToken cancellationToken) =>
         QueryAsync(connection, null, """
-            SELECT r.RateId, m.Name, p.Label, r.RatePerGram, r.EffectiveAt
+            SELECT r.RateId, m.Name, p.Label, r.RatePerGram, r.Currency, r.EffectiveAt
             FROM dbo.MetalRate r
             JOIN dbo.Purity p ON p.PurityId = r.PurityId
             JOIN dbo.Metal m ON m.MetalId = p.MetalId
             WHERE r.RateId = (SELECT TOP 1 r2.RateId FROM dbo.MetalRate r2 WHERE r2.PurityId = r.PurityId ORDER BY r2.EffectiveAt DESC, r2.RateId DESC)
             ORDER BY r.RateId
             """, [],
-            r => new MetalRate { Id = r.GetInt32(0), MetalType = r.GetString(1), Purity = r.GetString(2), RatePerGram = r.GetDecimal(3), Currency = "AED", EffectiveDate = DateOnly.FromDateTime(r.GetDateTime(4)) }, // schema has no currency, assumed AED
+            r => new MetalRate { Id = r.GetInt32(0), MetalType = r.GetString(1), Purity = r.GetString(2), RatePerGram = r.GetDecimal(3), Currency = r.GetString(4), EffectiveDate = DateOnly.FromDateTime(r.GetDateTime(5)) },
             cancellationToken);
+
+    private static StockRecord ReadStock(SqlDataReader r) => new() { ItemId = r.GetInt32(0), VariantId = r.IsDBNull(1) ? null : r.GetInt32(1), StoreId = r.GetInt32(2), OnHand = r.GetInt32(3), Reserved = r.GetInt32(4) };
 
     private static Item ReadItem(SqlDataReader r) => new()
     {
@@ -264,25 +279,35 @@ public sealed class SqlItemRepository(string connectionString) : IItemRepository
 
     // The API uses perGram, percent, flat. The schema uses PER_GRAM, PERCENT, FIXED.
     private static string FromDbMakingType(string value) => value switch { "PER_GRAM" => "perGram", "PERCENT" => "percent", "FIXED" => "flat", _ => value };
-    private static string ToDbMakingType(string value) => value.ToLowerInvariant() switch
-    {
-        "pergram" => "PER_GRAM",
-        "percent" => "PERCENT",
-        "flat" => "FIXED",
-        _ => throw new DomainValidationException($"Unsupported making type '{value}'.")
-    };
 
-    private static SqlParameter[] WriteParameters(string code, string name, int categoryId, int designId, int purityId, string? huid, decimal gross, decimal stone, string makingType, decimal makingValue) =>
+    private static SqlParameter[] WriteParameters(ValidItem v, int categoryId, int designId, int purityId) =>
     [
-        new("@code", code), new("@name", name), new("@category", categoryId), new("@design", designId), new("@purity", purityId),
-        new("@huid", (object?)huid ?? DBNull.Value), new("@gross", gross), new("@stone", stone),
-        new("@makingType", ToDbMakingType(makingType)), new("@makingValue", makingValue)
+        new("@code", v.Code), new("@name", v.Name), new("@category", categoryId), new("@design", designId), new("@purity", purityId),
+        new("@huid", (object?)v.Huid ?? DBNull.Value), new("@gross", v.GrossWt), new("@stone", v.StoneWt),
+        new("@makingType", SqlDatabaseSetup.ToDbMakingType(v.MakingType)), new("@makingValue", v.MakingValue)
     ];
 
-    private static async Task EnsureDesignAsync(SqlConnection connection, SqlTransaction transaction, int designId, CancellationToken cancellationToken)
+    // Keeps one primary image row per item: no URL removes it, a URL updates it or adds it.
+    private static Task SetImageAsync(SqlConnection connection, SqlTransaction transaction, int itemId, string? imageUrl, CancellationToken cancellationToken) =>
+        ExecuteAsync(connection, transaction, """
+            IF @url IS NULL
+                DELETE dbo.ItemImage WHERE ItemId = @item AND IsPrimary = 1;
+            ELSE IF EXISTS (SELECT 1 FROM dbo.ItemImage WHERE ItemId = @item AND IsPrimary = 1)
+                UPDATE dbo.ItemImage SET Url = @url WHERE ItemId = @item AND IsPrimary = 1;
+            ELSE
+                INSERT dbo.ItemImage (ItemId, Url, IsPrimary) VALUES (@item, @url, 1);
+            """,
+            [new("@item", itemId), new SqlParameter("@url", SqlDbType.NVarChar, 500) { Value = (object?)imageUrl ?? DBNull.Value }],
+            cancellationToken);
+
+    private static SqlParameter NullableInt(string name, int? value) => new SqlParameter(name, SqlDbType.Int) { Value = (object?)value ?? DBNull.Value };
+
+    private static async Task EnsureLinksAsync(SqlConnection connection, SqlTransaction transaction, int designId, int categoryId, CancellationToken cancellationToken)
     {
         if (await ScalarAsync<int>(connection, transaction, "SELECT COUNT(*) FROM dbo.Design WHERE DesignId = @id", [new("@id", designId)], cancellationToken) == 0)
             throw new DomainValidationException($"Design {designId} does not exist.");
+        if (await ScalarAsync<int>(connection, transaction, "SELECT COUNT(*) FROM dbo.Category WHERE CategoryId = @id", [new("@id", categoryId)], cancellationToken) == 0)
+            throw new DomainValidationException($"Category {categoryId} does not exist.");
     }
 
     private static async Task<int> FindPurityAsync(SqlConnection connection, SqlTransaction transaction, string metal, string purity, CancellationToken cancellationToken)

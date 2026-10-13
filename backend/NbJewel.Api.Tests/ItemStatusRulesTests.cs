@@ -38,10 +38,11 @@ public sealed class ItemStatusRulesTests
         Assert.Contains("Allowed statuses: Draft, With Smith, Received, Complete.", ex.Message);
     }
 
-    [Fact]
-    public async Task Repository_AllowsEveryMoveBetweenEveryPairOfStatuses()
+    [Theory]
+    [MemberData(nameof(Repos.Providers), MemberType = typeof(Repos))]
+    public async Task Repository_AllowsEveryMoveBetweenEveryPairOfStatuses(string provider)
     {
-        var repository = SampleRepositoryFactory.Create();
+        var repository = Repos.Create(provider);
         var item = await repository.CreateAsync(NewItem(), Ct);
         foreach (var from in All)
             foreach (var to in All)
@@ -53,10 +54,11 @@ public sealed class ItemStatusRulesTests
             }
     }
 
-    [Fact]
-    public async Task Repository_CompleteIsNotFinal_AndBackwardAndSkipMovesWork()
+    [Theory]
+    [MemberData(nameof(Repos.Providers), MemberType = typeof(Repos))]
+    public async Task Repository_CompleteIsNotFinal_AndBackwardAndSkipMovesWork(string provider)
     {
-        var repository = SampleRepositoryFactory.Create();
+        var repository = Repos.Create(provider);
         var item = await repository.CreateAsync(NewItem(), Ct);
         Assert.Equal("Draft", item.Status);
 
@@ -65,10 +67,11 @@ public sealed class ItemStatusRulesTests
         Assert.Equal("Draft", (await repository.UpdateStatusAsync(item.Id, "Draft", Ct))!.Status);         // back two steps
     }
 
-    [Fact]
-    public async Task Repository_SameStatusIsANoOp()
+    [Theory]
+    [MemberData(nameof(Repos.Providers), MemberType = typeof(Repos))]
+    public async Task Repository_SameStatusIsANoOp(string provider)
     {
-        var repository = SampleRepositoryFactory.Create();
+        var repository = Repos.Create(provider);
         var item = await repository.CreateAsync(NewItem(), Ct);
         await repository.UpdateStatusAsync(item.Id, "Received", Ct);
 
@@ -77,10 +80,11 @@ public sealed class ItemStatusRulesTests
         Assert.Equal("Received", again!.Status);
     }
 
-    [Fact]
-    public async Task Repository_UnknownStatusIsRejectedAndLeavesTheItemUnchanged()
+    [Theory]
+    [MemberData(nameof(Repos.Providers), MemberType = typeof(Repos))]
+    public async Task Repository_UnknownStatusIsRejectedAndLeavesTheItemUnchanged(string provider)
     {
-        var repository = SampleRepositoryFactory.Create();
+        var repository = Repos.Create(provider);
         var item = await repository.CreateAsync(NewItem(), Ct);
         await repository.UpdateStatusAsync(item.Id, "With Smith", Ct);
 
@@ -89,10 +93,11 @@ public sealed class ItemStatusRulesTests
         Assert.Equal("With Smith", (await repository.GetItemAsync(item.Id, Ct))!.Status);
     }
 
-    [Fact]
-    public async Task Repository_UpdateDoesNotChangeStatus()
+    [Theory]
+    [MemberData(nameof(Repos.Providers), MemberType = typeof(Repos))]
+    public async Task Repository_UpdateDoesNotChangeStatus(string provider)
     {
-        var repository = SampleRepositoryFactory.Create();
+        var repository = Repos.Create(provider);
         var item = await repository.CreateAsync(NewItem(), Ct);
         await repository.UpdateStatusAsync(item.Id, "With Smith", Ct);
 
@@ -102,10 +107,11 @@ public sealed class ItemStatusRulesTests
         Assert.Equal("Renamed", updated.Name);
     }
 
-    [Fact]
-    public async Task Controller_ReturnsOkForABackwardMove()
+    [Theory]
+    [MemberData(nameof(Repos.Providers), MemberType = typeof(Repos))]
+    public async Task Controller_ReturnsOkForABackwardMove(string provider)
     {
-        var repository = SampleRepositoryFactory.Create();
+        var repository = Repos.Create(provider);
         var controller = new ItemsController(repository);
         var item = await repository.CreateAsync(NewItem(), Ct);
         await repository.UpdateStatusAsync(item.Id, "Complete", Ct);
@@ -115,18 +121,20 @@ public sealed class ItemStatusRulesTests
         Assert.Equal("Draft", Assert.IsType<Item>(Assert.IsType<OkObjectResult>(result.Result).Value).Status);
     }
 
-    [Fact]
-    public async Task Controller_ReturnsOkForTheSameStatus()
+    [Theory]
+    [MemberData(nameof(Repos.Providers), MemberType = typeof(Repos))]
+    public async Task Controller_ReturnsOkForTheSameStatus(string provider)
     {
-        var controller = new ItemsController(SampleRepositoryFactory.Create());
+        var controller = new ItemsController(Repos.Create(provider));
         var result = await controller.UpdateStatus(1, new StatusUpdateRequest("Complete"), Ct); // item 1 is already Complete in the sample data
         Assert.Equal("Complete", Assert.IsType<Item>(Assert.IsType<OkObjectResult>(result.Result).Value).Status);
     }
 
-    [Fact]
-    public async Task Controller_ReturnsBadRequestForUnknownStatusAndNotFoundForAMissingItem()
+    [Theory]
+    [MemberData(nameof(Repos.Providers), MemberType = typeof(Repos))]
+    public async Task Controller_ReturnsBadRequestForUnknownStatusAndNotFoundForAMissingItem(string provider)
     {
-        var controller = new ItemsController(SampleRepositoryFactory.Create());
+        var controller = new ItemsController(Repos.Create(provider));
 
         var bad = await controller.UpdateStatus(1, new StatusUpdateRequest("Pending"), Ct);
         Assert.Contains("Unknown status 'Pending'", Assert.IsType<BadRequestObjectResult>(bad.Result).Value as string);
