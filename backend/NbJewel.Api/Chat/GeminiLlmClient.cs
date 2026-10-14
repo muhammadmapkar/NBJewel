@@ -68,15 +68,18 @@ public sealed class GeminiLlmClient(HttpClient http, GeminiOptions options, ILog
             Content = JsonContent.Create(request)
         };
         message.Headers.Add("x-goog-api-key", options.ApiKey);
+        var watch = System.Diagnostics.Stopwatch.StartNew();
         try
         {
             using var response = await http.SendAsync(message, cancellationToken);
-            return (response.StatusCode, await response.Content.ReadAsStringAsync(cancellationToken));
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            logger.LogInformation("Gemini call finished: status {Status} in {Milliseconds} ms.", (int)response.StatusCode, watch.ElapsedMilliseconds);
+            return (response.StatusCode, body);
         }
         catch (Exception error) when (error is HttpRequestException || (error is OperationCanceledException && !cancellationToken.IsCancellationRequested))
         {
             // A timeout surfaces as a cancelled request that the caller did not cancel.
-            logger.LogWarning("Gemini call failed: {ErrorType}.", error.GetType().Name);
+            logger.LogWarning("Gemini call failed: {ErrorType} after {Milliseconds} ms.", error.GetType().Name, watch.ElapsedMilliseconds);
             throw new LlmException($"The Gemini request failed ({error.GetType().Name}).");
         }
     }

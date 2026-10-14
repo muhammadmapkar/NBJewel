@@ -17,6 +17,12 @@ public sealed class ChatController(ChatOrchestrator orchestrator, ILogger<ChatCo
     public const int MaxQuestionLength = 500;
     public const int MaxHistoryMessages = 50;
     public const int MaxHistoryContentLength = 2000;
+    // One question may use several model calls. This caps the whole question, not one call.
+    public const int QuestionDeadlineSeconds = 45;
+    public const string BusyMessage = "The assistant is busy. Please try again.";
+
+    // Tests shorten this. The app always uses the default.
+    public TimeSpan Deadline { get; init; } = TimeSpan.FromSeconds(QuestionDeadlineSeconds);
 
     [HttpPost]
     public async Task<ActionResult<ChatResponse>> Ask(ChatRequest request, CancellationToken cancellationToken)
@@ -27,15 +33,17 @@ public sealed class ChatController(ChatOrchestrator orchestrator, ILogger<ChatCo
         if (!HistoryIsValid(request.History))
             return BadRequest(new ErrorMessage("The question or history was not valid."));
 
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(Deadline);
         try
         {
-            return Ok(await orchestrator.AskAsync(question, request.History, cancellationToken));
+            return Ok(await orchestrator.AskAsync(question, request.History, deadline.Token));
         }
         catch (Exception error) when (error is LlmException || (error is OperationCanceledException && !cancellationToken.IsCancellationRequested))
         {
-            // A timeout surfaces as a cancelled request that the caller did not cancel.
+            // A timeout or the question deadline surfaces as a cancelled request that the caller did not cancel.
             logger.LogWarning("Assistant call failed: {ErrorType}.", error.GetType().Name);
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, new ErrorMessage("Assistant unavailable. Retry."));
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new ErrorMessage(BusyMessage));
         }
     }
 

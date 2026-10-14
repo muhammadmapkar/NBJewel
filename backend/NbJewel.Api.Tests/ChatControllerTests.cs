@@ -26,7 +26,31 @@ public sealed class ChatControllerTests
     {
         var objectResult = Assert.IsType<ObjectResult>(result.Result);
         Assert.Equal(503, objectResult.StatusCode);
-        Assert.Equal("Assistant unavailable. Retry.", Assert.IsType<ErrorMessage>(objectResult.Value).Message);
+        Assert.Equal("The assistant is busy. Please try again.", Assert.IsType<ErrorMessage>(objectResult.Value).Message);
+    }
+
+    // Waits until it is cancelled, like a model call that never replies.
+    private sealed class HangingLlm : ILlmClient
+    {
+        public async Task<LlmResponse> GenerateAsync(IReadOnlyList<LlmMessage> messages, IReadOnlyList<ToolDeclaration> tools, double temperature, CancellationToken cancellationToken)
+        {
+            await Task.Delay(Timeout.Infinite, cancellationToken);
+            throw new InvalidOperationException("Unreachable.");
+        }
+    }
+
+    [Fact]
+    public async Task QuestionDeadline_Returns503WithTheBusyMessage()
+    {
+        var orchestrator = new ChatOrchestrator(new HangingLlm(), Tools(), NullLogger<ChatOrchestrator>.Instance);
+        var controller = new ChatController(orchestrator, NullLogger<ChatController>.Instance) { Deadline = TimeSpan.FromMilliseconds(100) };
+        AssertUnavailable(await controller.Ask(new ChatRequest("hi", null), CancellationToken.None));
+    }
+
+    [Fact]
+    public void DeadlineDefaultsTo45Seconds()
+    {
+        Assert.Equal(TimeSpan.FromSeconds(45), Controller(new FakeLlm(Say("x"))).Deadline);
     }
 
     [Fact]

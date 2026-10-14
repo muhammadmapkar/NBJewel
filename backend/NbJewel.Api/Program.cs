@@ -57,7 +57,7 @@ builder.Services.AddSingleton(GeminiOptions.FromConfiguration(builder.Configurat
 builder.Services.AddHttpClient<ILlmClient, GeminiLlmClient>(client =>
 {
     client.BaseAddress = GeminiLlmClient.BaseAddress;
-    client.Timeout = TimeSpan.FromSeconds(60); // one Gemini request; a question can need several
+    client.Timeout = TimeSpan.FromSeconds(30); // one Gemini request; the whole question is capped separately in ChatController
 });
 builder.Services.AddScoped<ChatOrchestrator>();
 

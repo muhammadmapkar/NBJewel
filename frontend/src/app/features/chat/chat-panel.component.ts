@@ -5,6 +5,7 @@
 // as plain text, never as HTML.
 
 import { Component, effect, ElementRef, inject, input, output, signal, viewChild } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
 import { ItemDataService } from '../../core/data/item-data.service';
 import { Item } from '../../core/models';
@@ -20,6 +21,7 @@ const SUGGESTIONS = [
 ];
 // Tools whose recordId is an item id. Other tools use category or rate ids, which are not items.
 const ITEM_TOOLS = new Set(['search_items', 'get_item_details', 'get_item_price_breakdown', 'get_stock_by_store', 'list_low_stock', 'list_items_by_status']);
+const FALLBACK_ERROR = 'The assistant is busy. Please try again.';
 const MAX_LENGTH = 500;
 const MAX_HISTORY = 6;
 const HISTORY_TEXT_LIMIT = 2000;
@@ -82,7 +84,7 @@ interface LastRequest { question: string; history: ChatHistoryMessage[]; }
         @if (failed()) {
           <div class="row assistant">
             <div class="bubble assistant-bubble error" role="alert">
-              <span>Assistant unavailable. Retry.</span>
+              <span>{{ errorText() }}</span>
               <button type="button" class="retry" (click)="retry()">Retry</button>
             </div>
           </div>
@@ -160,6 +162,8 @@ export class ChatPanelComponent {
   readonly draft = signal('');
   readonly loading = signal(false);
   readonly failed = signal(false);
+  // The server's message when it sent one (the 503 text), else a fixed fallback.
+  readonly errorText = signal(FALLBACK_ERROR);
   // Items found for source chips. null means the id is not an item.
   private readonly itemCache = signal<Record<number, Item | null>>({});
 
@@ -235,8 +239,10 @@ export class ChatPanelComponent {
         this.loading.set(false);
         this.lookUpItems(response.sources);
       },
-      error: () => {
+      error: (err: HttpErrorResponse) => {
         if (token !== this.token) return;
+        const text = err?.error?.message;
+        this.errorText.set(typeof text === 'string' && text.length > 0 ? text : FALLBACK_ERROR);
         this.loading.set(false);
         this.failed.set(true);
       }
