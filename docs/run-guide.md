@@ -91,7 +91,7 @@ Live check against Gemini. It uses the real model and costs money, so it is a ma
 
 | Question | Expected |
 |---|---|
-| "Show stock of RNG-0142 by store." | 7 in total (Dubai 4, Chennai 2, Bengaluru 1), with sources |
+| "Show stock of RNG-0142 by store." | Dubai 4, Chennai 2, Bengaluru 1 (the total of 7 may not be stated), with sources |
 | "What is today's 22K rate?" | 66 AED per gram, with sources |
 | "Which items are Draft?" | BNG-0011 and EAR-0022, with sources |
 | "What is the gold price in the world market today?" | The refusal text |
