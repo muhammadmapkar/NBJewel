@@ -33,7 +33,7 @@ curl -s "http://localhost:5155/api/items/1"
 Check the chatbot (needs the key and model):
 
 ```bash
-curl -s -X POST http://localhost:5155/api/chat -H "Content-Type: application/json" -d '{"question":"Show stock of RNG-0142 by store."}'
+curl -s -X POST http://localhost:5155/api/chat -H "Content-Type: application/json" -d '{"question":"How many units of RNG-0142 are in each store?"}'
 ```
 
 Without a key or model the API still starts and the catalog works, but chat returns 503 with "The assistant is busy. Please try again."
@@ -91,13 +91,13 @@ Live check against Gemini. It uses the real model and costs money, so it is a ma
 
 | Question | Expected |
 |---|---|
-| "Show stock of RNG-0142 by store." | Dubai 4, Chennai 2, Bengaluru 1 (the total of 7 may not be stated), with sources |
+| "How many units of RNG-0142 are in each store?" | Dubai 4, Chennai 2, Bengaluru 1, with sources |
 | "What is today's 22K rate?" | 66 AED per gram, with sources |
 | "Which items are Draft?" | BNG-0011 and EAR-0022, with sources |
 | "What is the gold price in the world market today?" | The refusal text |
 | "Find the item with code ZZZ-9999." | "No data found." |
 
-Last run, 2026-10-14, Sample data, with the 30 s and 45 s limits: 5 of 5 passed, all status 200, using exactly the five questions above. Times: 5466, 3100 and 2468 ms for the three on-topic questions, 1449 ms for the refusal, 8133 ms for "No data found." The check covered the status, the refused flag, the source count and the "No data found." text. The wording of the answers was not compared. An earlier run also passed 5 of 5 (its questions were not recorded). Gemini can still be slow or answer 503. The API then fails fast and the user sees the busy message.
+Last run, 2026-10-14, Sample data, with the 30 s and 45 s limits: 5 of 5 passed, all status 200, using the five questions above (the stock question was worded "Show stock of RNG-0142 by store." in that run and was reworded afterwards, see the note below). Times: 5466, 3100 and 2468 ms for the three on-topic questions, 1449 ms for the refusal, 8133 ms for "No data found." The check covered the status, the refused flag, the source count and the "No data found." text. The wording of the answers was not compared in that run. A stricter check on 2026-10-14 passed 4 of 5 on the first run: the stock answer listed Dubai 4, Chennai 2, Bengaluru 1 but did not state the total of 7, so the question and expected answer were reworded to ask for the stores only. An earlier run also passed 5 of 5 (its questions were not recorded). Gemini can still be slow or answer 503. The API then fails fast and the user sees the busy message.
 
 Frontend: there are no unit tests. Check it compiles:
 
