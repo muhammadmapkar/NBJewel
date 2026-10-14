@@ -13,7 +13,7 @@ Rules for any AI coding agent working in this repository.
 
 - Frontend: Angular (standalone components, TypeScript strict, signals).
 - Backend: .NET Web API (C#). SQL Server later.
-- AI service: Python FastAPI.
+- Chatbot: runs inside the .NET Web API, calling Gemini over REST. No separate AI service.
 
 ## Chatbot rules
 
