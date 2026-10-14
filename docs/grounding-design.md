@@ -1,6 +1,6 @@
 # Grounding design
 
-"Grounding" means the assistant may only say what the NB Jewel data says. This page explains each protection in plain language, where it lives, and what it cannot do. The code is in `ai-service/app/chat.py`, `ai-service/app/guards/`, `ai-service/app/prompts/system.md` and `ai-service/app/tools/`.
+"Grounding" means the assistant may only say what the NB Jewel data says. This page explains each protection in plain language, where it lives, and what it cannot do. The code is in the .NET API: `backend/NbJewel.Api/Chat/ChatOrchestrator.cs`, `Guards.cs`, `SystemPrompt.cs` and `ChatTools.cs`.
 
 ## The protections
 
@@ -50,11 +50,11 @@ If the answer repeats a line of the system prompt word for word (ignoring case a
 If the model's reply is not valid JSON in the expected shape, the service asks once more. A second failure is refused.
 
 ### 10. Other limits
-The question is limited to 500 characters. The AI service returns only `answer`, `sources` and `refused`. If the model or the AI service is unavailable, the API returns 503 "Assistant unavailable. Retry."
+The question is limited to 500 characters. The chat endpoint returns only `answer`, `sources` and `refused`. If the model is missing, fails or is too slow (30 seconds per model call, 45 seconds per question), the API returns 503 "The assistant is busy. Please try again."
 
 ## What is logged
 
-The AI service logs the question, tool names, tool arguments, record ids and the guard result. It does not log full tool results or the API key. Questions can contain personal data if a user types it, see `data-privacy-checklist.md`.
+The .NET API logs tool names, tool status, record counts, the guard result and, for each Gemini call, the status, error type and time in milliseconds. It does not log the question, full tool results or the API key. Questions can contain personal data if a user types it, see `data-privacy-checklist.md`.
 
 ## Known limits
 
@@ -65,5 +65,5 @@ The AI service logs the question, tool names, tool arguments, record ids and the
 - **The leak check is narrow.** A paraphrase of the prompt is not caught.
 - **The guards cannot prove that nothing leaks or that nothing is invented.** They reduce the risk.
 - **Tests reduce risk only.** The offline tests use scripted answers and prove the tools and guards behave. The live tests that ask the real model exist but no live result has been recorded in this repository, and any pass rate only describes the questions in the test sets.
-- **No authentication is built.** Anyone who can reach the API or the AI service can ask questions. The demo must stay on a local machine with fake data.
+- **No authentication is built.** Anyone who can reach the API can ask questions. The demo must stay on a local machine with fake data.
 - Nothing here has been reviewed for real client data. See the checklist before using any.

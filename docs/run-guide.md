@@ -1,18 +1,26 @@
 # Run guide (macOS)
 
-Three services run together. Start them in this order, each in its own Terminal tab, from the repository root.
+Two services run together. Start them in this order, each in its own Terminal tab, from the repository root. The chatbot runs inside the .NET API, so there is no separate AI service to start.
 
 | Service | Port | Folder |
 |---|---|---|
-| .NET API | 5155 | `backend/NbJewel.Api` |
-| AI service | 8000 | `ai-service` |
+| .NET API (includes the chatbot) | 5155 | `backend/NbJewel.Api` |
 | Angular app | 4200 | `frontend` |
 
-Requirements: .NET 10 SDK, Python 3.11 or newer, Node.js with npm.
+Requirements: .NET 10 SDK, Node.js with npm.
 
 ## 1. .NET API (port 5155)
 
+First time only, create your local settings file, then open `.env` in an editor and fill in `GEMINI_API_KEY` and `GEMINI_MODEL` (choose a model code from the Gemini models page). You can also set `GEMINI_THINKING_LEVEL` (minimal, low, medium or high, default low): lower is faster. `.env` is ignored by git.
+
 ```bash
+cp .env.example .env
+```
+
+The API reads settings from its environment, not from the `.env` file directly. Load the file into the Terminal tab, then start the API:
+
+```bash
+set -a; source .env; set +a
 cd backend/NbJewel.Api && dotnet run --launch-profile http
 ```
 
@@ -22,50 +30,36 @@ Check it: open `http://localhost:5155/swagger`, or run:
 curl -s "http://localhost:5155/api/items/1"
 ```
 
+Check the chatbot (needs the key and model):
+
+```bash
+curl -s -X POST http://localhost:5155/api/chat -H "Content-Type: application/json" -d '{"question":"Show stock of RNG-0142 by store."}'
+```
+
+Without a key or model the API still starts and the catalog works, but chat returns 503 with "The assistant is busy. Please try again."
+
+### Chat limits
+
+- A question is 1 to 500 characters. History is at most 50 messages of 2,000 characters each. Only the last 6 are sent to the model.
+- One Gemini request times out after 30 seconds. The whole question has a 45 second limit, because one question can use several model calls.
+- When Gemini is down, slow or not configured, the API returns 503 and the chat panel shows the message. The log line for each Gemini call holds only the status, the error type and the time in milliseconds. It never holds the key or the question.
+
 ### Storage: sample (default) or SQL Server
 
 By default the API uses the sample JSON files and keeps changes in memory. Item statuses, added stock and edited items all reset to the values in `sample-data/` when the API restarts. For example, if the screen shows BNG-0011 as Complete after someone changed it, a restart brings it back to Draft. The API does not log or save these changes.
 
-To save to SQL Server instead, create the database with `docs/item_catalog_schema.sql`, then set the provider and the connection string in the Terminal tab that starts the API. The connection string is read from an environment variable and is never stored in the repository. Use your own server and login (the value below is a placeholder):
+To save to SQL Server instead, use the Docker setup in the README (`./scripts/setup-db.sh`), or point the API at your own server. The connection string is read from an environment variable and is never stored in the repository. Use your own server and login (the value below is a placeholder):
 
 ```bash
 export NBJEWEL_SQL_CONNECTION="Server=YOUR_SERVER;Database=NBJewelSample;User Id=YOUR_USER;Password=YOUR_PASSWORD;TrustServerCertificate=True"
 cd backend/NbJewel.Api && Repository__Provider=Sql dotnet run --launch-profile http
 ```
 
-If the provider is `Sql` and the variable is missing, the API refuses to start and says why. The SQL version is build-checked only. It has not been run against a real SQL Server in this repository.
+If the provider is `Sql` and the variable is missing, the API refuses to start and says why. The SQL version has not been run against a real SQL Server in this repository.
 
-The chatbot (AI service) never writes. It sends GET requests only, so it works the same with either storage.
+The chatbot never writes. Its 8 tools only read, so it works the same with either storage.
 
-## 2. AI service (port 8000)
-
-First time only, create the virtual environment and install the packages:
-
-```bash
-cd ai-service && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-```
-
-First time only, create your local settings file, then open `ai-service/.env` in an editor and fill in `GEMINI_API_KEY` and `GEMINI_MODEL` (choose a model code from the Gemini models page). `NBJEWEL_API_URL` already points to port 5155. You can also add `GEMINI_THINKING_LEVEL` (minimal, low, medium or high, default low): lower is faster. `.env` is ignored by git.
-
-```bash
-cd ai-service && cp .env.example .env
-```
-
-Start it from the `ai-service` folder, so the `.env` file is found:
-
-```bash
-cd ai-service && .venv/bin/uvicorn app.main:app --port 8000
-```
-
-Check it:
-
-```bash
-curl -s http://localhost:8000/health
-```
-
-Without a key or model the service still starts and `/health` works, but chat returns 503 "Assistant unavailable. Retry."
-
-## 3. Angular app (port 4200)
+## 2. Angular app (port 4200)
 
 First time only:
 
@@ -85,29 +79,27 @@ Stop any service with Ctrl+C in its Terminal tab.
 
 ## Tests
 
-.NET tests (56 tests, no network):
+.NET tests (API and chatbot, no network, no key needed). Last result: 149 passed, 2 skipped. The 2 skipped are the SQL parity tests, which need a SQL Server:
 
 ```bash
-cd backend && dotnet test NbJewel.Api.Tests
+cd backend && dotnet test NbJewel.Api.Tests -v q
 ```
 
-AI service offline tests (no key, no network; live tests show as skipped):
+To run the tests on SQL Server as well, set `NBJEWEL_SQL_CONNECTION` first. They use a separate database called `NBJewelTest`.
 
-```bash
-cd ai-service && .venv/bin/python -m pytest -q
-```
+Live check against Gemini. It uses the real model and costs money, so it is a manual run, not a test. Start the API with the key and model loaded, then ask these five through the chat panel or with the `curl` command above:
 
-AI service live tests use the real Gemini model and cost money. They run only when `RUN_LIVE=1` and both variables below are set. Put your own values in your shell for this session only. `REPEATS` is the number of runs per question (default 3). A report is written to `ai-service/tests/report.md`, which git ignores.
+| Question | Expected |
+|---|---|
+| "Show stock of RNG-0142 by store." | 7 in total (Dubai 4, Chennai 2, Bengaluru 1), with sources |
+| "What is today's 22K rate?" | 66 AED per gram, with sources |
+| "Which items are Draft?" | BNG-0011 and EAR-0022, with sources |
+| "What is the gold price in the world market today?" | The refusal text |
+| "Find the item with code ZZZ-9999." | "No data found." |
 
-```bash
-export GEMINI_API_KEY="paste-your-key-here"
-export GEMINI_MODEL="model-code-from-the-gemini-docs"
-cd ai-service && RUN_LIVE=1 REPEATS=3 .venv/bin/python -m pytest -q -m live
-```
+Last run, 2026-10-14, Sample data, with the 30 s and 45 s limits: 5 of 5 passed, all status 200, using exactly the five questions above. Times: 5466, 3100 and 2468 ms for the three on-topic questions, 1449 ms for the refusal, 8133 ms for "No data found." The check covered the status, the refused flag, the source count and the "No data found." text. The wording of the answers was not compared. An earlier run also passed 5 of 5 (its questions were not recorded). Gemini can still be slow or answer 503. The API then fails fast and the user sees the busy message.
 
-Live targets and the test sets are described in `ai-service/tests/README.md`. No live run has been recorded in this repository.
-
-Frontend: there are no unit tests. Check it compiles (the status rule and stock validation tests are in the .NET project):
+Frontend: there are no unit tests. Check it compiles:
 
 ```bash
 cd frontend && npm run build
@@ -115,17 +107,17 @@ cd frontend && npm run build
 
 ## Secrets check
 
-Done on 2026-09-30 over the 12 commits in this repository. Result only, no secret values are printed here.
+Repeated on 2026-10-14 over the files tracked now, after the chatbot moved into the .NET API. The history search was done on 2026-09-30 over 12 commits and has not been repeated since. Result only, no secret values are printed here.
 
 | Check | Result |
 |---|---|
-| `.env` is not tracked by git | Pass. Only `.env.example` and `ai-service/.env.example` are tracked, and both have empty key values. No `.env` file exists on disk. |
-| `.env` is in `.gitignore` | Pass. `.env` and `.env.*` are ignored, with `.env.example` allowed. |
-| Key-like strings in tracked source, docs and tests (patterns: `AIza`, `sk-`, `Bearer` tokens, private key headers, plus GitHub, Slack and AWS key prefixes) | Pass. No matches. |
-| Key-like strings anywhere in git history (all commits) | Pass. No matches. The same search finds the word `GEMINI_API_KEY` in history, so the search works. |
+| `.env` is not tracked by git | Pass. No `.env` file is tracked. `.env.example` has empty values. |
+| `.env` is in `.gitignore` | Pass on 2026-09-30. `.env` and `.env.*` are ignored, with `.env.example` allowed. Not rechecked. |
+| Key-like strings in tracked files (patterns: `AIza`, `sk-`, private key headers) | Pass. No matches. |
+| Key-like strings anywhere in git history | Pass on 2026-09-30 only. Not rerun for the commits made since. |
 | Frontend has no key | Pass. No key or LLM host name appears in `frontend/src`. |
-| Frontend makes no direct LLM call | Pass. The chat code sends `POST /api/chat` to the .NET API only. The source chips look up an item with the catalog's normal `GET /api/items/:id` call. |
-| .NET project has no key | Pass. No key reference in `backend/`. `appsettings.json` holds only the AI service URL and the storage choice (`Repository:Provider`). The SQL connection string is read from the `NBJEWEL_SQL_CONNECTION` environment variable and is not in any file. |
-| Where the key is read | Only in `ai-service/app/config.py` and `ai-service/app/llm/gemini.py`, from the environment, as a secret value that is never logged. |
+| Frontend makes no direct LLM call | Pass on 2026-09-30. The chat code sends `POST /api/chat` to the .NET API only. Not rechecked. |
+| Where the key is read | Only in `backend/NbJewel.Api/Chat/GeminiLlmClient.cs` (through `GeminiOptions`, in `Program.cs`), from the `GEMINI_API_KEY` environment variable. `appsettings.json` holds no key. |
+| Key never logged | Not rechecked after the move. The Gemini call log line is written to hold only the status, the error type and the time. |
 
-Not checked: files outside this repository, your shell history, and the terminal output you have shared elsewhere.
+Not checked: files outside this repository, your shell history, and the terminal output you have shared elsewhere. The old `ai-service/.env` file (ignored by git) may hold a key from before the move. It is removed with the `ai-service/` folder. Use the root `.env` only.

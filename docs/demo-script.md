@@ -4,9 +4,9 @@ All data in this demo is fake sample data. Names, prices and stock are invented.
 
 ## Before you start (5 minutes, not part of the demo)
 
-1. Start the three services as described in `run-guide.md` (.NET on 5155, AI service on 8000, Angular on 4200).
-2. Confirm `http://localhost:5155/swagger` opens and `http://localhost:8000/health` returns `{"status":"ok"}`.
-3. The chat steps need a Gemini key and model name set for the AI service. They have not been checked against a real model in this repository, so run the chat steps once before the demo.
+1. Start the two services as described in `run-guide.md` (.NET API on 5155, which includes the chatbot, and Angular on 4200). Load `.env` into the API's Terminal tab first.
+2. Confirm `http://localhost:5155/swagger` opens.
+3. The chat steps need a Gemini key and model name in the API's environment. Only one clean live run is recorded (5 questions, see `run-guide.md`), so ask the chat questions below once before the demo. Gemini can be slow or busy at times.
 4. Open `http://localhost:4200/catalog`.
 
 ## Steps
@@ -35,7 +35,7 @@ All data in this demo is fake sample data. Names, prices and stock are invented.
 ## If something breaks
 
 - **Catalog says "Cannot reach the server".** The .NET API is not running. Start it (see `run-guide.md`), then press Retry.
-- **Chat says "Assistant unavailable. Retry."** Either the AI service is not running, the Gemini key or model is missing or wrong, or Gemini failed. Check `http://localhost:8000/health`. Check the terminal of the AI service for the warning line. Press Retry.
+- **Chat says "The assistant is busy. Please try again."** The Gemini key or model is missing or wrong, Gemini answered with an error (for example 503), or the question took longer than 45 seconds. Check the terminal of the .NET API for the line that starts with "Gemini call" or "Assistant call failed". It shows the status, the error type and the time. Press Retry. If it keeps failing, say it is the external model and show the catalog and Swagger instead.
 - **Chat answers are refused when they should not be.** The model may have used a number or source the guards reject. Ask again with a simpler question, for example "Show stock of RNG-0142 by store." Say this is the guards working, and that a refusal is safer than a wrong answer.
 - **Numbers or statuses look different from this script.** Someone changed an item (status, stock, or an edit) since the API started. For example, BNG-0011 should be Draft at the start, but it shows Complete if its status was changed. The API keeps changes in memory only and does not log them. Restart the .NET API to reset all data to the sample files.
 - **A page loads blank on refresh.** Open `http://localhost:4200/catalog` directly. Make sure `ng serve` is still running.

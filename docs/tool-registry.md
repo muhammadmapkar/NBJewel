@@ -1,6 +1,6 @@
 # Tool registry
 
-The AI service gives the language model eight tools. They are the only way the assistant can see data. The code is in `ai-service/app/tools/` (`catalog_tools.py`, `registry.py`, `api_client.py`).
+The chatbot in the .NET API gives the language model eight tools. They are the only way the assistant can see data. The code is in `backend/NbJewel.Api/Chat/ChatTools.cs`. The tools reach data only through `IChatDataReader` (`IChatDataReader.cs`), whose methods all start with Get or Search, so no tool can write.
 
 ## Rules that apply to every tool
 
@@ -77,7 +77,7 @@ The AI service gives the language model eight tools. They are the only way the a
 
 ## 5. list_low_stock
 
-- **Purpose:** List items with few units available, in all stores or in one store. Uses the same rule as the dashboard Needs attention card: fewer than 2 available, where available is on hand minus reserved (assumed). The constant is `LOW_STOCK_DEFAULT_THRESHOLD` in `catalog_tools.py`; the dashboard and the .NET endpoint `GET /api/stock/low` default to 2 as well, kept in step by hand because they are separate programs.
+- **Purpose:** List items with few units available, in all stores or in one store. Uses the same rule as the dashboard Needs attention card: fewer than 2 available, where available is on hand minus reserved (assumed). The constant is `LowStockDefaultThreshold` in `ChatTools.cs`; the dashboard and the .NET endpoint `GET /api/stock/low` default to 2 as well, kept in step by hand because they are separate programs.
 - **Arguments:** `threshold` (1 to 1000, default 2): items with fewer than this many units available are listed (strictly under, so exactly 2 is not low). `store` (store name or id, optional).
 - **Endpoints:** Assumed, no backend endpoint. The tool composes the answer from `GET /api/items` (all pages), `GET /api/items/{id}/stock` for every item, and `GET /api/stores` when a store is given. That is one stock request per item, run side by side.
 - **Returns:** threshold, store, `count` (all matches) and `items` (itemId, code, name, available), lowest first, at most 50 shown. Items with no stock records count as 0 on hand. `not_found` if nothing is low or the store is unknown.
@@ -109,7 +109,7 @@ The AI service gives the language model eight tools. They are the only way the a
   {"status": "ok", "data": [{"currency": "AED", "id": 2, "metalType": "Gold", "purity": "22K", "ratePerGram": 66.0, "effectiveDate": "2026-09-30"}], "sources": [{"tool": "get_latest_metal_rate", "recordId": 2}]}
   ```
 
-  The demo rates (24K 72, 22K 66, 18K 54 AED per gram) are fake sample values. Assumed: 22K is 22/24 of the 24K rate. The grounding tests use a separate test-only fixture where 22K is 1 per gram (see `ai-service/tests/fixture_api.py`), to prove the assistant reports data values and not real-world prices.
+  The demo rates (24K 72, 22K 66, 18K 54 AED per gram) are fake sample values. Assumed: 22K is 22/24 of the 24K rate. The assistant must report these data values and not real-world prices. The chat tests use test-only rate files in `backend/NbJewel.Api.Tests/Fixtures/` (poisoned and tied rates), not the demo data.
 
 ## 8. list_items_by_status
 

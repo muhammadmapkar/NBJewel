@@ -21,3 +21,4 @@ These are open questions that change how the real version should be built. The d
 | 15 | Should stock entry add to on-hand or replace it? Is 0 allowed? | Changes the stock form and audit needs. | Assumed: it adds, and the quantity must be above 0. |
 | 16 | Does the real schema have color, price delta and reserved stock? | The SQL repository returns empty or zero values for them. | Assumed: not in the schema. |
 | 17 | What counts as low stock? Per variant and store, or per item? | Decides the Needs attention card and any alert. | Assumed: fewer than 2 units available (on hand minus reserved) in one variant and store. |
+| 18 | Please confirm in writing that the chatbot lives inside the .NET API and that Gemini may be used for the demo. Both were agreed verbally. | Decides whether the chatbot stays inside the .NET API and whether Gemini can stay. See `decision-ai-service.md`. | Assumed: both are approved for the demo with fake data only. |

@@ -1,6 +1,6 @@
 # nbjewel-assistant
 
-An internship demo for Cetas (jewelry retail ERP, NB Jewel). It has an Angular catalog, a .NET API, and a chat assistant that answers only from ERP data through fixed read-only tools.
+An internship demo for Cetas (jewelry retail ERP, NB Jewel). It has an Angular catalog, a .NET API, and a chat assistant that answers only from ERP data through fixed read-only tools. The assistant runs inside the .NET API.
 
 This repository uses fake data only. It contains no real client data and does not claim to reproduce NB Jewel internals. Anything unconfirmed is marked "assumed" in the docs.
 
@@ -11,14 +11,10 @@ A beginner map. Each source file starts with a short comment that says what it i
 - `frontend/`: Angular app (themed shell, catalog, chat panel). Code is in `frontend/src/app/`.
 - `backend/NbJewel.Api/`: .NET Web API.
   - `Controllers/`: the HTTP endpoints (items, stock, categories, chat and so on).
+  - `Chat/`: the chatbot. The 8 read-only tools (`ChatTools.cs`), the 4 answer guards (`Guards.cs`), the system prompt, the Gemini REST client and the loop that ties them together (`ChatOrchestrator.cs`).
   - `Models/`: the data shapes and the shared item validation rules.
   - `Repositories/`: where data comes from. `SampleItemRepository` reads JSON, `SqlItemRepository` reads SQL Server. `Program.cs` picks one.
-- `backend/NbJewel.Api.Tests/`: .NET tests. They run on the Sample repository, and on SQL Server too when a test connection is set.
-- `ai-service/`: Python FastAPI service.
-  - `app/tools/`: the 8 read-only tools and the GET-only API client.
-  - `app/guards/`: the 4 checks every answer must pass.
-  - `app/llm/`: the Gemini provider. `app/prompts/`: the system prompt.
-  - `tests/`: offline tests and optional live tests.
+- `backend/NbJewel.Api.Tests/`: .NET tests (API and chatbot). They run on the Sample repository, and on SQL Server too when a test connection is set.
 - `sample-data/`: synthetic JSON used by the Sample repository and to seed SQL Server.
 - `docs/`: documentation (see below) and the SQL schema `item_catalog_schema.sql`.
 - `scripts/setup-db.sh`: one command to prepare the local SQL Server.
@@ -30,31 +26,31 @@ A beginner map. Each source file starts with a short comment that says what it i
 - [Architecture](docs/architecture.md): diagram, chat request flow, swap plan, assumed details
 - [Tool registry](docs/tool-registry.md): the 8 read-only tools
 - [Grounding design](docs/grounding-design.md): how answers are kept to the data, and the known limits
+- [Decision record: where the chatbot lives](docs/decision-ai-service.md): why it moved into the .NET API
 - [Demo script](docs/demo-script.md): a 10 minute walkthrough
 - [Data privacy checklist](docs/data-privacy-checklist.md): checks before any real data, and API key rules
 - [Questions for Sakthivel](docs/questions-for-sakthivel.md): open questions
 - [Run guide](docs/run-guide.md): start the services, run the tests, secrets check
-- [AI service tests](ai-service/tests/README.md): offline and live test modes
 - Older placeholders from the first phase, not updated since: [API contracts](docs/api-contracts.md), [Assumptions](docs/assumptions.md), [Data dictionary](docs/data-dictionary.md)
 
 ## Quick start
 
-Requirements: .NET 10 SDK, Python 3.11 or newer, Node.js with npm. Three services run together, each in its own Terminal tab, from the repository root. More detail is in the [run guide](docs/run-guide.md).
+Requirements: .NET 10 SDK, Node.js with npm. Two services run together, each in its own Terminal tab, from the repository root. More detail is in the [run guide](docs/run-guide.md).
 
 ### Sample mode (default, no database)
 
 The API reads `sample-data/` and keeps changes in memory. A restart resets them.
 
 ```bash
-# Tab 1: .NET API on 5155
+# Tab 1: .NET API on 5155 (first time: cp .env.example .env, fill in GEMINI_API_KEY and GEMINI_MODEL)
+set -a; source .env; set +a
 cd backend/NbJewel.Api && dotnet run --launch-profile http
 
-# Tab 2: AI service on 8000 (first time: python3 -m venv .venv && .venv/bin/pip install -r requirements.txt, then cp .env.example .env and fill in GEMINI_API_KEY and GEMINI_MODEL)
-cd ai-service && .venv/bin/uvicorn app.main:app --port 8000
-
-# Tab 3: Angular app on 4200 (first time: npm install)
+# Tab 2: Angular app on 4200 (first time: npm install)
 cd frontend && npm start
 ```
+
+Without a Gemini key and model the catalog still works, and chat answers "The assistant is busy. Please try again."
 
 ### Sql mode (SQL Server in Docker)
 
@@ -67,9 +63,9 @@ set -a; source .env; set +a
 cd backend/NbJewel.Api && Repository__Provider=Sql dotnet run --launch-profile http
 ```
 
-Start the AI service and Angular app as in Sample mode. Use `./scripts/setup-db.sh --reset` to drop the database and load fresh sample data. To run the tests on both providers, set `NBJEWEL_SQL_CONNECTION` to a server and run `dotnet test backend/NbJewel.Api.Tests`. Tests use a separate database called `NBJewelTest`, never the dev database.
+Start the Angular app as in Sample mode. Use `./scripts/setup-db.sh --reset` to drop the database and load fresh sample data. To run the tests on both providers, set `NBJEWEL_SQL_CONNECTION` to a server and run `dotnet test backend/NbJewel.Api.Tests`. Tests use a separate database called `NBJewelTest`, never the dev database.
 
-Keep the real `GEMINI_API_KEY` only in the AI service environment, never in the frontend or in git.
+Keep the real `GEMINI_API_KEY` only in the .NET API environment, never in the frontend or in git.
 
 ## Status
 
@@ -77,16 +73,15 @@ Keep the real `GEMINI_API_KEY` only in the AI service environment, never in the 
 |---|---|
 | Sample data (30 items, 10 designs, variants, stock, stores, categories, rates) | Done |
 | .NET API: items, designs, variants, stock (read and add), price, status workflow, categories, stores, metal rates, Swagger, CORS | Done |
-| .NET `POST /api/chat` forwarder (503 when the assistant is unavailable) | Done |
+| Chatbot inside the .NET API: `POST /api/chat`, 8 read-only tools, 4 answer guards, Gemini REST client, 30 s per model call and 45 s per question, 503 "The assistant is busy. Please try again." on failure | Done |
 | Angular themed shell and static pages (dashboard, scheme master, chit master, financial year, password) | Done, mock data only |
 | Angular catalog: list (design code column, search, sort), filters, detail, price breakdown, stock entry, create and edit with design dropdown, status workflow badges | Done |
 | Angular printable item tag with a QR code of the item code (`/catalog/:id/tag`, uses the `qrcode` npm package) | Done, print preview not checked |
 | Angular images tab | Done with fake in-memory data, no backend endpoint |
 | Angular variants tab | Done, served by the API |
-| AI service: 8 read-only tools, chat loop, 4 answer guards, Gemini provider | Done |
-| Angular chat panel with source chips and refusal style | Done |
-| Offline tests: AI service (282, including a source scan that proves tools only use GET) and .NET (66 passed, 2 skipped SQL parity tests) | Done |
-| Live tests against Gemini (code written) | Not run, no result recorded |
+| Angular chat panel with source chips, refusal style and the server's error message | Done |
+| .NET tests (API and chatbot): 149 passed, 2 skipped (SQL parity tests that need a SQL Server) | Done |
+| Live test against Gemini (5 questions: 3 on topic, 1 off topic, 1 no match) | Two clean runs, 5 of 5 each (latest 2026-10-14, 1.4 to 8.1 s per answer). An earlier run was partial because of Gemini 503s and slow calls |
 | Frontend unit tests | Not built |
 | Login, roles and permissions | Not built |
 | SQL Server repository (`SqlItemRepository`, switch with `Repository:Provider`), docker-compose, setup script, tests that run on both providers | Built. Sample tests pass. SQL tests are written but not yet run against a real server (no Docker on the dev machine yet) |
@@ -103,7 +98,7 @@ Keep the real `GEMINI_API_KEY` only in the AI service environment, never in the 
 - The SQL Server path has not been run against a real server yet. Treat it as unverified until `./scripts/setup-db.sh` and the SQL tests have passed once.
 - The Angular item form still lets a user type a net weight and sends it. The API ignores it and always computes gross minus stone.
 - Images and stock history have no backend endpoint. The images tab uses fake in-memory data.
-- Live Gemini tests have not been run, so the real model's pass rate is unknown.
+- The live Gemini result is two clean runs of 5 questions. Gemini sometimes answers 503 or slowly. The API then fails fast and the user sees the busy message.
 - The guards check numbers and sources, not whether the sentence around a number is true. See the [grounding design](docs/grounding-design.md).
 - Sample mode loses all changes on restart.
 

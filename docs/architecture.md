@@ -7,9 +7,8 @@ This document describes what is built today. Anything about NB Jewel itself is m
 | Part | Folder | Port | What it does today |
 |---|---|---|---|
 | Angular frontend | `frontend/` | 4200 | Themed shell, static mock pages, catalog (list, filters, detail with tabs, create and edit form), chat panel |
-| .NET Web API | `backend/NbJewel.Api` | 5155 | Item, stock, price, category, store and metal rate endpoints, plus `POST /api/chat` that forwards to the AI service |
-| AI service | `ai-service/` | 8000 | FastAPI app with `GET /health` and `POST /chat`, eight read-only tools, answer guards, Gemini provider |
-| LLM provider | (external) | n/a | Google Gemini, called only from the AI service through `GeminiProvider` |
+| .NET Web API | `backend/NbJewel.Api` | 5155 | Item, stock, price, category, store and metal rate endpoints, plus `POST /api/chat`, the chatbot (eight read-only tools, answer guards, Gemini client) in `backend/NbJewel.Api/Chat/` |
+| LLM provider | (external) | n/a | Google Gemini, called only from the .NET API through `GeminiLlmClient` (the `ILlmClient` interface) |
 | Sample data layer | `sample-data/`, `SampleItemRepository` | n/a | Fake JSON files read by the .NET API through `IItemRepository` |
 
 ## Diagram
@@ -23,26 +22,26 @@ flowchart LR
     B["Controllers<br/>port 5155"]
     R["IItemRepository<br/>SampleItemRepository"]
     D[("sample-data JSON<br/>fake data")]
+    subgraph Chat["Chatbot (Chat/)"]
+      C["ChatController<br/>ChatOrchestrator"]
+      T["ChatTools<br/>8 read-only tools"]
+      Q["IChatDataReader<br/>Get and Search only"]
+      G["Answer guards"]
+    end
   end
-  subgraph AI["AI service (FastAPI)"]
-    C["POST /chat<br/>ChatService"]
-    T["Tool registry<br/>8 read-only tools"]
-    G["Answer guards"]
-  end
-  L["LLM provider<br/>Gemini via GeminiProvider"]
+  L["LLM provider<br/>Gemini via GeminiLlmClient"]
 
   A -->|"catalog: items, stock, price"| B
   A -->|"POST /api/chat"| B
   B --> R --> D
-  B -->|"POST /chat"| C
+  B --> C
   C -->|"prompt + tool declarations"| L
   L -->|"tool calls, then answer"| C
-  C --> T
-  T -->|"GET only"| B
+  C --> T --> Q --> R
   C --> G
 ```
 
-The frontend never talks to the AI service or the LLM. The AI service never reads the data files. It asks the .NET API, using GET requests only.
+The frontend never talks to the LLM. The chatbot never reads the data files directly. Its tools reach data only through `IChatDataReader`, a read-only door over the same `IItemRepository` the controllers use.
 
 ## Request flow for one chat question
 
@@ -50,34 +49,33 @@ The frontend never talks to the AI service or the LLM. The AI service never read
 sequenceDiagram
   participant U as User
   participant F as Angular chat panel
-  participant N as .NET API
-  participant S as AI service
+  participant N as .NET API (ChatController)
+  participant O as ChatOrchestrator and tools
   participant M as Gemini
   U->>F: types a question
   F->>N: POST /api/chat {question, history}
-  N->>S: POST /chat (90 second timeout)
-  S->>M: system prompt + history + question + tool declarations
-  M-->>S: tool calls
-  S->>N: GET endpoints (via the tools)
-  N-->>S: JSON data
-  S->>M: tool results
-  M-->>S: JSON {answer, sources}
-  S->>S: guards check the answer
-  S-->>N: {answer, sources, refused}
+  N->>O: question and history (45 second limit)
+  O->>M: system prompt + history + question + tool declarations (30 second limit per call)
+  M-->>O: tool calls
+  O->>O: tools read through IChatDataReader
+  O->>M: tool results
+  M-->>O: JSON {answer, sources}
+  O->>O: guards check the answer
+  O-->>N: {answer, sources, refused}
   N-->>F: same JSON
   F-->>U: plain text answer and source chips
 ```
 
 1. The user types a question in the chat panel (1 to 500 characters). `ChatService` sends `POST {apiBaseUrl}/api/chat` with the question and the last 6 messages as history.
-2. `ChatController` in the .NET API rejects blank or over-long questions with 400. Otherwise it forwards the request to `AI_SERVICE_URL` (default `http://localhost:8000`) with a 90 second timeout.
-3. The AI service checks the request shape. `ChatService` builds the conversation: the system prompt, up to 6 history messages, the question, and the 8 tool declarations. It calls Gemini at temperature 0.1.
-4. If Gemini asks for tools, each one runs through `ToolRegistry.run_tool`. At most 5 tool calls are allowed per question. Each tool sends GET requests to the .NET API. Any other HTTP method is blocked in code.
-5. The .NET API answers from `IItemRepository`, which reads the sample JSON. The tool wraps the result as `{status, data, sources}` and it goes back to Gemini.
-6. Gemini returns JSON: `{"answer": ..., "sources": [...]}`. If the reply is not valid JSON, the service asks once more, then refuses.
+2. `ChatController` rejects blank or over-long questions, and a bad history, with 400. Otherwise it hands the question to `ChatOrchestrator` with a 45 second limit for the whole question.
+3. `ChatOrchestrator` builds the conversation: the system prompt, up to 6 history messages, the question, and the 8 tool declarations. It calls Gemini at temperature 0.1, with a 30 second limit per call. At most 8 model calls are allowed per question.
+4. If Gemini asks for tools, each one runs in `ChatTools`. At most 5 tool calls are allowed per question. Each tool reads through `IChatDataReader`, which has only Get and Search methods, so nothing can be written.
+5. `IChatDataReader` passes the call to `IItemRepository` (sample JSON or SQL Server). The tool wraps the result as `{status, data, sources}` and it goes back to Gemini.
+6. Gemini returns JSON: `{"answer": ..., "sources": [...]}`. If the reply is not valid JSON, the orchestrator asks once more, then refuses.
 7. Four guards check the answer (see `grounding-design.md`). If any fails, the answer becomes the fixed refusal: "I can only answer from NB Jewel data. I have no tool for that."
-8. The AI service returns `{answer, sources, refused}`. The .NET API passes it on. The panel shows the answer as plain text. Source chips open `/catalog/:id` when the record is a real item.
+8. The controller returns `{answer, sources, refused}`. The panel shows the answer as plain text. Source chips open `/catalog/:id` when the record is a real item.
 
-If the AI service is down, slow, or Gemini is not configured, the .NET API returns 503 with `{"message": "Assistant unavailable. Retry."}` and the panel shows the same text with a Retry button.
+If Gemini is not configured, fails, or is too slow, the .NET API returns 503 with `{"message": "The assistant is busy. Please try again."}` and the panel shows the same text with a Retry button.
 
 ## Swap plan: sample data to SQL Server or the real NB Jewel API
 
@@ -98,13 +96,13 @@ To switch to a different source later:
 
 1. Write another class that implements `IItemRepository`, for example `ErpApiItemRepository` (an HTTP client to the real NB Jewel API). **Assumed:** SQL Server or the real NB Jewel API is the real target. This is an open question, see `questions-for-sakthivel.md`.
 2. Add it to the provider switch in `Program.cs`.
-3. Nothing else changes for the existing features. The controllers, the response shapes, the AI service tools and the Angular screens all depend on the API contract, not on the repository.
+3. Nothing else changes for the existing features. The controllers, the response shapes, the chatbot tools and the Angular screens all depend on the API contract, not on the repository.
 
 `SqlItemRepository` is build-checked only. It has not been run against a SQL Server in this repository, because no server was available.
 
 ## Writes and the chatbot
 
-Writes happen only through the UI API: create and edit an item, move an item status, and add stock. The AI service can only send GET requests (`ReadOnlyApiClient`), so the chatbot tools stay read-only and none of the write endpoints is reachable from them.
+Writes happen only through the UI API: create and edit an item, move an item status, and add stock. The chatbot tools can only use `IChatDataReader`, which has Get and Search methods only, so they stay read-only and none of the write methods is reachable from them. This is a code rule checked in review and tests, not a network rule.
 
 | Write | Endpoint | Rule |
 |---|---|---|
@@ -125,7 +123,7 @@ Work the swap does not cover (not built):
 - The SQL schema has no color, price delta, reserved or currency columns. `SqlItemRepository` returns an empty color, a price delta of 0, reserved 0 and the currency AED for these. This is assumed and needs the real schema.
 - In the SQL schema, stock belongs to a variant, so an item with no variant cannot hold stock there. The sample repository allows stock on an item with no variant.
 - The stock API has no "last updated" value. The Stock tab shows "Not available".
-- `list_low_stock` is built in the AI service from many calls (one per item). It uses the same rule as the dashboard (fewer than 2 available) but judges the total per item. The read-only endpoint `GET /api/stock/low` exists now for the dashboard; moving the tool onto it is a later option and would change the answers from per item to per variant and store.
+- `list_low_stock` is built in `ChatTools.cs` from all items and their stock, not from `GET /api/stock/low`. It uses the same rule as the dashboard (fewer than 2 available) but judges the total per item. The read-only endpoint `GET /api/stock/low` exists now for the dashboard; moving the tool onto it is a later option and would change the answers from per item to per variant and store.
 - Authentication and authorization are not built anywhere.
 
 ## Assumed details
