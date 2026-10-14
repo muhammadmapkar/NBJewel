@@ -120,4 +120,4 @@ Repeated on 2026-10-14 over the files tracked now, after the chatbot moved into 
 | Where the key is read | Only in `backend/NbJewel.Api/Chat/GeminiLlmClient.cs` (through `GeminiOptions`, in `Program.cs`), from the `GEMINI_API_KEY` environment variable. `appsettings.json` holds no key. |
 | Key never logged | Not rechecked after the move. The Gemini call log line is written to hold only the status, the error type and the time. |
 
-Not checked: files outside this repository, your shell history, and the terminal output you have shared elsewhere. The old `ai-service/.env` file (ignored by git) may hold a key from before the move. It is removed with the `ai-service/` folder. Use the root `.env` only.
+Not checked: files outside this repository, your shell history, and the terminal output you have shared elsewhere. The old Python service folder, with its own ignored `.env` file, was deleted from disk on 2026-10-14. Use the root `.env` only.
