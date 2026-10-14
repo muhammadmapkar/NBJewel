@@ -7,17 +7,17 @@ Rules: see CLAUDE.md and AGENTS.md. Grep first, quiet flags, replies max 8 lines
 - Net weight is computed (gross minus stone). Client value ignored.
 
 ## Done (branch demo-changes, nothing pushed)
-- Legacy React prototype removed: 4a7705b.
-- .NET chat core: 56fd3b7. SQL files: cecb668.
+- React prototype removed: 4a7705b. .NET chat core: 56fd3b7. SQL files: cecb668.
 - Fail-fast (30 s per Gemini call, 45 s per question): 95a88d6.
 - Phase 2 docs: da63aaf. Privacy, assumptions, copilot rules, CLAUDE.md: 42c6adc.
-- ai-service deleted: 2b9d736.
-- Agent file .claude/agents/nbjewel-lead.md exists.
+- ai-service deleted: 2b9d736. AGENTS.md stack line: 763cf4f. Run guide fix: a3499fa.
+- Stock wording fix: 8c61626. Demo day checklist: 4dcaa14. Agent file nbjewel-lead exists.
 
 ## Checks (2026-10-14)
 - dotnet build: 0 errors, 0 warnings. dotnet test: 149 passed, 2 skipped (SQL parity).
 - Angular production build: passed.
-- Live Gemini, Sample data: 5 of 5 passed, twice. Latest 1.4 to 8.1 s per answer.
+- Live Gemini, Sample data: 5 of 5 passed twice (status, refusal, sources). Latest 1.4 to 8.1 s.
+- Stricter content check, first run: 4 of 5. Stock answer listed the stores (4, 2, 1) but gave no total. Checks kept strict, no code or prompt change. Demo question reworded to "in each store".
 - After deleting ai-service: one POST /api/chat returned 200 in about 4.5 s.
 
 ## Known gaps
