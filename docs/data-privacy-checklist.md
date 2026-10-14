@@ -1,6 +1,6 @@
 # Data privacy checklist
 
-Do not send any real NB Jewel or client data to the AI service until every check below has an answer and a date, and the last check (written approval) is done. Today the demo uses fake data only.
+Do not send any real NB Jewel or client data to the chatbot or to Gemini until every check below has an answer and a date, and the last check (written approval) is done. Today the demo uses fake data only.
 
 Fill in "Answer" and "Date" for each check. Leave no blank.
 
@@ -12,7 +12,7 @@ Will the AI vendor use our prompts or data to train its models? Is there a way t
 - Date:
 
 ### 2. Retention and logging
-How long does the vendor keep prompts and answers? Who at the vendor can read them? Also decide how long our own AI service keeps its logs. Today it logs the question, tool names, arguments and record ids to the console, and nothing is stored in a database.
+How long does the vendor keep prompts and answers? Who at the vendor can read them? Also decide how long our own .NET API keeps its logs. Today it logs tool names, tool status, record counts, guard results and, for each Gemini call, the status, error type and time to the console. It does not log the question. Nothing is stored in a database.
 - Answer:
 - Date:
 
@@ -32,7 +32,7 @@ Which other companies does the vendor use to process the data? Are they acceptab
 - Date:
 
 ### 6. Client contract allows AI
-Does the client contract allow sending its data to an AI service at all?
+Does the client contract allow sending its data to an AI model (Gemini) at all?
 - Answer:
 - Date:
 
@@ -48,7 +48,7 @@ Has Sakthivel approved in writing the use of real data with this assistant? Keep
 
 ## API key safety rules
 
-- The Gemini key lives only in the environment of the AI service (an environment variable, or a local `.env` file next to it). It is never in the frontend, the .NET project, the tests, the docs or git.
+- The Gemini key lives only in the environment of the .NET API (an environment variable, loaded from a local `.env` file in the repository root). It is never in the frontend, the source code, the tests, the docs or git.
 - `.env` and `.env.*` are listed in `.gitignore`. Only `.env.example` files, with empty values, are tracked. Never put a real value in `.env.example`.
 - Never paste the key into chat, issues, screenshots, commit messages or terminal output that is shared.
 - The offline tests need no key. For live tests, set the key in your shell for that session only.
