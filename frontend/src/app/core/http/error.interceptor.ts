@@ -11,10 +11,14 @@ export class ApiError extends Error {
   }
 }
 
-// The API sends plain text for 400 and 422 responses. Use it when it is short.
+// The API sends plain text, or { "message": "..." } (try-on jewelry), for 400 and 422 responses.
+// Use it when it is short.
 function serverText(error: HttpErrorResponse): string | null {
   const body: unknown = error.error;
-  return typeof body === 'string' && body.length > 0 && body.length < 200 ? body : null;
+  const text = typeof body === 'string' ? body
+    : body !== null && typeof body === 'object' && typeof (body as { message?: unknown }).message === 'string' ? (body as { message: string }).message
+    : null;
+  return text !== null && text.length > 0 && text.length < 200 ? text : null;
 }
 
 export function toFriendlyMessage(error: HttpErrorResponse): string {
