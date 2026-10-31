@@ -3,6 +3,7 @@
 // chatbot (tools, guards, Gemini client) that runs inside this API, registers the separate
 // try-on jewelry feature (images served from JEWELRY_STORAGE_PATH), and adds one global error handler.
 
+using System.Threading.RateLimiting;
 using Microsoft.Extensions.FileProviders;
 using NbJewel.Api.Chat;
 using NbJewel.Api.Jewelry;
@@ -82,6 +83,15 @@ var jewelryOptions = new JewelryStorageOptions(jewelryStorage, jewelrySeed);
 builder.Services.AddSingleton(jewelryOptions);
 builder.Services.AddSingleton<IJewelryRepository, FileJewelryRepository>();
 builder.Services.AddSingleton<OwnerPin>();
+// Slows down PIN guessing: at most 30 owner calls per minute per client address (assumed limit).
+// Behind a hosting proxy all clients may share one address; that is fine for a one-owner demo.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy(OwnerPin.RateLimitPolicy, context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+});
 
 var app = builder.Build();
 // One global error handler: clients get a short message, never a stack trace.
@@ -93,6 +103,7 @@ app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseCors("AngularDevelopment");
+app.UseRateLimiter();
 // Uploaded try-on images. Only PNG and JPG are ever written there (checked by content on upload).
 Directory.CreateDirectory(jewelryOptions.ImagesFolder);
 app.UseStaticFiles(new StaticFileOptions

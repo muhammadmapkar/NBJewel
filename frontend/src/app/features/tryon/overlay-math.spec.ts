@@ -187,6 +187,22 @@ describe('LandmarkSmoother', () => {
     expect(Math.max(...late) - Math.min(...late)).toBeLessThan(4);
   });
 
+  it('adaptive: a small shake is smoothed, a big move passes through at once', () => {
+    const s = new LandmarkSmoother(0.4, 12);
+    s.smooth([{ x: 0, y: 0 }, { x: 10, y: 0 }]);
+    // Average move 2 px: alpha = 0.4 + 0.6 * 2 / 12 = 0.5.
+    expect(s.smooth([{ x: 2, y: 0 }, { x: 12, y: 0 }])).toEqual([{ x: 1, y: 0 }, { x: 11, y: 0 }]);
+    // Average move about 30 px, above 12: no smoothing, no lag.
+    expect(s.smooth([{ x: 31, y: 0 }, { x: 41, y: 0 }])).toEqual([{ x: 31, y: 0 }, { x: 41, y: 0 }]);
+  });
+
+  it('adaptive: keeps the shape, every point gets the same share', () => {
+    const s = new LandmarkSmoother(0.4, 12);
+    s.smooth([{ x: 0, y: 0 }, { x: 100, y: 0 }]);
+    const [a, b] = s.smooth([{ x: 4, y: 0 }, { x: 104, y: 0 }]);
+    near(b.x - a.x, 100);
+  });
+
   it('reset forgets the old position', () => {
     const s = new LandmarkSmoother(0.5);
     s.smooth([{ x: 0, y: 0 }]);

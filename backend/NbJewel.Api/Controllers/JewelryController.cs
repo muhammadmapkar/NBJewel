@@ -1,10 +1,11 @@
 // Role: HTTP endpoints for the customer try-on jewelry (not the ERP catalog, not the chatbot).
 // GET /api/jewelry is public and lists active items only. The owner endpoints (list all,
 // upload, toggle active, delete) need the X-Owner-Pin header to match OWNER_PIN
-// (assumed, replace with real auth later). Images are served as static files under
-// /jewelry-images, set up in Program.cs.
+// (assumed, replace with real auth later) and are rate limited to slow down PIN guessing.
+// Images are served as static files under /jewelry-images, set up in Program.cs.
 
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using NbJewel.Api.Jewelry;
 using NbJewel.Api.Models;
 
@@ -22,6 +23,7 @@ public sealed class JewelryController(IJewelryRepository repository, OwnerPin ow
         Ok((await repository.ListAsync(activeOnly: true, cancellationToken)).Select(ToItem).ToList());
 
     [HttpGet("all")]
+    [EnableRateLimiting(OwnerPin.RateLimitPolicy)]
     public async Task<ActionResult<IReadOnlyList<JewelryItem>>> GetAll([FromHeader(Name = OwnerPin.HeaderName)] string? pin, CancellationToken cancellationToken)
     {
         if (PinFailure(pin) is { } failure) return failure;
@@ -29,6 +31,7 @@ public sealed class JewelryController(IJewelryRepository repository, OwnerPin ow
     }
 
     [HttpPost]
+    [EnableRateLimiting(OwnerPin.RateLimitPolicy)]
     [RequestSizeLimit(RequestLimit)]
     [RequestFormLimits(MultipartBodyLengthLimit = RequestLimit)]
     public async Task<ActionResult<JewelryItem>> Upload([FromHeader(Name = OwnerPin.HeaderName)] string? pin, [FromForm] string? name, [FromForm] string? type, IFormFile? file, CancellationToken cancellationToken)
@@ -49,6 +52,7 @@ public sealed class JewelryController(IJewelryRepository repository, OwnerPin ow
     }
 
     [HttpPatch("{id}/active")]
+    [EnableRateLimiting(OwnerPin.RateLimitPolicy)]
     public async Task<ActionResult<JewelryItem>> SetActive(string id, JewelryActiveRequest request, [FromHeader(Name = OwnerPin.HeaderName)] string? pin, CancellationToken cancellationToken)
     {
         if (PinFailure(pin) is { } failure) return failure;
@@ -56,6 +60,7 @@ public sealed class JewelryController(IJewelryRepository repository, OwnerPin ow
     }
 
     [HttpDelete("{id}")]
+    [EnableRateLimiting(OwnerPin.RateLimitPolicy)]
     public async Task<IActionResult> Delete(string id, [FromHeader(Name = OwnerPin.HeaderName)] string? pin, CancellationToken cancellationToken)
     {
         if (PinFailure(pin) is { } failure) return failure;

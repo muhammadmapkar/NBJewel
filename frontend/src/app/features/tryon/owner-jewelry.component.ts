@@ -365,6 +365,7 @@ export class OwnerJewelryComponent implements OnDestroy {
 
   private pinMessage(error: unknown): string {
     if (error instanceof ApiError && error.status === 401) return 'Wrong PIN.';
+    if (error instanceof ApiError && error.status === 429) return 'Too many tries. Wait a minute and try again.';
     if (error instanceof ApiError && error.status === 503) return 'The owner PIN is not set on the server. Set OWNER_PIN for the API.';
     return this.message(error);
   }

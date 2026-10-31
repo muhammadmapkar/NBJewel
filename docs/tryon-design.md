@@ -50,7 +50,7 @@ Phone browser                                         .NET API (NbJewel.Api)
 | `DELETE /api/jewelry/{id}` | owner PIN | Removes metadata and the image file |
 | `GET /jewelry-images/{file}` | public | Static image files, `nosniff`, CORS for allowed origins |
 
-A wrong or missing PIN returns 401. If `OWNER_PIN` is not set on the server, the owner endpoints return 503, so a forgotten setting never leaves them open.
+A wrong or missing PIN returns 401. If `OWNER_PIN` is not set on the server, the owner endpoints return 503, so a forgotten setting never leaves them open. The owner endpoints are rate limited to 30 calls per minute per client address (assumed), then return 429, to slow down PIN guessing.
 
 ## Upload rules
 
@@ -81,9 +81,11 @@ Index check. The task suggested 234 and 454 for the ears. Running Face Landmarke
 
 Ear hiding: when the head turns, the face side that turns away gets narrow on screen. Each ear's share of the nose to face edge distances is used: 35 percent or more shows the earring fully, 25 percent or less hides it, with a fade in between.
 
+Frame order: for each new camera frame, the frame is drawn first and detection runs right after on that same frame, then the jewelry is drawn. So the jewelry stays on the face or hand even when detection is slow. (Drawing after a slow detection showed a newer frame and the jewelry trailed behind in testing.)
+
 Ring fade: when the finger points at the camera, the 13 to 14 segment looks very short, and the ring fades out instead of drawing a wrong shape.
 
-Smoothing: a simple low-pass filter (exponential smoothing, half of the new position per frame) on all landmarks. It resets when the face or hand is lost for about half a second, so the next one does not slide in from the old place.
+Smoothing: a simple low-pass filter (exponential smoothing) on all landmarks. When the face or hand is still, each frame takes 40 percent of the new position, which removes jitter. The share grows with the average move per frame and reaches 100 percent at 12 pixels, so a real head or hand move is followed without lag. One share is used for all points, so the shape is kept. It resets when the face or hand is lost for about half a second, so the next one does not slide in from the old place.
 
 All tuning numbers are in `TUNING` in `overlay-math.ts`. They were chosen by eye on test photos (assumed) and should be tuned on real phones with real jewelry photos.
 

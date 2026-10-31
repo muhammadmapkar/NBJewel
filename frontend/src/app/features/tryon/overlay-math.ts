@@ -42,7 +42,8 @@ export const TUNING = {
   ringAlong: 0.4, // ring position from the finger base (0) to the middle joint (1)
   fingerWidthShare: 0.8, // finger width vs the gap between finger bases
   ringWidth: 1.3, // ring image width vs finger width
-  smoothing: 0.5 // low-pass filter: share of the new value per frame (1 means no smoothing)
+  smoothing: 0.4, // low-pass filter: share of the new value per frame when still (1 means no smoothing)
+  fastMovePx: 12 // average move per frame, in canvas pixels, at which smoothing switches off (no lag)
 } as const;
 
 export function distance(a: Point, b: Point): number { return Math.hypot(b.x - a.x, b.y - a.y); }
@@ -145,22 +146,36 @@ export function ringPlacement(hand: readonly Point[], imageAspect: number): Plac
 }
 
 // Simple low-pass filter (exponential smoothing) for landmark lists, to stop jitter.
-// Each frame keeps (1 - alpha) of the old position. reset() forgets the history, used when the
-// face or hand is lost so the next one does not slide in from the old place.
+// Each frame keeps (1 - alpha) of the old position. With fastMovePx above 0 the filter adapts:
+// alpha grows with the average move of all points, so small shakes are smoothed but a real head
+// or hand move passes through at once (no lag). Using one alpha for all points keeps the shape.
+// reset() forgets the history, used when the face or hand is lost so the next one does not
+// slide in from the old place.
 export class LandmarkSmoother {
   private previous: Point[] | null = null;
-  constructor(private readonly alpha: number = TUNING.smoothing) {}
+  constructor(private readonly alpha: number = TUNING.smoothing, private readonly fastMovePx = 0) {}
 
   smooth(points: readonly Point[]): Point[] {
     const prev = this.previous;
-    const next = !prev || prev.length !== points.length
-      ? points.map(p => ({ x: p.x, y: p.y }))
-      : points.map((p, i) => ({ x: prev[i].x + (p.x - prev[i].x) * this.alpha, y: prev[i].y + (p.y - prev[i].y) * this.alpha }));
+    if (!prev || prev.length !== points.length || points.length === 0) {
+      this.previous = points.map(p => ({ x: p.x, y: p.y }));
+      return this.previous;
+    }
+    const alpha = this.fastMovePx > 0
+      ? clamp(this.alpha + (1 - this.alpha) * (averageMove(prev, points) / this.fastMovePx), this.alpha, 1)
+      : this.alpha;
+    const next = points.map((p, i) => ({ x: prev[i].x + (p.x - prev[i].x) * alpha, y: prev[i].y + (p.y - prev[i].y) * alpha }));
     this.previous = next;
     return next;
   }
 
   reset(): void { this.previous = null; }
+}
+
+function averageMove(a: readonly Point[], b: readonly Point[]): number {
+  let total = 0;
+  for (let i = 0; i < a.length; i++) total += distance(a[i], b[i]);
+  return total / a.length;
 }
 
 // The four corners of a drawn placement, in canvas pixels. Used by tests, and handy for debugging.

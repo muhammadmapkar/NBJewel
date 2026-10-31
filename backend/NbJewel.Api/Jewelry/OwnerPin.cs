@@ -12,6 +12,8 @@ public enum PinResult { Ok, NotConfigured, Wrong }
 public sealed class OwnerPin(IConfiguration configuration)
 {
     public const string HeaderName = "X-Owner-Pin";
+    // Rate limit policy name for the owner endpoints (set up in Program.cs).
+    public const string RateLimitPolicy = "owner";
 
     public PinResult Check(string? suppliedPin)
     {

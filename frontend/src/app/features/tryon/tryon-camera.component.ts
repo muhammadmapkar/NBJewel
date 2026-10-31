@@ -12,7 +12,7 @@ import { switchMap } from 'rxjs';
 import { JewelryItem } from './jewelry.models';
 import { JewelryService } from './jewelry.service';
 import { LandmarkTracker, createTracker } from './landmark-tracker';
-import { LandmarkSmoother, Placement, earringPlacements, necklacePlacement, ringPlacement, toPixels } from './overlay-math';
+import { LandmarkSmoother, Placement, TUNING, earringPlacements, necklacePlacement, ringPlacement, toPixels } from './overlay-math';
 
 type Phase = 'loading' | 'running' | 'missing' | 'insecure' | 'denied' | 'nocamera' | 'busy' | 'modelerror' | 'imageerror' | 'error';
 type Facing = 'user' | 'environment';
@@ -111,7 +111,7 @@ export class TryonCameraComponent implements OnDestroy {
   private tracker: LandmarkTracker | null = null;
   private trackerKind: 'face' | 'hand' | null = null;
   private jewelImage: HTMLImageElement | null = null;
-  private readonly smoother = new LandmarkSmoother();
+  private readonly smoother = new LandmarkSmoother(TUNING.smoothing, TUNING.fastMovePx);
   private frame = 0;
   private lastVideoTime = -1;
   private lostFrames = 0;
@@ -224,42 +224,47 @@ export class TryonCameraComponent implements OnDestroy {
     return 'error';
   }
 
-  // Runs outside Angular change detection, once per screen refresh.
+  // Runs outside Angular change detection, once per screen refresh. Work happens only when the
+  // camera has a new frame. Order matters: the frame is drawn first and detection runs right
+  // after on that same frame, so the jewelry is drawn on the frame it was found in. (Drawing
+  // after a slow detection would show a newer frame and the jewelry would trail behind.)
   private loop(run: number): void {
     if (run !== this.run || this.destroyed) return;
     const video = this.videoRef().nativeElement;
     const canvas = this.canvasRef().nativeElement;
     const context = canvas.getContext('2d');
-    if (context && video.readyState >= 2 && video.videoWidth > 0) {
+    if (context && this.tracker && video.readyState >= 2 && video.videoWidth > 0 && video.currentTime !== this.lastVideoTime) {
+      this.lastVideoTime = video.currentTime;
       if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
       }
       const mirror = this.facing() === 'user';
-      if (video.currentTime !== this.lastVideoTime && this.tracker) {
-        this.lastVideoTime = video.currentTime;
-        let found: { x: number; y: number }[] | null = null;
-        try { found = this.tracker.detect(video, performance.now()); } catch { found = null; }
-        if (found) {
-          this.lostFrames = 0;
-          this.lastLandmarks = this.smoother.smooth(found.map(p => toPixels(p, canvas.width, canvas.height, mirror)));
-        } else if (++this.lostFrames >= LOST_FRAMES) {
-          this.lastLandmarks = null;
-          this.smoother.reset();
-        }
-        const searching = this.lostFrames >= LOST_FRAMES;
-        if (searching !== this.searching()) this.zone.run(() => this.searching.set(searching));
+      this.drawFrame(context, video, canvas, mirror);
+      let found: { x: number; y: number }[] | null = null;
+      try { found = this.tracker.detect(video, performance.now()); } catch { found = null; }
+      if (found) {
+        this.lostFrames = 0;
+        this.lastLandmarks = this.smoother.smooth(found.map(p => toPixels(p, canvas.width, canvas.height, mirror)));
+      } else if (++this.lostFrames >= LOST_FRAMES) {
+        this.lastLandmarks = null;
+        this.smoother.reset();
       }
-      this.draw(context, video, canvas, mirror);
+      const searching = this.lostFrames >= LOST_FRAMES;
+      if (searching !== this.searching()) this.zone.run(() => this.searching.set(searching));
+      this.drawJewelry(context);
     }
     this.frame = requestAnimationFrame(() => this.loop(run));
   }
 
-  private draw(context: CanvasRenderingContext2D, video: HTMLVideoElement, canvas: HTMLCanvasElement, mirror: boolean): void {
+  private drawFrame(context: CanvasRenderingContext2D, video: HTMLVideoElement, canvas: HTMLCanvasElement, mirror: boolean): void {
     context.save();
     if (mirror) { context.translate(canvas.width, 0); context.scale(-1, 1); }
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
     context.restore();
+  }
+
+  private drawJewelry(context: CanvasRenderingContext2D): void {
     const points = this.lastLandmarks;
     const image = this.jewelImage;
     const item = this.item();

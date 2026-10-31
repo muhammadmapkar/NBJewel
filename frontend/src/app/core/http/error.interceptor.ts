@@ -31,6 +31,8 @@ export function toFriendlyMessage(error: HttpErrorResponse): string {
       return 'That record was not found. It may have been removed.';
     case 422:
       return serverText(error) ?? 'The request could not be processed.';
+    case 429:
+      return 'Too many tries. Wait a minute and try again.';
     default:
       return error.status >= 500
         ? 'The server had a problem. Please try again in a moment.'
