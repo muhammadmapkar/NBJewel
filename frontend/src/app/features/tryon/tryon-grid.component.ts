@@ -1,7 +1,8 @@
 // Role: The customer page (/tryon). Shows the active try-on jewelry as a grid, filtered by
 // type. Tapping an item opens the camera try-on (/tryon/:id). It sits outside the ERP shell
 // so customers never see the ERP menu or the chatbot (assumed), but it uses the same theme
-// colors, card and button styles.
+// colors, card and button styles. Images load with crossorigin so the browser cache holds the
+// CORS copy the camera canvas needs (a plain cached copy would block the snapshot and overlay).
 
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
@@ -31,7 +32,7 @@ import { JewelryService } from './jewelry.service';
         <div class="grid">
           @for (item of shown(); track item.id) {
             <a class="tile" [routerLink]="['/tryon', item.id]" [attr.aria-label]="'Try on ' + item.name">
-              <div class="pic"><img [src]="jewelry.imageSrc(item)" [alt]="item.name" loading="lazy" /></div>
+              <div class="pic"><img [src]="jewelry.imageSrc(item)" [alt]="item.name" loading="lazy" crossorigin="anonymous" /></div>
               <b>{{ item.name }}</b>
               <span class="type">{{ typeLabel(item.type) }}</span>
               <span class="try">Try on ›</span>

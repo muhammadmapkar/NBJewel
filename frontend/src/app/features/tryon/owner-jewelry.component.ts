@@ -115,7 +115,7 @@ type CutoutState = 'idle' | 'working' | 'ready' | 'failed';
           <ul class="list">
             @for (item of items(); track item.id + ':' + version()) {
               <li>
-                <div class="thumb checker"><img [src]="jewelry.imageSrc(item)" [alt]="item.name" loading="lazy" /></div>
+                <div class="thumb checker"><img [src]="jewelry.imageSrc(item)" [alt]="item.name" loading="lazy" crossorigin="anonymous" /></div>
                 <div class="info"><b>{{ item.name }}</b><span class="muted">{{ typeLabel(item.type) }}</span></div>
                 <span class="active-toggle" [title]="item.active ? 'Shown to customers' : 'Hidden from customers'" (click)="toggleActive(item)">
                   <nb-toggle [on]="item.active" /><span class="muted">{{ item.active ? 'Active' : 'Hidden' }}</span>

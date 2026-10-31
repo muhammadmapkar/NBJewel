@@ -114,6 +114,9 @@ app.UseStaticFiles(new StaticFileOptions
     {
         context.Context.Response.Headers["X-Content-Type-Options"] = "nosniff";
         context.Context.Response.Headers["Cache-Control"] = "public, max-age=3600";
+        // The same image is loaded plainly (grid) and with CORS (camera canvas). Vary: Origin stops a
+        // browser from reusing the plain cached copy, which has no CORS header, for the camera.
+        context.Context.Response.Headers.Append("Vary", "Origin");
         // The try-on page draws these images on a canvas for the snapshot, so it needs CORS headers.
         context.Context.Response.Headers["Cross-Origin-Resource-Policy"] = "cross-origin";
     }
