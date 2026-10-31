@@ -2,10 +2,12 @@
 // the PIN (checked by the backend against OWNER_PIN, assumed demo gate), it lists all jewelry
 // with an Active toggle and a delete button (with a confirm step), and uploads new images.
 // PNG with transparency is preferred; for other images it offers in-browser background
-// removal with a before and after preview. Reuses the catalog page, form and toast styles.
+// removal with a before and after preview. Shows the customer link as a QR code to scan with
+// a phone. Reuses the catalog page, form and toast styles.
 
 import { Component, ElementRef, OnDestroy, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import * as QRCode from 'qrcode';
 import { RouterLink } from '@angular/router';
 import { ApiError } from '../../core/http/error.interceptor';
 import { ToastComponent } from '../../shared/ui/toast.component';
@@ -96,6 +98,11 @@ type CutoutState = 'idle' | 'working' | 'ready' | 'failed';
         </div>
       </form>
 
+      <div class="card share">
+        @if (qr()) { <img class="qr" [src]="qr()" alt="QR code for the customer try-on link" /> }
+        <div><b>Customer link</b><p>Scan with a phone, or share this link. The camera needs https.</p><a [href]="customerUrl" target="_blank" rel="noopener">{{ customerUrl }}</a></div>
+      </div>
+
       <div class="card table-card">
         <div class="toolbar"><b>Items</b>@if (items().length) { <span class="count">{{ items().length }} items, {{ activeCount() }} active</span> }</div>
         @if (listError()) {
@@ -159,6 +166,10 @@ type CutoutState = 'idle' | 'working' | 'ready' | 'failed';
     .previews img { max-width:150px; max-height:150px; }
     .cutout { display:grid; gap:10px; justify-items:start; }
     .choice { display:flex; gap:18px; flex-wrap:wrap; }
+    .share { display:flex; gap:16px; align-items:center; }
+    .share p { margin:4px 0 6px; }
+    .share a { color:var(--gold); font-weight:700; word-break:break-all; }
+    .qr { width:110px; height:110px; flex:none; }
     .table-card { padding:0; overflow:hidden; }
     .toolbar { display:flex; align-items:center; gap:14px; padding:14px 16px; border-bottom:1px solid var(--line); }
     .count, .muted { color:var(--muted); font-size:12px; }
@@ -194,6 +205,8 @@ export class OwnerJewelryComponent implements OnDestroy {
   // Bumped after each toggle reply, so every toggle redraws from the saved value.
   readonly version = signal(0);
   readonly toast = signal<string | null>(null);
+  readonly customerUrl = new URL('tryon', document.baseURI).href;
+  readonly qr = signal('');
 
   name = '';
   type: JewelryType = 'earring';
@@ -215,6 +228,7 @@ export class OwnerJewelryComponent implements OnDestroy {
 
   constructor() {
     if (this.jewelry.pin() !== null) this.load();
+    QRCode.toDataURL(this.customerUrl, { margin: 1, width: 220 }).then(url => this.qr.set(url)).catch(() => this.qr.set(''));
   }
 
   ngOnDestroy(): void { this.clearPreviews(); }

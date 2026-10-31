@@ -1,0 +1,11 @@
+# Role: Netlify settings for the Angular app. Builds with the deploy environment and sends every
+# path (for example /tryon/abc) to index.html so Angular routing works. Set NBJEWEL_API_URL in
+# the Netlify site settings. Base directory on Netlify: frontend.
+[build]
+  command = "npm run build:deploy"
+  publish = "dist/nbjewel-frontend/browser"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

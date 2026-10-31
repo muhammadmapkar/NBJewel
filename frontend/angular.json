@@ -15,10 +15,19 @@
             "index": "src/index.html",
             "polyfills": ["zone.js"],
             "tsConfig": "tsconfig.app.json",
-            "assets": [],
+            "assets": [
+              { "glob": "**/*", "input": "node_modules/@mediapipe/tasks-vision/wasm", "output": "mediapipe/wasm" }
+            ],
             "styles": ["src/styles.css"],
             "allowedCommonJsDependencies": ["qrcode"],
             "outputPath": "dist/nbjewel-frontend"
+          },
+          "configurations": {
+            "deploy": {
+              "fileReplacements": [
+                { "replace": "src/environments/environment.ts", "with": "src/environments/environment.deploy.ts" }
+              ]
+            }
           }
         },
         "serve": {

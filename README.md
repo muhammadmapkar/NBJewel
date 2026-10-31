@@ -8,14 +8,15 @@ This repository uses fake data only. It contains no real client data and does no
 
 A beginner map. Each source file starts with a short comment that says what it is for.
 
-- `frontend/`: Angular app (themed shell, catalog, chat panel). Code is in `frontend/src/app/`.
+- `frontend/`: Angular app (themed shell, catalog, chat panel, virtual try-on). Code is in `frontend/src/app/`. Try-on code is in `frontend/src/app/features/tryon/`.
 - `backend/NbJewel.Api/`: .NET Web API.
   - `Controllers/`: the HTTP endpoints (items, stock, categories, chat and so on).
   - `Chat/`: the chatbot. The 8 read-only tools (`ChatTools.cs`), the 4 answer guards (`Guards.cs`), the system prompt, the Gemini REST client and the loop that ties them together (`ChatOrchestrator.cs`).
   - `Models/`: the data shapes and the shared item validation rules.
+  - `Jewelry/`: the virtual try-on jewelry store (upload checks, owner PIN, file based repository). Separate from the chatbot.
   - `Repositories/`: where data comes from. `SampleItemRepository` reads JSON, `SqlItemRepository` reads SQL Server. `Program.cs` picks one.
 - `backend/NbJewel.Api.Tests/`: .NET tests (API and chatbot). They run on the Sample repository, and on SQL Server too when a test connection is set.
-- `sample-data/`: synthetic JSON used by the Sample repository and to seed SQL Server.
+- `sample-data/`: synthetic JSON used by the Sample repository and to seed SQL Server. `sample-data/jewelry/` holds the 6 generated try-on sample images.
 - `docs/`: documentation (see below) and the SQL schema `item_catalog_schema.sql`.
 - `scripts/setup-db.sh`: one command to prepare the local SQL Server.
 - `docker-compose.yml`: the local SQL Server container (Sql mode only).
@@ -31,6 +32,8 @@ A beginner map. Each source file starts with a short comment that says what it i
 - [Data privacy checklist](docs/data-privacy-checklist.md): checks before any real data, and API key rules
 - [Questions for Sakthivel](docs/questions-for-sakthivel.md): open questions
 - [Run guide](docs/run-guide.md): start the services, run the tests, secrets check
+- [Virtual try-on design](docs/tryon-design.md): how the camera try-on works, landmarks, assumptions, known limits
+- [Virtual try-on deploy](docs/tryon-deploy.md): https hosting, environment variables, CORS, testing on a phone
 - Older placeholders from the first phase, not updated since: [API contracts](docs/api-contracts.md), [Assumptions](docs/assumptions.md), [Data dictionary](docs/data-dictionary.md)
 
 ## Quick start
@@ -51,6 +54,8 @@ cd frontend && npm start
 ```
 
 Without a Gemini key and model the catalog still works, and chat answers "The assistant is busy. Please try again."
+
+Virtual try-on: set `OWNER_PIN` in `.env` before starting the API. Then open `http://localhost:4200/owner/jewelry` (owner, asks for the PIN) and `http://localhost:4200/tryon` (customer). Uploads are saved under `backend/NbJewel.Api/App_Data/jewelry` unless `JEWELRY_STORAGE_PATH` is set. Frontend unit tests: `cd frontend && npm test`. To try it on a phone, see [tryon-deploy.md](docs/tryon-deploy.md).
 
 ### Sql mode (SQL Server in Docker)
 
