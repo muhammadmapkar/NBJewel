@@ -157,17 +157,22 @@ export class TryonCameraComponent implements OnDestroy {
     if (!navigator.mediaDevices?.getUserMedia) { this.phase.set('nocamera'); return; }
 
     const kind = item.type === 'ring' ? 'hand' : 'face';
+    // The camera stream is kept in a local first, so it is stopped on every early exit
+    // (a failed model or image load, a newer start, or leaving the page).
+    let stream: MediaStream | null = null;
+    const camera = this.openCamera().then(s => { stream = s; return s; });
     try {
-      const [stream] = await Promise.all([
-        this.openCamera(),
-        this.loadImage(item).then(img => { this.jewelImage = img; }),
-        this.loadTracker(kind)
+      await Promise.all([
+        camera,
+        this.loadImage(item).then(img => { if (run === this.run) this.jewelImage = img; }),
+        this.loadTracker(kind, run)
       ]);
-      if (run !== this.run || this.destroyed) { stream.getTracks().forEach(t => t.stop()); return; }
+      if (run !== this.run || this.destroyed || !stream) { stopStream(stream); return; }
       this.stream = stream;
       const video = this.videoRef().nativeElement;
       video.srcObject = stream;
       await video.play();
+      if (run !== this.run || this.destroyed) return; // a newer start or ngOnDestroy already stopped this.stream
       this.lastVideoTime = -1;
       this.lostFrames = 0;
       this.lastLandmarks = null;
@@ -175,7 +180,10 @@ export class TryonCameraComponent implements OnDestroy {
       this.phase.set('running');
       this.zone.runOutsideAngular(() => { this.frame = requestAnimationFrame(() => this.loop(run)); });
     } catch (error) {
-      if (run !== this.run) return;
+      // Promise.all rejects on the first failure; the camera may still open after that.
+      camera.then(s => { if (this.stream !== s) stopStream(s); }, () => undefined);
+      if (stream !== this.stream) stopStream(stream);
+      if (run !== this.run || this.destroyed) return;
       this.stopAll();
       this.phase.set(this.phaseFor(error));
     }
@@ -202,16 +210,21 @@ export class TryonCameraComponent implements OnDestroy {
     });
   }
 
-  private async loadTracker(kind: 'face' | 'hand'): Promise<void> {
+  private async loadTracker(kind: 'face' | 'hand', run: number): Promise<void> {
     if (this.tracker && this.trackerKind === kind) return;
     this.tracker?.close();
     this.tracker = null;
+    this.trackerKind = null;
+    let tracker: LandmarkTracker;
     try {
-      this.tracker = await createTracker(kind);
-      this.trackerKind = kind;
+      tracker = await createTracker(kind);
     } catch {
       throw new ModelLoadError();
     }
+    // The page may have closed, or a newer start may have begun, while the model loaded.
+    if (this.destroyed || run !== this.run || this.tracker) { tracker.close(); return; }
+    this.tracker = tracker;
+    this.trackerKind = kind;
   }
 
   private phaseFor(error: unknown): Phase {
@@ -321,6 +334,10 @@ export class TryonCameraComponent implements OnDestroy {
     this.stream?.getTracks().forEach(t => t.stop());
     this.stream = null;
   }
+}
+
+function stopStream(stream: MediaStream | null): void {
+  stream?.getTracks().forEach(t => t.stop());
 }
 
 class CameraError extends Error { constructor(override readonly cause: unknown) { super('camera'); } }

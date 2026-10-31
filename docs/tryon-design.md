@@ -113,6 +113,9 @@ Background removal (`@imgly/background-removal` 1.7.0) loads its model files fro
 - Rings are the hardest. The band is drawn on top of the finger, so it cannot wrap behind it. Small fingers far from the camera give jittery sizes. The finger must face the camera.
 - Lighting affects tracking. Dim rooms, strong backlight and motion blur make the face or hand drop out, and the hint "Move your face into the frame" shows.
 - Hair over the ears hides real ears but the earrings still draw at the lobe point.
+- One shared PIN. The rate limit slows guessing but does not stop it, so use 8 or more characters, letters and digits (the API logs a warning for a shorter PIN). Behind a hosting proxy all visitors may share one rate limit bucket, so heavy guessing can also block the owner for a minute.
+- Hiding an item removes it from the customer list, but its image file stays reachable by its direct address (the uploaded file names are random ids; the sample ids are fixed).
+- The server reads an upload before it checks the PIN (normal model binding). The rate limit caps how often that can happen.
 - Uploaded images live on the API host disk. On hosts with a temporary disk they are lost on restart (see `tryon-deploy.md`).
 - The first camera start downloads the model (about 4 MB face, 8 MB hand), so it is slow on a weak connection.
 - `@imgly/background-removal` is licensed AGPL 3.0 (or a paid commercial license). Fine for an internship demo; needs a decision before any production use (see `questions-for-sakthivel.md`).

@@ -34,7 +34,7 @@ type CutoutState = 'idle' | 'working' | 'ready' | 'failed';
     @if (!unlocked()) {
       <form class="card pin-card" (ngSubmit)="unlock()">
         <label class="required">Owner PIN
-          <input type="password" name="pin" inputmode="numeric" autocomplete="off" [(ngModel)]="pinInput" [disabled]="checkingPin()" />
+          <input type="password" name="pin" autocomplete="off" [(ngModel)]="pinInput" [disabled]="checkingPin()" />
         </label>
         @if (pinError()) { <p class="err">{{ pinError() }}</p> }
         <div class="buttons"><button type="submit" class="save" [disabled]="checkingPin() || !pinInput.trim()">{{ checkingPin() ? 'Checking...' : 'Open' }}</button></div>
@@ -269,8 +269,11 @@ export class OwnerJewelryComponent implements OnDestroy {
     this.file.set(file);
     this.originalUrl.set(URL.createObjectURL(file));
     if (!this.name.trim()) this.name = file.name.replace(/\.[^.]+$/, '').slice(0, MAX_NAME_LENGTH);
-    try { this.transparent.set(await fileHasTransparency(file)); }
-    catch { this.fileError.set('This file could not be read as an image.'); this.file.set(null); }
+    let transparent: boolean | null = null;
+    try { transparent = await fileHasTransparency(file); } catch { transparent = null; }
+    if (this.file() !== file) return; // The owner picked another file meanwhile.
+    if (transparent === null) { this.fileError.set('This file could not be read as an image.'); this.file.set(null); return; }
+    this.transparent.set(transparent);
   }
 
   async makeCutout(): Promise<void> {

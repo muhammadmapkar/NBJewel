@@ -23,7 +23,7 @@ The app calls the API from the browser, so the API must allow the app's address 
 
    | Name | Value |
    |---|---|
-   | `OWNER_PIN` | a PIN only the shop owner knows |
+   | `OWNER_PIN` | a PIN only the shop owner knows, 8 or more characters with letters and digits |
    | `CORS_ORIGINS` | the app address from step 2, for example `https://nbjewel-tryon.vercel.app` (comma separated if more than one, no trailing slash) |
    | `JEWELRY_STORAGE_PATH` | `/home/data/jewelry` (on Azure App Service Linux, `/home` survives restarts) |
    | `GEMINI_API_KEY`, `GEMINI_MODEL` | only if the chatbot should work too |

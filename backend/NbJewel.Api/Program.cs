@@ -94,6 +94,12 @@ builder.Services.AddRateLimiter(options =>
 });
 
 var app = builder.Build();
+// A short owner PIN can be guessed even with the rate limit. Warn, do not stop (assumed demo gate).
+var ownerPinValue = builder.Configuration["OWNER_PIN"];
+if (string.IsNullOrWhiteSpace(ownerPinValue))
+    app.Logger.LogWarning("OWNER_PIN is not set: the try-on owner endpoints answer 503.");
+else if (ownerPinValue.Trim().Length < 8)
+    app.Logger.LogWarning("OWNER_PIN is shorter than 8 characters. Use a longer one before sharing the app link.");
 // One global error handler: clients get a short message, never a stack trace.
 app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
 {

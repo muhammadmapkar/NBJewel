@@ -46,12 +46,14 @@ export async function createTracker(kind: TrackerKind): Promise<LandmarkTracker>
 
   // GPU is faster, but on some phones and browsers it fails, either at start (then the CPU is
   // used) or silently by finding nothing. For the silent case, after GPU_EMPTY_FRAMES empty frames
-  // a CPU copy is loaded and tried too; if the CPU finds something, it takes over for good.
+  // a CPU copy is loaded and tried on every 4th empty frame; if it finds something, it takes over
+  // for good.
   let gpu: Task | null = null;
   let cpu: Task | null = null;
   try { gpu = await make('GPU'); } catch { cpu = await make('CPU'); }
   let gpuEmpty = 0;
   let cpuLoading = false;
+  let cpuTries = 0;
 
   return {
     detect(video, timestampMs) {
@@ -66,6 +68,9 @@ export async function createTracker(kind: TrackerKind): Promise<LandmarkTracker>
         }
         return null;
       }
+      // While nothing is in view, try the CPU only on every 4th frame, so searching does not
+      // double the work for the rest of the session.
+      if (++cpuTries % 4 !== 0) return null;
       const fromCpu = run(cpu, video, timestampMs);
       if (fromCpu) { gpu.close(); gpu = null; }
       return fromCpu;

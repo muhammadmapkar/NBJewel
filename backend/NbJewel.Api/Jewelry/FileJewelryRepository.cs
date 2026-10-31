@@ -50,12 +50,13 @@ public sealed partial class FileJewelryRepository : IJewelryRepository
         if (JewelryTypes.Resolve(type) is not { } cleanType) throw new ArgumentException("Unknown type.", nameof(type));
         var id = Guid.NewGuid().ToString("N");
         var record = new JewelryRecord(id, name, cleanType, id + extension, true, DateTimeOffset.UtcNow);
+        var imagePath = Path.Combine(options.ImagesFolder, record.File);
         await gate.WaitAsync(cancellationToken);
         try
         {
-            await File.WriteAllBytesAsync(Path.Combine(options.ImagesFolder, record.File), content, cancellationToken);
-            records.Add(record);
-            await SaveAsync(cancellationToken);
+            await File.WriteAllBytesAsync(imagePath, content, cancellationToken);
+            try { await CommitAsync([.. records, record], cancellationToken); }
+            catch { File.Delete(imagePath); throw; } // no orphan image when the metadata could not be saved
             return record;
         }
         finally { gate.Release(); }
@@ -69,9 +70,11 @@ public sealed partial class FileJewelryRepository : IJewelryRepository
         {
             var index = records.FindIndex(x => x.Id == id);
             if (index < 0) return null;
-            records[index] = records[index] with { Active = active };
-            await SaveAsync(cancellationToken);
-            return records[index];
+            var updated = records[index] with { Active = active };
+            var next = records.ToList();
+            next[index] = updated;
+            await CommitAsync(next, cancellationToken);
+            return updated;
         }
         finally { gate.Release(); }
     }
@@ -84,8 +87,7 @@ public sealed partial class FileJewelryRepository : IJewelryRepository
         {
             var record = records.FirstOrDefault(x => x.Id == id);
             if (record is null) return false;
-            records.Remove(record);
-            await SaveAsync(cancellationToken);
+            await CommitAsync(records.Where(x => x.Id != id).ToList(), cancellationToken);
             var path = Path.Combine(options.ImagesFolder, Path.GetFileName(record.File));
             if (File.Exists(path)) File.Delete(path);
             return true;
@@ -93,12 +95,14 @@ public sealed partial class FileJewelryRepository : IJewelryRepository
         finally { gate.Release(); }
     }
 
+    // Saves the new list to disk first and only then swaps it in, so memory and disk never disagree.
     // Writes to a temp file first, then replaces, so a crash never leaves half a JSON file.
-    private async Task SaveAsync(CancellationToken cancellationToken)
+    private async Task CommitAsync(List<JewelryRecord> next, CancellationToken cancellationToken)
     {
         var temp = options.MetadataFile + ".tmp";
-        await File.WriteAllTextAsync(temp, JsonSerializer.Serialize(records, Json), cancellationToken);
+        await File.WriteAllTextAsync(temp, JsonSerializer.Serialize(next, Json), cancellationToken);
         File.Move(temp, options.MetadataFile, overwrite: true);
+        records = next;
     }
 
     private sealed record SeedEntry(string Id, string Name, string Type, string File, bool Active);

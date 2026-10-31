@@ -1,10 +1,11 @@
 // Role: A small yes or no dialog used before deleting a try-on jewelry item. It copies the
-// look of the catalog status dialog (same backdrop, card and button styles).
+// look of the catalog status dialog (same backdrop, card and button styles). Escape cancels.
 
 import { Component, input, output } from '@angular/core';
 
 @Component({
   selector: 'nb-confirm-dialog', standalone: true,
+  host: { '(document:keydown.escape)': 'busy() || cancel.emit()' },
   template: `
     <div class="backdrop" (click)="cancel.emit()">
       <div class="dialog" role="alertdialog" aria-modal="true" [attr.aria-label]="title()" (click)="$event.stopPropagation()">
