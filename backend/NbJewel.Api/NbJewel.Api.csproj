@@ -1,4 +1,4 @@
-<!-- Role: Defines the .NET 10 Web API project and copies sample JSON into its output.
+<!-- Role: Defines the .NET 10 Web API project and copies sample JSON and the try-on seed images into its output.
      SqlClient is for the optional SqlItemRepository. -->
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <None Include="../../sample-data/*.json" Link="sample-data/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../sample-data/jewelry/*.*" Link="sample-data/jewelry/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

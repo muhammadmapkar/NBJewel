@@ -1,0 +1,8 @@
+[
+  { "id": "a1000000000000000000000000000001", "name": "Gold Ruby Drop (sample)", "type": "earring", "file": "earring-gold-drop.png", "active": true },
+  { "id": "a1000000000000000000000000000002", "name": "Silver Emerald Hoop (sample)", "type": "earring", "file": "earring-silver-hoop.png", "active": true },
+  { "id": "a1000000000000000000000000000003", "name": "Gold Ruby Pendant (sample)", "type": "necklace", "file": "necklace-gold-pendant.png", "active": true },
+  { "id": "a1000000000000000000000000000004", "name": "Silver Pearl Strand (sample)", "type": "necklace", "file": "necklace-pearl-silver.png", "active": true },
+  { "id": "a1000000000000000000000000000005", "name": "Gold Solitaire Ring (sample)", "type": "ring", "file": "ring-gold-solitaire.png", "active": true },
+  { "id": "a1000000000000000000000000000006", "name": "Silver Ruby Band (sample)", "type": "ring", "file": "ring-silver-band.png", "active": true }
+]

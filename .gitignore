@@ -42,3 +42,6 @@ coverage/
 # Local tool folders
 .claude/
 .serena/
+
+# Try-on jewelry uploads (local default for JEWELRY_STORAGE_PATH)
+backend/NbJewel.Api/App_Data/

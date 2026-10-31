@@ -1,8 +1,11 @@
 // Role: Composes the API, registers the sample or SQL repository, configures Swagger,
-// enables the Angular development origin through CORS, sets up the chatbot (tools, guards,
-// Gemini client) that runs inside this API, and adds one global error handler.
+// enables CORS for the origins in CORS_ORIGINS (default http://localhost:4200), sets up the
+// chatbot (tools, guards, Gemini client) that runs inside this API, registers the separate
+// try-on jewelry feature (images served from JEWELRY_STORAGE_PATH), and adds one global error handler.
 
+using Microsoft.Extensions.FileProviders;
 using NbJewel.Api.Chat;
+using NbJewel.Api.Jewelry;
 using NbJewel.Api.Models;
 using NbJewel.Api.Repositories;
 
@@ -25,10 +28,16 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+// CORS_ORIGINS is a comma separated list, for example "https://nbjewel-demo.vercel.app".
+// When it is empty, only the local Angular development server is allowed.
+var corsOrigins = (builder.Configuration["CORS_ORIGINS"] ?? "")
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+    .Select(x => x.TrimEnd('/')).ToArray();
+if (corsOrigins.Length == 0) corsOrigins = ["http://localhost:4200"];
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AngularDevelopment", policy =>
-        policy.WithOrigins("http://localhost:4200").AllowAnyHeader().AllowAnyMethod());
+        policy.WithOrigins(corsOrigins).AllowAnyHeader().AllowAnyMethod());
 });
 // Repository:Provider picks the data layer. "Sample" (default) is JSON in memory.
 // "Sql" uses SQL Server and needs the NBJEWEL_SQL_CONNECTION environment variable.
@@ -61,6 +70,19 @@ builder.Services.AddHttpClient<ILlmClient, GeminiLlmClient>(client =>
 });
 builder.Services.AddScoped<ChatOrchestrator>();
 
+// Try-on jewelry: metadata JSON and images on disk under JEWELRY_STORAGE_PATH (default App_Data/jewelry
+// inside the API folder). Swap FileJewelryRepository for a SQL or blob version later.
+var jewelryStorage = builder.Configuration["JEWELRY_STORAGE_PATH"];
+jewelryStorage = Path.GetFullPath(string.IsNullOrWhiteSpace(jewelryStorage)
+    ? Path.Combine(builder.Environment.ContentRootPath, "App_Data", "jewelry")
+    : jewelryStorage);
+var jewelrySeed = Path.Combine(builder.Environment.ContentRootPath, "..", "..", "sample-data", "jewelry");
+if (!Directory.Exists(jewelrySeed)) jewelrySeed = Path.Combine(AppContext.BaseDirectory, "sample-data", "jewelry");
+var jewelryOptions = new JewelryStorageOptions(jewelryStorage, jewelrySeed);
+builder.Services.AddSingleton(jewelryOptions);
+builder.Services.AddSingleton<IJewelryRepository, FileJewelryRepository>();
+builder.Services.AddSingleton<OwnerPin>();
+
 var app = builder.Build();
 // One global error handler: clients get a short message, never a stack trace.
 app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
@@ -71,6 +93,20 @@ app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseCors("AngularDevelopment");
+// Uploaded try-on images. Only PNG and JPG are ever written there (checked by content on upload).
+Directory.CreateDirectory(jewelryOptions.ImagesFolder);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(jewelryOptions.ImagesFolder),
+    RequestPath = JewelryStorageOptions.ImagesRequestPath,
+    OnPrepareResponse = context =>
+    {
+        context.Context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+        context.Context.Response.Headers["Cache-Control"] = "public, max-age=3600";
+        // The try-on page draws these images on a canvas for the snapshot, so it needs CORS headers.
+        context.Context.Response.Headers["Cross-Origin-Resource-Policy"] = "cross-origin";
+    }
+});
 app.MapControllers();
 app.Run();
 return 0;
