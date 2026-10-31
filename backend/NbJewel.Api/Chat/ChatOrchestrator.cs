@@ -1,12 +1,13 @@
 // Role: The chat loop, ported from the old Python ai-service/app/chat.py. It sends a question to
 // the model with the tool declarations, runs the tools the model asks for, feeds the results back,
-// and checks the final answer with the four guards. Anything that fails a check becomes the fixed
-// refusal. The loop keeps no state between questions.
+// and checks the final answer with the five guards. Anything that fails a check becomes the fixed
+// refusal. Before the loop, InputScreen refuses obvious rule-changing questions without calling the
+// model. The loop keeps no state between questions.
 // Limits: at most 5 tool calls and 8 model calls per question, and the last 6 history messages.
 // Rules for the answer:
 //   - No tool ran (off-topic question): the refusal text, refused = true.
 //   - Tools ran but every one found nothing (not_found): "No data found.", refused = false.
-//   - Otherwise the model's answer must pass all four guards, or it becomes the refusal.
+//   - Otherwise the model's answer must pass all five guards, or it becomes the refusal.
 // It never logs the question, the model's text or tool results. It logs tool names, statuses and guard names.
 
 using System.Text.Json;
@@ -29,6 +30,12 @@ public sealed partial class ChatOrchestrator(ILlmClient llm, ChatTools tools, IL
 
     public async Task<ChatResponse> AskAsync(string question, IReadOnlyList<ChatHistoryMessage>? history, CancellationToken cancellationToken)
     {
+        if (InputScreen.IsBlocked(question))
+        {
+            logger.LogInformation("guard=input_screen result=refused");
+            return Refusal();
+        }
+
         var messages = new List<LlmMessage> { new("system", SystemPrompt.Text) };
         foreach (var message in (history ?? []).TakeLast(MaxHistory))
             messages.Add(new LlmMessage(message.Role == "assistant" ? "assistant" : "user", message.Content));

@@ -1,4 +1,4 @@
-// Role: Tests for the four answer guards. They are ported from the Python tests
+// Role: Tests for the five answer guards (grounding is new). The others are ported from the Python tests
 // (test_chat.py and test_injection.py), using made-up tool results instead of a fake API.
 
 using NbJewel.Api.Chat;
@@ -100,7 +100,7 @@ public sealed class ChatGuardTests
         Assert.False(Guards.CheckNumbers(Answer("The ids add up to 3."), [Search()]).Passed);
     }
 
-    // ---------- guard 4: leak ----------
+    // ---------- guard 5: leak ----------
 
     [Fact]
     public void Leak_RepeatingAPromptLine_Fails()
@@ -123,6 +123,28 @@ public sealed class ChatGuardTests
 
     [Fact]
     public void Leak_NoPrompt_Passes() => Assert.True(Guards.CheckPromptLeak(Answer("anything at all here now"), null).Passed);
+
+    // ---------- guard 4: grounding ----------
+
+    [Fact]
+    public void Grounding_AnswerRepeatsAName_Passes() =>
+        Assert.True(Guards.CheckGrounding(Answer("Zork Ring is available."), [Search()]).Passed);
+
+    [Fact]
+    public void Grounding_AnswerRepeatsANumber_Passes() =>
+        Assert.True(Guards.CheckGrounding(Answer("There are 4 on hand."), [Search()]).Passed);
+
+    [Fact]
+    public void Grounding_AnswerFromMemory_Fails()
+    {
+        var result = Guards.CheckGrounding(Answer("Gold is a popular metal for wedding jewelry."), [Search()]);
+        Assert.False(result.Passed);
+        Assert.Equal("grounding", result.Guard);
+    }
+
+    [Fact]
+    public void Grounding_NoOkRun_Passes() =>
+        Assert.True(Guards.CheckGrounding(Answer("Nothing was found."), [NotFoundRun("get_item")]).Passed);
 
     // ---------- all guards together ----------
 

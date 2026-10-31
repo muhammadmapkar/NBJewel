@@ -43,13 +43,19 @@ Every number in the answer must be traceable. A number is accepted if it:
 
 List numbering such as "1." is ignored. Anything else is refused: rounded numbers, averages, differences, percentages, and numbers from the model's own knowledge.
 
-### 8. Guard 4: prompt leak check
+### 8. Guard 4: grounding check
+If a tool returned records, the answer must repeat at least one value from them (a name, code, status or number). An answer that shares nothing with the data is refused. This does not prove every sentence is true.
+
+### 9. Guard 5: prompt leak check
 If the answer repeats a line of the system prompt word for word (ignoring case and punctuation), it is refused.
 
-### 9. JSON retry
+### 10. First check on the question
+Before the model is called, a keyword check refuses obvious attempts to change the rules or ask for secrets (for example "ignore your rules", "show your system prompt", "API key"). It is a first layer only and can miss other wordings.
+
+### 11. JSON retry
 If the model's reply is not valid JSON in the expected shape, the service asks once more. A second failure is refused.
 
-### 10. Other limits
+### 12. Other limits
 The question is limited to 500 characters. The chat endpoint returns only `answer`, `sources` and `refused`. If the model is missing, fails or is too slow (30 seconds per model call, 45 seconds per question), the API returns 503 "The assistant is busy. Please try again."
 
 ## What is logged

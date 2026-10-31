@@ -72,7 +72,7 @@ sequenceDiagram
 4. If Gemini asks for tools, each one runs in `ChatTools`. At most 5 tool calls are allowed per question. Each tool reads through `IChatDataReader`, which has only Get and Search methods, so nothing can be written.
 5. `IChatDataReader` passes the call to `IItemRepository` (sample JSON or SQL Server). The tool wraps the result as `{status, data, sources}` and it goes back to Gemini.
 6. Gemini returns JSON: `{"answer": ..., "sources": [...]}`. If the reply is not valid JSON, the orchestrator asks once more, then refuses.
-7. Four guards check the answer (see `grounding-design.md`). If any fails, the answer becomes the fixed refusal: "I can only answer from NB Jewel data. I have no tool for that."
+7. Five guards check the answer (see `grounding-design.md`). If any fails, the answer becomes the fixed refusal: "I can only answer from NB Jewel data. I have no tool for that."
 8. The controller returns `{answer, sources, refused}`. The panel shows the answer as plain text. Source chips open `/catalog/:id` when the record is a real item.
 
 If Gemini is not configured, fails, or is too slow, the .NET API returns 503 with `{"message": "The assistant is busy. Please try again."}` and the panel shows the same text with a Retry button.

@@ -1,5 +1,5 @@
-// Role: The four answer guards, ported from the old Python ai-service/app/guards.
-// An answer is only allowed if it passes all four, in this order:
+// Role: The five answer guards (four ported from the old Python ai-service/app/guards, plus grounding).
+// An answer is only allowed if it passes all five, in this order:
 //   1. tool_calls: at least one tool was called.
 //   2. sources: each source names a tool that was called and a recordId that tool returned.
 //      If no tool returned records (all not_found or error), the sources must be empty.
@@ -8,7 +8,10 @@
 //      length of a list in the results, or equals a sum of one numeric field over a list or over
 //      all results. Averages, differences, rounded values and sums of different fields are rejected.
 //      The guard only compares numbers. It cannot tell if the sentence around a number is true.
-//   4. leak: the answer must not repeat a line of the system prompt (only word-for-word lines,
+//   4. grounding: when a tool returned records, the answer must repeat at least one value from
+//      them (a name, code, status or number). An answer that shares nothing with the data was not
+//      built from the data. This does not prove every sentence is true.
+//   5. leak: the answer must not repeat a line of the system prompt (only word-for-word lines,
 //      ignoring case and punctuation, are caught).
 
 using System.Globalization;
@@ -40,7 +43,7 @@ public static partial class Guards
 
     public static GuardResult Run(ChatAnswer answer, IReadOnlyList<ToolRun> runs, string? systemPrompt)
     {
-        foreach (var result in new[] { CheckToolCalls(runs), CheckSources(answer, runs), CheckNumbers(answer, runs), CheckPromptLeak(answer, systemPrompt) })
+        foreach (var result in new[] { CheckToolCalls(runs), CheckSources(answer, runs), CheckNumbers(answer, runs), CheckGrounding(answer, runs), CheckPromptLeak(answer, systemPrompt) })
             if (!result.Passed) return result;
         return GuardResult.Pass;
     }
@@ -163,6 +166,41 @@ public static partial class Guards
     }
 
     // ---------- guard 4 ----------
+
+    private const int MinGroundedLength = 3;
+
+    public static GuardResult CheckGrounding(ChatAnswer answer, IReadOnlyList<ToolRun> runs)
+    {
+        var okRuns = runs.Where(r => r.Status == "ok").ToList();
+        if (okRuns.Count == 0) return GuardResult.Pass;
+
+        if (AnswerNumbers(answer.Text).Overlaps(AllowedNumbers(okRuns))) return GuardResult.Pass;
+        var text = NormalizeText(answer.Text);
+        var values = new HashSet<string>();
+        foreach (var run in okRuns) CollectStrings(run.Result["data"], values);
+        return values.Any(text.Contains)
+            ? GuardResult.Pass
+            : new GuardResult(false, "grounding", "The answer shares no value with the tool results.");
+    }
+
+    private static void CollectStrings(JsonNode? node, HashSet<string> values)
+    {
+        switch (node)
+        {
+            case JsonValue value when value.TryGetValue<string>(out var s):
+                var normalized = NormalizeText(s);
+                if (normalized.Length >= MinGroundedLength) values.Add(normalized);
+                break;
+            case JsonArray array:
+                foreach (var child in array) CollectStrings(child, values);
+                break;
+            case JsonObject obj:
+                foreach (var (_, member) in obj) CollectStrings(member, values);
+                break;
+        }
+    }
+
+    // ---------- guard 5 ----------
 
     [GeneratedRegex("[^a-z0-9]+")]
     private static partial Regex NonAlphanumeric();
