@@ -12,6 +12,8 @@ A. Customer try-on only, 6 built-in samples (about 5 minutes):
 2. Branch: `tryon-feature`. Root Directory: `frontend`. Framework preset: Other. Leave `NBJEWEL_API_URL` empty.
 3. Deploy. Open `https://<your-app>.vercel.app/tryon`, tap a piece, allow the camera.
 
+If the import screen has no branch picker, Vercel builds the default branch first (that build shows "page doesn't exist"; it is the old code). Vercel builds `tryon-feature` after the next push to that branch. Then, in Settings, Environments, Production, Branch Tracking, set `tryon-feature` and Save (Vercel only accepts a branch it has built once).
+
 Without the API the app runs in sample mode: the try-on works with the 6 samples, and the owner page says uploads are off.
 
 B. Add the API for the owner page (uploads, Active toggle, delete):
