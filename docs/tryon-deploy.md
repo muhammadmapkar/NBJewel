@@ -2,6 +2,30 @@
 
 Document only. Nothing here has been deployed.
 
+## Fastest: everything from your phone (no laptop)
+
+Needs the `tryon-feature` branch on GitHub, a free Vercel account, and (for step B) a free Render account. Sign in to both with GitHub.
+
+A. Customer try-on only, 6 built-in samples (about 5 minutes):
+
+1. On the phone, open vercel.com, Add New, Project, import `nbjewel`.
+2. Branch: `tryon-feature`. Root Directory: `frontend`. Framework preset: Other. Leave `NBJEWEL_API_URL` empty.
+3. Deploy. Open `https://<your-app>.vercel.app/tryon`, tap a piece, allow the camera.
+
+Without the API the app runs in sample mode: the try-on works with the 6 samples, and the owner page says uploads are off.
+
+B. Add the API for the owner page (uploads, Active toggle, delete):
+
+1. On the phone, open dashboard.render.com, New, Blueprint, pick the repo and branch `tryon-feature`. Render reads `render.yaml` and builds `backend/Dockerfile`.
+2. When asked, set `OWNER_PIN` (8 or more characters) and `CORS_ORIGINS` = `https://<your-app>.vercel.app`.
+3. Wait for the deploy (the first build takes a few minutes). Check `https://<your-api>.onrender.com/api/jewelry` lists 6 items.
+4. In Vercel, Settings, Environment Variables, set `NBJEWEL_API_URL` = `https://<your-api>.onrender.com`, then Deployments, Redeploy.
+5. Open `https://<your-app>.vercel.app/owner/jewelry`, enter the PIN.
+
+Render free plan: the API sleeps after about 15 minutes idle (the first call then takes up to a minute) and its disk is temporary, so uploads are lost on restart.
+
+## Full detail
+
 Phone browsers only allow the camera on `https` pages (or `localhost`). So both parts must be on https:
 
 1. The Angular app on a static host (Vercel or Netlify).

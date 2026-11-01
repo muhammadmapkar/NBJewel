@@ -1,0 +1,19 @@
+# Role: Render Blueprint for the .NET API, so it can be deployed from the Render website
+# (phone friendly): New, Blueprint, pick this repo. Secrets are asked for in the Render
+# dashboard (sync: false) and never stored here. Free plan disks are temporary: owner uploads
+# are lost on restart (known limit, see docs/tryon-deploy.md).
+services:
+  - type: web
+    name: nbjewel-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /api/jewelry
+    envVars:
+      - key: OWNER_PIN
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: JEWELRY_STORAGE_PATH
+        value: /tmp/nbjewel-jewelry

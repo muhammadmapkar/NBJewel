@@ -1,6 +1,10 @@
 {
-  "$comment": "Role: Vercel settings for the Angular app. Builds with the deploy environment and sends every path (for example /tryon/abc) to index.html so Angular routing works.",
   "buildCommand": "npm run build:deploy",
   "outputDirectory": "dist/nbjewel-frontend/browser",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }

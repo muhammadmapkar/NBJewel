@@ -31,7 +31,13 @@ type CutoutState = 'idle' | 'working' | 'ready' | 'failed';
       <a class="add" routerLink="/tryon" target="_blank" rel="noopener">Open customer page ›</a>
     </div>
 
-    @if (!unlocked()) {
+    @if (jewelry.sampleMode) {
+      <div class="card"><b>Sample mode</b><p>This app was deployed without the API, so customers see the 6 sample items and uploads are off. To manage jewelry, deploy the API and set NBJEWEL_API_URL (see docs/tryon-deploy.md).</p></div>
+      <div class="card share">
+        @if (qr()) { <img class="qr" [src]="qr()" alt="QR code for the customer try-on link" /> }
+        <div><b>Customer link</b><p>Scan with a phone, or share this link. The camera needs https.</p><a [href]="customerUrl" target="_blank" rel="noopener">{{ customerUrl }}</a></div>
+      </div>
+    } @else if (!unlocked()) {
       <form class="card pin-card" (ngSubmit)="unlock()">
         <label class="required">Owner PIN
           <input type="password" name="pin" autocomplete="off" [(ngModel)]="pinInput" [disabled]="checkingPin()" />
@@ -227,7 +233,7 @@ export class OwnerJewelryComponent implements OnDestroy {
   readonly deleteError = signal<string | null>(null);
 
   constructor() {
-    if (this.jewelry.pin() !== null) this.load();
+    if (this.jewelry.pin() !== null && !this.jewelry.sampleMode) this.load();
     QRCode.toDataURL(this.customerUrl, { margin: 1, width: 220 }).then(url => this.qr.set(url)).catch(() => this.qr.set(''));
   }
 

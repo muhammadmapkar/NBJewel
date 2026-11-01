@@ -1,0 +1,8 @@
+# Role: Keeps the API container build small: only backend and sample-data are needed.
+**/node_modules
+**/bin
+**/obj
+frontend
+.git
+.env
+.env.*

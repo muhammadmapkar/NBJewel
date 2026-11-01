@@ -100,6 +100,10 @@ All tuning numbers are in `TUNING` in `overlay-math.ts`. They were chosen by eye
 
 Background removal (`@imgly/background-removal` 1.7.0) loads its model files from `staticimgly.com` when the owner presses "Remove background". It is loaded only then.
 
+## Sample mode
+
+If the app is built without an API address (`NBJEWEL_API_URL` empty on Vercel or Netlify), it runs in sample mode: the customer pages read the 6 sample items from `frontend/public/tryon-samples` (copies made by `scripts/generate-jewelry-seed.py`), and the owner page shows that uploads are off. This lets the try-on be tested on a phone with only a static host.
+
 ## Assumptions
 
 - Assumed: one shared owner PIN in `OWNER_PIN` is enough for a demo. Replace with real auth later (per user sign in, roles, rate limiting).

@@ -20,6 +20,7 @@ A beginner map. Each source file starts with a short comment that says what it i
 - `docs/`: documentation (see below) and the SQL schema `item_catalog_schema.sql`.
 - `scripts/setup-db.sh`: one command to prepare the local SQL Server.
 - `docker-compose.yml`: the local SQL Server container (Sql mode only).
+- `backend/Dockerfile` and `render.yaml`: optional hosting of the API on Render. `frontend/vercel.json` and `frontend/netlify.toml`: hosting of the app.
 - `.env.example`: every environment variable name. Names only, no values.
 
 ## Documentation
@@ -55,7 +56,7 @@ cd frontend && npm start
 
 Without a Gemini key and model the catalog still works, and chat answers "The assistant is busy. Please try again."
 
-Virtual try-on: set `OWNER_PIN` in `.env` before starting the API. Then open `http://localhost:4200/owner/jewelry` (owner, asks for the PIN) and `http://localhost:4200/tryon` (customer). Uploads are saved under `backend/NbJewel.Api/App_Data/jewelry` unless `JEWELRY_STORAGE_PATH` is set. Frontend unit tests: `cd frontend && npm test`. To try it on a phone, see [tryon-deploy.md](docs/tryon-deploy.md).
+Virtual try-on: set `OWNER_PIN` in `.env` before starting the API. Then open `http://localhost:4200/owner/jewelry` (owner, asks for the PIN) and `http://localhost:4200/tryon` (customer). Uploads are saved under `backend/NbJewel.Api/App_Data/jewelry` unless `JEWELRY_STORAGE_PATH` is set. Frontend unit tests: `cd frontend && npm test`. To try it on a phone (all steps can be done from the phone), see [tryon-deploy.md](docs/tryon-deploy.md).
 
 ### Sql mode (SQL Server in Docker)
 

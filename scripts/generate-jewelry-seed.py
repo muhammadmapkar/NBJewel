@@ -1,5 +1,7 @@
 # Role: Generates the 6 sample try-on jewelry images (2 earrings, 2 necklaces, 2 rings)
-# as simple transparent PNG placeholders in sample-data/jewelry. No real brand images.
+# as simple transparent PNG placeholders in sample-data/jewelry (used by the API) and copies
+# them, with seed.json, to frontend/public/tryon-samples (used by the app in sample mode,
+# when it is deployed without the API). No real brand images.
 # Run from the repository root: python3 scripts/generate-jewelry-seed.py (needs Pillow).
 # Image layout rules used by the try-on overlay (assumed, see docs/tryon-design.md):
 #   earring:  hook point at the top center of the image.
@@ -10,7 +12,9 @@ import math
 from pathlib import Path
 from PIL import Image, ImageDraw
 
-OUT = Path(__file__).resolve().parent.parent / "sample-data" / "jewelry"
+ROOT = Path(__file__).resolve().parent.parent
+OUT = ROOT / "sample-data" / "jewelry"
+APP_COPY = ROOT / "frontend" / "public" / "tryon-samples"
 GOLD = (212, 175, 55, 255)
 GOLD_DARK = (150, 115, 30, 255)
 SILVER = (205, 210, 218, 255)
@@ -84,9 +88,13 @@ def main():
         "ring-gold-solitaire.png": ring(GOLD, GOLD_DARK, (180, 220, 255, 255), solitaire=True),
         "ring-silver-band.png": ring(SILVER, SILVER_DARK, RUBY, solitaire=False),
     }
+    APP_COPY.mkdir(parents=True, exist_ok=True)
     for name, img in images.items():
-        img.save(OUT / name, "PNG")
-        print("wrote", OUT / name)
+        for folder in (OUT, APP_COPY):
+            img.save(folder / name, "PNG")
+            print("wrote", folder / name)
+    (APP_COPY / "seed.json").write_text((OUT / "seed.json").read_text())
+    print("wrote", APP_COPY / "seed.json")
 
 
 if __name__ == "__main__":
