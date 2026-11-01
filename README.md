@@ -8,6 +8,7 @@ This repository uses fake data only. It contains no real client data and does no
 
 A beginner map. Each source file starts with a short comment that says what it is for.
 
+- `customer-tryon/`: separate customer facing try-on app (catalog, live camera try-on with physics). See its README.
 - `frontend/`: Angular app (themed shell, catalog, chat panel, virtual try-on). Code is in `frontend/src/app/`. Try-on code is in `frontend/src/app/features/tryon/`.
 - `backend/NbJewel.Api/`: .NET Web API.
   - `Controllers/`: the HTTP endpoints (items, stock, categories, chat and so on).
