@@ -38,7 +38,8 @@ export const TUNING = {
   earHideShare: 0.25,
   earShowShare: 0.35,
   necklaceWidth: 1.4,
-  necklaceDrop: 0.22, // top of the necklace below the chin, in face heights
+  necklaceDrop: 0.22, // top of the necklace below the chin, in face heights (when no neckline is known)
+  neckBase: 0.38, // base of the neck below the chin, in face heights (measured on a test photo)
   necklaceRollFollow: 0.5,
   tikkaHeight: 0.42,
   tikkaRaise: 0.04, // tikka chain starts this far above landmark 10 (at the hairline), in face heights
@@ -114,10 +115,14 @@ export function earringPlacements(face: readonly Point[], aspectLeft: number, as
     : { left: make(ear454, aspectLeft), right: make(ear234, aspectRight) };
 }
 
-export function necklacePlacement(face: readonly Point[], aspect: number, fit: Fit = {}): Placement {
+// neckline: where the necklace's inner front edge is, as a share of the image height (from the
+// catalog build). When known, that edge rests at the base of the neck; otherwise the image top
+// hangs a fixed drop below the chin.
+export function necklacePlacement(face: readonly Point[], aspect: number, fit: Fit = {}, neckline?: number): Placement {
   const frame = faceFrame(face);
   const chin = face[FACE.chin];
-  const drop = frame.faceHeight * (TUNING.necklaceDrop + (fit.drop ?? 0));
+  const base = neckline === undefined ? TUNING.necklaceDrop : TUNING.neckBase;
+  const drop = frame.faceHeight * (base + (fit.drop ?? 0));
   const width = frame.faceWidth * (fit.width ?? TUNING.necklaceWidth);
   return {
     x: chin.x + frame.down.x * drop,
@@ -127,7 +132,7 @@ export function necklacePlacement(face: readonly Point[], aspect: number, fit: F
     rotation: frame.roll * TUNING.necklaceRollFollow,
     opacity: 1,
     anchorX: 0.5,
-    anchorY: 0
+    anchorY: neckline ?? 0
   };
 }
 
@@ -148,23 +153,30 @@ export function tikkaPlacement(face: readonly Point[], aspect: number, fit: Fit 
   };
 }
 
-// Simple low-pass filter for landmark lists. The share of the new position grows with the
-// average move, so jitter is smoothed but real moves are followed without lag.
-export class LandmarkSmoother {
-  private previous: Point[] | null = null;
+// Simple low-pass filter for landmark lists (depth z too, when present). The share of the new
+// position grows with the average move, so jitter is smoothed but real moves are followed
+// without lag.
+export class LandmarkSmoother<T extends Point & { z?: number } = Point> {
+  private previous: T[] | null = null;
   constructor(private readonly alpha = 0.4, private readonly fastMovePx = 12) {}
 
-  smooth(points: readonly Point[]): Point[] {
+  smooth(points: readonly T[]): T[] {
     const prev = this.previous;
     if (!prev || prev.length !== points.length || points.length === 0) {
-      this.previous = points.map(p => ({ x: p.x, y: p.y }));
+      this.previous = points.map(p => ({ ...p }));
       return this.previous;
     }
     let total = 0;
     for (let i = 0; i < points.length; i++) total += distance(prev[i], points[i]);
     const move = total / points.length;
     const alpha = this.fastMovePx > 0 ? clamp(this.alpha + (1 - this.alpha) * (move / this.fastMovePx), this.alpha, 1) : this.alpha;
-    const next = points.map((p, i) => ({ x: prev[i].x + (p.x - prev[i].x) * alpha, y: prev[i].y + (p.y - prev[i].y) * alpha }));
+    const mix = (a: number, b: number) => a + (b - a) * alpha;
+    const next = points.map((p, i) => {
+      const q = prev[i];
+      const out = { ...p, x: mix(q.x, p.x), y: mix(q.y, p.y) };
+      if (p.z !== undefined && q.z !== undefined) out.z = mix(q.z, p.z);
+      return out;
+    });
     this.previous = next;
     return next;
   }

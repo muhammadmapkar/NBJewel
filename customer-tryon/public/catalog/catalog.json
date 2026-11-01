@@ -1,163 +1,305 @@
-[
-  {
-    "id": "temple-jhumka-necklace",
-    "name": "Temple Jhumka Necklace",
-    "note": "Antique gold with a jhumka drop",
-    "category": "necklace",
-    "kinds": [
-      "necklace"
-    ],
-    "card": "catalog/cards/temple-jhumka-necklace.png",
-    "parts": {
-      "necklace": {
-        "image": "catalog/pieces/temple-jhumka-necklace-necklace.png",
-        "aspect": 0.9962,
-        "fit": {
-          "width": 1.45,
-          "drop": 0.05
-        }
-      }
-    }
+{
+  "currency": "AED",
+  "rates": {
+    "22K": 385.0,
+    "18K": 315.0
   },
-  {
-    "id": "antique-pendant-set",
-    "name": "Antique Pendant Set",
-    "note": "Beaded necklace with matching drops",
-    "category": "set",
-    "kinds": [
-      "necklace",
-      "earrings"
-    ],
-    "card": "catalog/cards/antique-pendant-set.png",
-    "parts": {
-      "necklace": {
-        "image": "catalog/pieces/antique-pendant-set-necklace.png",
-        "aspect": 0.8564,
-        "fit": {
-          "width": 1.45,
-          "drop": 0.1
+  "ratesNote": "Sample gold rate per gram, not today's market rate",
+  "vatPercent": 5,
+  "branches": [
+    "Deira Gold Souk (sample)",
+    "Al Karama (sample)",
+    "Sharjah Central (sample)"
+  ],
+  "sample": true,
+  "products": [
+    {
+      "id": "temple-jhumka-necklace",
+      "name": "Temple Jhumka Necklace",
+      "note": "Antique gold with a jhumka drop",
+      "category": "necklace",
+      "kinds": [
+        "necklace"
+      ],
+      "card": "catalog/cards/temple-jhumka-necklace.png",
+      "parts": {
+        "necklace": {
+          "image": "catalog/pieces/temple-jhumka-necklace-necklace.png",
+          "aspect": 0.9962,
+          "fit": {
+            "width": 1.35,
+            "drop": 0
+          },
+          "neckline": 0.4623
         }
       },
-      "earringLeft": {
-        "image": "catalog/pieces/antique-pendant-set-earringLeft.png",
-        "aspect": 1.686
-      },
-      "earringRight": {
-        "image": "catalog/pieces/antique-pendant-set-earringRight.png",
-        "aspect": 1.573
-      }
-    }
-  },
-  {
-    "id": "filigree-bridal-choker",
-    "name": "Filigree Bridal Choker Set",
-    "note": "Fine mesh choker with long drops",
-    "category": "set",
-    "kinds": [
-      "necklace",
-      "earrings"
-    ],
-    "card": "catalog/cards/filigree-bridal-choker.png",
-    "parts": {
-      "necklace": {
-        "image": "catalog/pieces/filigree-bridal-choker-necklace.png",
-        "aspect": 1.0752,
-        "fit": {
-          "width": 1.25,
-          "drop": -0.06
+      "metal": "Gold",
+      "hallmark": "Hallmarked 22K",
+      "code": "NBJ-TN-1021",
+      "collection": "Temple",
+      "occasions": [
+        "Festive",
+        "Bridal"
+      ],
+      "purity": "22K",
+      "grossWeight": 48.6,
+      "netWeight": 46.2,
+      "makingPercent": 14,
+      "stones": [
+        "Ruby",
+        "Emerald"
+      ],
+      "stoneValue": 650,
+      "size": "Choker length, about 15 in",
+      "badge": "bestseller",
+      "popularity": 2,
+      "addedOn": "2026-08-02",
+      "description": "Temple work necklace in antique finish, with kemp stone accents and a hand set jhumka drop."
+    },
+    {
+      "id": "antique-pendant-set",
+      "name": "Antique Pendant Set",
+      "note": "Beaded necklace with matching drops",
+      "category": "set",
+      "kinds": [
+        "necklace",
+        "earrings"
+      ],
+      "card": "catalog/cards/antique-pendant-set.png",
+      "parts": {
+        "necklace": {
+          "image": "catalog/pieces/antique-pendant-set-necklace.png",
+          "aspect": 0.8564,
+          "fit": {
+            "width": 1.35,
+            "drop": 0
+          },
+          "neckline": 0.3618
+        },
+        "earringLeft": {
+          "image": "catalog/pieces/antique-pendant-set-earringLeft.png",
+          "aspect": 1.686
+        },
+        "earringRight": {
+          "image": "catalog/pieces/antique-pendant-set-earringRight.png",
+          "aspect": 1.573
         }
       },
-      "earringLeft": {
-        "image": "catalog/pieces/filigree-bridal-choker-earringLeft.png",
-        "aspect": 2.5974
-      },
-      "earringRight": {
-        "image": "catalog/pieces/filigree-bridal-choker-earringRight.png",
-        "aspect": 2.5641
-      }
-    }
-  },
-  {
-    "id": "kundan-emerald-bridal",
-    "name": "Kundan Emerald Bridal Set",
-    "note": "Kundan with emerald drops, earrings and tikka",
-    "category": "set",
-    "kinds": [
-      "necklace",
-      "earrings",
-      "tikka"
-    ],
-    "card": "catalog/cards/kundan-emerald-bridal.png",
-    "parts": {
-      "necklace": {
-        "image": "catalog/pieces/kundan-emerald-bridal-necklace.png",
-        "aspect": 0.6678,
-        "fit": {
-          "width": 1.45,
-          "drop": 0.04
+      "metal": "Gold",
+      "hallmark": "Hallmarked 22K",
+      "code": "NBJ-AS-2045",
+      "collection": "Antique",
+      "occasions": [
+        "Festive",
+        "Wedding guest"
+      ],
+      "purity": "22K",
+      "grossWeight": 80.6,
+      "netWeight": 80.6,
+      "makingPercent": 12,
+      "stones": [],
+      "stoneValue": 0,
+      "size": "Necklace adjustable with a dori, earrings 5 cm",
+      "badge": "new",
+      "popularity": 4,
+      "addedOn": "2026-10-20",
+      "description": "Beaded antique gold necklace with a carved pendant and matching drop earrings."
+    },
+    {
+      "id": "filigree-bridal-choker",
+      "name": "Filigree Bridal Choker Set",
+      "note": "Fine mesh choker with long drops",
+      "category": "set",
+      "kinds": [
+        "necklace",
+        "earrings"
+      ],
+      "card": "catalog/cards/filigree-bridal-choker.png",
+      "parts": {
+        "necklace": {
+          "image": "catalog/pieces/filigree-bridal-choker-necklace.png",
+          "aspect": 1.0752,
+          "fit": {
+            "width": 1.25,
+            "drop": 0
+          },
+          "neckline": 0.3761
+        },
+        "earringLeft": {
+          "image": "catalog/pieces/filigree-bridal-choker-earringLeft.png",
+          "aspect": 2.5974
+        },
+        "earringRight": {
+          "image": "catalog/pieces/filigree-bridal-choker-earringRight.png",
+          "aspect": 2.5641
         }
       },
-      "earringLeft": {
-        "image": "catalog/pieces/kundan-emerald-bridal-earringLeft.png",
-        "aspect": 1.5676
-      },
-      "earringRight": {
-        "image": "catalog/pieces/kundan-emerald-bridal-earringRight.png",
-        "aspect": 1.56
-      },
-      "tikka": {
-        "image": "catalog/pieces/kundan-emerald-bridal-tikka.png",
-        "aspect": 1.92
-      }
-    }
-  },
-  {
-    "id": "kundan-medallion-long-set",
-    "name": "Kundan Medallion Long Set",
-    "note": "Long haar with a kundan medallion",
-    "category": "set",
-    "kinds": [
-      "necklace",
-      "earrings"
-    ],
-    "card": "catalog/cards/kundan-medallion-long-set.png",
-    "parts": {
-      "necklace": {
-        "image": "catalog/pieces/kundan-medallion-long-set-necklace.png",
-        "aspect": 1.1358,
-        "fit": {
-          "width": 1.25,
-          "drop": -0.15
+      "metal": "Gold",
+      "hallmark": "Hallmarked 22K",
+      "code": "NBJ-FB-3102",
+      "collection": "Bridal",
+      "occasions": [
+        "Bridal"
+      ],
+      "purity": "22K",
+      "grossWeight": 74.8,
+      "netWeight": 74.8,
+      "makingPercent": 16,
+      "stones": [],
+      "stoneValue": 0,
+      "size": "Choker 14 in, earrings 6.5 cm",
+      "badge": null,
+      "popularity": 5,
+      "addedOn": "2026-06-11",
+      "description": "Fine filigree mesh choker that falls in a soft V, with long matching earrings."
+    },
+    {
+      "id": "kundan-emerald-bridal",
+      "name": "Kundan Emerald Bridal Set",
+      "note": "Kundan with emerald drops, earrings and tikka",
+      "category": "set",
+      "kinds": [
+        "necklace",
+        "earrings",
+        "tikka"
+      ],
+      "card": "catalog/cards/kundan-emerald-bridal.png",
+      "parts": {
+        "necklace": {
+          "image": "catalog/pieces/kundan-emerald-bridal-necklace.png",
+          "aspect": 0.6678,
+          "fit": {
+            "width": 1.45,
+            "drop": 0
+          },
+          "neckline": 0.5076
+        },
+        "earringLeft": {
+          "image": "catalog/pieces/kundan-emerald-bridal-earringLeft.png",
+          "aspect": 1.5676
+        },
+        "earringRight": {
+          "image": "catalog/pieces/kundan-emerald-bridal-earringRight.png",
+          "aspect": 1.56
+        },
+        "tikka": {
+          "image": "catalog/pieces/kundan-emerald-bridal-tikka.png",
+          "aspect": 1.92
         }
       },
-      "earringLeft": {
-        "image": "catalog/pieces/kundan-medallion-long-set-earringLeft.png",
-        "aspect": 3.2524
+      "metal": "Gold",
+      "hallmark": "Hallmarked 22K",
+      "code": "NBJ-KB-4210",
+      "collection": "Bridal",
+      "occasions": [
+        "Bridal"
+      ],
+      "purity": "22K",
+      "grossWeight": 96.5,
+      "netWeight": 82.0,
+      "makingPercent": 18,
+      "stones": [
+        "Kundan",
+        "Emerald",
+        "Pearl"
+      ],
+      "stoneValue": 3800,
+      "size": "Necklace 15 in, earrings 5.5 cm, tikka 9 cm",
+      "badge": "bestseller",
+      "popularity": 1,
+      "addedOn": "2026-07-15",
+      "description": "Bridal kundan set with emerald drops and pearls: necklace, chandbali earrings and maang tikka."
+    },
+    {
+      "id": "kundan-medallion-long-set",
+      "name": "Kundan Medallion Long Set",
+      "note": "Long haar with a kundan medallion",
+      "category": "set",
+      "kinds": [
+        "necklace",
+        "earrings"
+      ],
+      "card": "catalog/cards/kundan-medallion-long-set.png",
+      "parts": {
+        "necklace": {
+          "image": "catalog/pieces/kundan-medallion-long-set-necklace.png",
+          "aspect": 1.1358,
+          "fit": {
+            "width": 1.25,
+            "drop": 0
+          },
+          "neckline": 0.3852
+        },
+        "earringLeft": {
+          "image": "catalog/pieces/kundan-medallion-long-set-earringLeft.png",
+          "aspect": 3.2524
+        },
+        "earringRight": {
+          "image": "catalog/pieces/kundan-medallion-long-set-earringRight.png",
+          "aspect": 3.2427
+        }
       },
-      "earringRight": {
-        "image": "catalog/pieces/kundan-medallion-long-set-earringRight.png",
-        "aspect": 3.2427
-      }
-    }
-  },
-  {
-    "id": "gold-teardrop-earrings",
-    "name": "Gold Teardrop Earrings",
-    "note": "Filigree teardrops with a floral stud",
-    "category": "earrings",
-    "kinds": [
-      "earrings"
-    ],
-    "card": "catalog/cards/gold-teardrop-earrings.png",
-    "parts": {
-      "earringLeft": {
-        "image": "catalog/pieces/gold-teardrop-earrings-earringLeft.png",
-        "aspect": 2.2842
+      "metal": "Gold",
+      "hallmark": "Hallmarked 22K",
+      "code": "NBJ-KL-5133",
+      "collection": "Bridal",
+      "occasions": [
+        "Bridal",
+        "Festive"
+      ],
+      "purity": "22K",
+      "grossWeight": 88.3,
+      "netWeight": 84.9,
+      "makingPercent": 15,
+      "stones": [
+        "Kundan",
+        "Ruby"
+      ],
+      "stoneValue": 1450,
+      "size": "Long haar 24 in, earrings 7 cm",
+      "badge": "new",
+      "popularity": 3,
+      "addedOn": "2026-10-28",
+      "description": "Long gold haar with a kundan medallion pendant and matching long earrings."
+    },
+    {
+      "id": "gold-teardrop-earrings",
+      "name": "Gold Teardrop Earrings",
+      "note": "Filigree teardrops with a floral stud",
+      "category": "earrings",
+      "kinds": [
+        "earrings"
+      ],
+      "card": "catalog/cards/gold-teardrop-earrings.png",
+      "parts": {
+        "earringLeft": {
+          "image": "catalog/pieces/gold-teardrop-earrings-earringLeft.png",
+          "aspect": 2.2842
+        },
+        "earringRight": {
+          "image": "catalog/pieces/gold-teardrop-earrings-earringRight.png",
+          "aspect": 2.2963
+        }
       },
-      "earringRight": {
-        "image": "catalog/pieces/gold-teardrop-earrings-earringRight.png",
-        "aspect": 2.2963
-      }
+      "metal": "Gold",
+      "hallmark": "Hallmarked 22K",
+      "code": "NBJ-GE-6088",
+      "collection": "Daily wear",
+      "occasions": [
+        "Daily",
+        "Party"
+      ],
+      "purity": "22K",
+      "grossWeight": 14.2,
+      "netWeight": 14.2,
+      "makingPercent": 12,
+      "stones": [],
+      "stoneValue": 0,
+      "size": "6 cm drop",
+      "badge": null,
+      "popularity": 6,
+      "addedOn": "2026-09-05",
+      "description": "Filigree teardrop earrings with a floral stud and a polished gold drop."
     }
-  }
-]
+  ]
+}

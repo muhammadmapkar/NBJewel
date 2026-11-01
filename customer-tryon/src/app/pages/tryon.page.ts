@@ -1,9 +1,9 @@
 // Role: The live try-on (/try/:id?parts=necklace,earrings). Opens the phone camera (front by
 // default, flip button), finds the face with MediaPipe in the browser, and draws the chosen
-// pieces of the design on the video in one canvas: necklace under the chin, earrings at the
-// lobes, maang tikka at the hairline. Each piece hangs with simple real-scale physics, so it
-// lags, swings and settles when the head moves. Chips switch pieces of a set on and off, and a
-// strip switches designs without closing the camera. The shutter saves the canvas as a photo.
+// pieces of the design on the video with 3D effects (jewelry-renderer.ts): real-scale swing in
+// two directions, turning with the head, hiding behind the face, room light and soft shadows.
+// Chips switch pieces of a set on and off, a strip switches designs without closing the camera,
+// and the price with "Add to bag" stays in reach. The shutter saves the canvas as a photo.
 // No video leaves the phone. Friendly messages for no https, camera blocked, no camera, camera
 // busy, model load failure, and no face found.
 
@@ -14,12 +14,13 @@ import { combineLatest } from 'rxjs';
 import { KIND_LABELS, PieceKind, Product, parseParts } from '../catalog/catalog.models';
 import { CatalogService } from '../catalog/catalog.service';
 import { LandmarkTracker, createTracker } from '../tryon/landmark-tracker';
-import { LandmarkSmoother, Placement, Point, earringPlacements, faceFrame, necklacePlacement, tikkaPlacement, toPixels } from '../tryon/overlay-math';
-import { EARRING, NECKLACE, Swing, TIKKA } from '../tryon/physics';
+import { StoreService } from '../catalog/store.service';
+import { JewelryRenderer, PieceImages } from '../tryon/jewelry-renderer';
+import { LandmarkSmoother } from '../tryon/overlay-math';
+import { Point3, toPixels3 } from '../tryon/pose';
 
 type Phase = 'loading' | 'running' | 'missing' | 'insecure' | 'denied' | 'nocamera' | 'busy' | 'modelerror' | 'error';
 type Facing = 'user' | 'environment';
-interface Images { necklace?: HTMLImageElement; earringLeft?: HTMLImageElement; earringRight?: HTMLImageElement; tikka?: HTMLImageElement }
 
 // Without a face for this long, the jewelry is hidden (so it never floats where the face was),
 // and a little later the hint shows. Time based, so slow cameras behave the same.
@@ -60,6 +61,12 @@ const HINT_AFTER_MS = 700;
               }
             </div>
           }
+        }
+        @if (product(); as p) {
+          <div class="buy">
+            <span class="buy-price">{{ catalog.money(catalog.price(p).total) }}</span>
+            <button type="button" class="buy-btn" (click)="store.addToBag(p.id)" [disabled]="store.inBag(p.id)">{{ store.inBag(p.id) ? 'In your bag' : 'Add to bag' }}</button>
+          </div>
         }
         <div class="controls">
           <div class="strip" aria-label="Other designs">
@@ -106,6 +113,10 @@ const HINT_AFTER_MS = 700;
     .parts { display: flex; justify-content: center; gap: 8px; padding: 0 12px 12px; flex-wrap: wrap; }
     .pchip { min-height: 34px; padding: 0 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.5); background: rgba(0,0,0,0.25); color: #fff; font-size: 13px; font-weight: 500; }
     .pchip.on { background: var(--gold); border-color: var(--gold); }
+    .buy { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 0 12px 10px; }
+    .buy-price { font-weight: 600; font-size: 15px; }
+    .buy-btn { min-height: 34px; padding: 0 14px; border-radius: 999px; border: 0; background: var(--ivory); color: var(--maroon); font-weight: 600; font-size: 13px; }
+    .buy-btn:disabled { opacity: 0.75; }
     .controls { position: relative; display: flex; align-items: center; height: 84px; }
     .strip { display: flex; gap: 10px; overflow-x: auto; padding: 0 16px 0 calc(50% + 50px); scrollbar-width: none; align-items: center; height: 100%; width: 100%; }
     .strip::-webkit-scrollbar { display: none; }
@@ -124,6 +135,7 @@ const HINT_AFTER_MS = 700;
 })
 export class TryonPage implements OnDestroy {
   readonly catalog = inject(CatalogService);
+  readonly store = inject(StoreService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly zone = inject(NgZone);
@@ -142,16 +154,16 @@ export class TryonPage implements OnDestroy {
 
   private stream: MediaStream | null = null;
   private tracker: LandmarkTracker | null = null;
-  private images: Images = {};
+  private images: PieceImages = {};
   private imagesFor = '';
   private photoBlob: Blob | null = null;
-  private readonly smoother = new LandmarkSmoother();
-  private readonly swings = { necklace: new Swing(NECKLACE), earringLeft: new Swing(EARRING), earringRight: new Swing(EARRING), tikka: new Swing(TIKKA) };
+  private readonly smoother = new LandmarkSmoother<Point3>();
+  private readonly renderer = new JewelryRenderer();
   private frame = 0;
   private lastVideoTime = -1;
   private lastFrameAt = 0;
   private lastSeenAt = 0;
-  private landmarks: Point[] | null = null;
+  private landmarks: Point3[] | null = null;
   private destroyed = false;
   private run = 0;
   private cameraStarted = false;
@@ -296,43 +308,21 @@ export class TryonPage implements OnDestroy {
       context.restore();
       // Detect on the canvas just drawn (already mirrored), so the points belong to exactly the
       // frame on screen. Reading the video again could give a newer frame on a slow phone.
-      let found: Point[] | null = null;
+      let found: Point3[] | null = null;
       try { found = this.tracker.detect(canvas, now); } catch { found = null; }
       if (found) {
         this.lastSeenAt = now;
-        this.landmarks = this.smoother.smooth(found.map(p => toPixels(p, canvas.width, canvas.height, false)));
+        this.landmarks = this.smoother.smooth(found.map(p => toPixels3(p, canvas.width, canvas.height)));
       } else if (this.landmarks && now - this.lastSeenAt > HIDE_AFTER_MS) {
         this.landmarks = null;
         this.resetMotion();
       }
       const searching = now - this.lastSeenAt > HINT_AFTER_MS;
       if (searching !== this.searching()) this.zone.run(() => this.searching.set(searching));
-      if (this.landmarks) this.drawJewelry(context, this.landmarks, dt);
+      const product = this.product();
+      if (this.landmarks && product) this.renderer.render(context, this.landmarks, product, this.parts(), this.images, dt);
     }
     this.frame = requestAnimationFrame(() => this.loop(run));
-  }
-
-  private drawJewelry(context: CanvasRenderingContext2D, face: Point[], dt: number): void {
-    const product = this.product();
-    if (!product) return;
-    const parts = this.parts();
-    const ppm = faceFrame(face).pixelsPerMeter;
-    const img = this.images;
-    const p = product.parts;
-    if (parts.includes('necklace') && p.necklace && img.necklace) {
-      const place = necklacePlacement(face, p.necklace.aspect, p.necklace.fit);
-      const swing = this.swings.necklace.update(place, dt, ppm);
-      draw(context, img.necklace, { ...place, rotation: place.rotation + swing });
-    }
-    if (parts.includes('tikka') && p.tikka && img.tikka) {
-      const place = tikkaPlacement(face, p.tikka.aspect, p.tikka.fit);
-      draw(context, img.tikka, { ...place, rotation: this.swings.tikka.update(place, dt, ppm) });
-    }
-    if (parts.includes('earrings') && p.earringLeft && p.earringRight && img.earringLeft && img.earringRight) {
-      const { left, right } = earringPlacements(face, p.earringLeft.aspect, p.earringRight.aspect, p.earringLeft.fit);
-      draw(context, img.earringLeft, { ...left, rotation: this.swings.earringLeft.update(left, dt, ppm) });
-      draw(context, img.earringRight, { ...right, rotation: this.swings.earringRight.update(right, dt, ppm) });
-    }
   }
 
   snapshot(): void {
@@ -364,7 +354,7 @@ export class TryonPage implements OnDestroy {
   private resetMotion(): void {
     this.smoother.reset();
     this.lastFrameAt = 0;
-    Object.values(this.swings).forEach(s => s.reset());
+    this.renderer.reset();
   }
 
   private stopCamera(): void {
@@ -372,16 +362,6 @@ export class TryonPage implements OnDestroy {
     stopStream(this.stream);
     this.stream = null;
   }
-}
-
-function draw(context: CanvasRenderingContext2D, image: HTMLImageElement, p: Placement): void {
-  if (p.opacity <= 0.01 || image.naturalWidth === 0) return;
-  context.save();
-  context.globalAlpha = p.opacity;
-  context.translate(p.x, p.y);
-  context.rotate(p.rotation);
-  context.drawImage(image, -p.anchorX * p.width, -p.anchorY * p.height, p.width, p.height);
-  context.restore();
 }
 
 // "?cpu=1" in the address forces the CPU path, for testing on a phone or browser whose GPU path

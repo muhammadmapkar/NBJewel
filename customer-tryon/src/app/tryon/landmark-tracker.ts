@@ -5,7 +5,7 @@
 // The library itself is loaded only when the try-on page opens.
 
 import type { FaceLandmarker, HandLandmarker } from '@mediapipe/tasks-vision';
-import { Point } from './overlay-math';
+import { Point3 } from './pose';
 
 export const FACE_MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
 export const HAND_MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
@@ -14,7 +14,8 @@ export type TrackerKind = 'face' | 'hand';
 
 export interface LandmarkTracker {
   // Normalized landmarks (0 to 1) of the first face or hand, or null when none is found.
-  detect(frame: HTMLVideoElement | HTMLCanvasElement, timestampMs: number): Point[] | null;
+  // Includes depth (z), in the same scale as x.
+  detect(frame: HTMLVideoElement | HTMLCanvasElement, timestampMs: number): Point3[] | null;
   close(): void;
 }
 
@@ -39,7 +40,7 @@ export async function createTracker(kind: TrackerKind, cpuOnly = false): Promise
       baseOptions: { modelAssetPath: HAND_MODEL_URL, delegate },
       runningMode: 'VIDEO', numHands: 1, minHandDetectionConfidence: 0.5, minTrackingConfidence: 0.5
     });
-  const run = (task: Task, video: HTMLVideoElement | HTMLCanvasElement, timestampMs: number): Point[] | null => kind === 'face'
+  const run = (task: Task, video: HTMLVideoElement | HTMLCanvasElement, timestampMs: number): Point3[] | null => kind === 'face'
     ? (task as FaceLandmarker).detectForVideo(video, timestampMs).faceLandmarks[0] ?? null
     : (task as HandLandmarker).detectForVideo(video, timestampMs).landmarks[0] ?? null;
 

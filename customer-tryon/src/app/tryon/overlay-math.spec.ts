@@ -71,6 +71,12 @@ describe('necklace', () => {
     expect(p.rotation).toBeCloseTo(0);
   });
 
+  it('with a known neckline, that edge rests at the base of the neck', () => {
+    const p = necklacePlacement(face(), 1, {}, 0.4);
+    expect(p.y).toBeCloseTo(320 + 240 * TUNING.neckBase);
+    expect(p.anchorY).toBe(0.4);
+  });
+
   it('uses the default width without a fit', () => {
     expect(necklacePlacement(face(), 1).width).toBeCloseTo(200 * TUNING.necklaceWidth);
   });
@@ -92,5 +98,11 @@ describe('LandmarkSmoother', () => {
     s.smooth([{ x: 0, y: 0 }]);
     expect(s.smooth([{ x: 2, y: 0 }])[0].x).toBeCloseTo(1); // alpha 0.5
     expect(s.smooth([{ x: 100, y: 0 }])[0].x).toBe(100);
+  });
+
+  it('smooths depth (z) with the same share', () => {
+    const s = new LandmarkSmoother<{ x: number; y: number; z: number }>(0.4, 12);
+    s.smooth([{ x: 0, y: 0, z: 0 }]);
+    expect(s.smooth([{ x: 2, y: 0, z: 10 }])[0].z).toBeCloseTo(5);
   });
 });
