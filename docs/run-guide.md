@@ -59,51 +59,6 @@ If the provider is `Sql` and the variable is missing, the API refuses to start a
 
 The chatbot never writes. Its 8 tools only read, so it works the same with either storage.
 
-### Apple Silicon disposable SQL test stability
-
-The approved disposable test target is SQL Server 2022 running from the
-`mcr.microsoft.com/mssql/server:2022-latest` amd64 image, bound only to
-`127.0.0.1:15433`. On Apple Silicon, this runs through Docker Desktop
-emulation. During the 2026-11-13 verification, SQL Server terminated with
-exit code 139 while the test harness repeatedly dropped and recreated its
-two isolated test databases. Docker reported `OOMKilled=false` and no
-container error. The resulting 51 test failures were connection-refused
-cascades after the server process exited, not 51 independent assertion
-failures. Restarting the same disposable container allowed the focused
-platform checks to pass 5/5 and the complete SQL-enabled backend suite to
-pass 355/355 with 0 skipped.
-
-Do not apply any of the options below without explicit approval for the
-Docker or SQL step. They are proposals only:
-
-1. **Enable Rosetta in Docker Desktop.** Confirm Docker Desktop's Apple
-   Silicon virtualization settings have Rosetta support enabled, then
-   recreate only the disposable test container and rerun the focused
-   platform tests before the full suite. This is the smallest environment
-   change and keeps the existing SQL Server image and test path.
-2. **Harden the verification runner.** Update the temporary
-   `/tmp/nbjewel-sql-verify.py` helper, not the application, to wait for
-   `docker inspect` health status and a successful `SELECT 1` before tests,
-   detect a container exit during the run, and retry a failed run once after
-   a clean health wait. The retry must not hide test assertions and must
-   record whether the first failure was a server crash or a test failure.
-3. **Reduce reset pressure.** Run the platform database checks separately
-   from the catalog parity suite, as already supported by the VSTest
-   filters, and avoid overlapping database resets. This is a diagnostic
-   mitigation, not proof that the emulated SQL Server is stable.
-4. **Evaluate an arm-native SQL alternative.** Only if an approved,
-   supported SQL Server compatible arm64 image or host service is available,
-   test it against the same schemas and isolated database names. Do not
-   silently substitute SQLite or an unapproved database because SQL Server
-   compatibility and concurrency behavior are part of this verification.
-
-Recommended order: first verify Rosetta and add health/exit diagnostics to
-the temporary runner, then rerun the focused and full suites. If exit code
-139 recurs, compare a lower-reset filtered run with an approved arm-native
-alternative. Keep the existing 355/355 result as valid evidence for that
-specific clean rerun, but do not describe the emulated container as
-production-ready.
-
 ## 2. Angular app (port 4200)
 
 First time only:

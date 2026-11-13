@@ -20,13 +20,8 @@ Rules: see CLAUDE.md and AGENTS.md. Grep first, quiet flags, replies max 8 lines
 - Stricter content check, first run: 4 of 5. Stock answer listed the stores (4, 2, 1) but gave no total. Checks kept strict, no code or prompt change. Demo question reworded to "in each store".
 - After deleting ai-service: one POST /api/chat returned 200 in about 4.5 s.
 
-## Later verification (2026-11-13)
-- Approved disposable SQL Server 2022 test container on Apple Silicon amd64 emulation: focused platform checks 5 passed, full SQL-enabled backend suite 355 passed, 0 failed, 0 skipped.
-- The first full run had 51 connection-refused cascades after SQL Server exited with code 139 during repeated database resets. Docker reported `OOMKilled=false` and no container error. Restarting the same isolated container produced the clean result.
-- This verifies the current code against the disposable environment, but does not establish stability of amd64 SQL Server emulation or production readiness. See `docs/run-guide.md` for the approval-gated options.
-
 ## Known gaps
-- Apple Silicon SQL Server emulation can exit with code 139 during repeated resets. Do not change Docker or SQL settings without approval.
+- Sql mode unverified (no Docker). Do not demo it.
 - No login, roles or permissions.
 - Written approval from Mr. Sakthivel missing (questions doc, item 18).
 - Gemini can be slow or return 503. Answer wording is not compared in the live check.
@@ -34,4 +29,4 @@ Rules: see CLAUDE.md and AGENTS.md. Grep first, quiet flags, replies max 8 lines
 
 ## Next
 1. Ask the owner whether to push demo-changes. Do not push without asking.
-2. Before another SQL run, choose an approved stability option from `docs/run-guide.md`.
+2. With Docker: ./scripts/setup-db.sh, then the SQL parity tests. Get the written approvals.
