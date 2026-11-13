@@ -19,6 +19,9 @@ public sealed class Item
     public decimal StoneWt { get; set; }
     public string MakingType { get; set; } = string.Empty;
     public decimal MakingValue { get; set; }
+    public decimal StoneValue { get; set; }
+    // Explicit assumed demo percentage, not a tax rate inferred from metal or currency.
+    public decimal VatPercent { get; set; }
     public string? Huid { get; set; }
     public string Status { get; set; } = string.Empty;
     public string? ImageUrl { get; set; }
@@ -47,13 +50,15 @@ public sealed class Store { public int Id { get; set; } public string Name { get
 public sealed class StockRecord { public int ItemId { get; set; } public int? VariantId { get; set; } public int StoreId { get; set; } public int OnHand { get; set; } public int Reserved { get; set; } }
 public sealed class ItemVariant { public int Id { get; set; } public int ItemId { get; set; } public string Size { get; set; } = ""; public string Color { get; set; } = ""; public string VariantCode { get; set; } = ""; public decimal PriceDelta { get; set; } }
 public sealed class MetalRate { public int Id { get; set; } public string MetalType { get; set; } = ""; public string Purity { get; set; } = ""; public decimal RatePerGram { get; set; } public string Currency { get; set; } = "AED"; public DateOnly EffectiveDate { get; set; } }
-public sealed record ItemPrice(int ItemId, string Currency, decimal NetWeight, decimal RatePerGram, decimal MetalValue, string MakingType, decimal MakingValue, decimal MakingCharge, decimal TotalPrice);
+public sealed record ItemPrice(int ItemId, string Currency, decimal NetWeight, decimal RatePerGram, decimal MetalValue, string MakingType, decimal MakingValue, decimal MakingCharge, decimal TotalPrice, decimal StoneValue = 0, decimal VatPercent = 0, decimal VatAmount = 0, DateOnly? EffectiveDate = null, int? RateId = null, PriceChangeEvidence? Change = null);
+// Reprices the same current item inputs at the prior recorded rate; not a historical invoice.
+public sealed record PriceChangeEvidence(int? PreviousRateId, decimal? PreviousRatePerGram, DateOnly? PreviousEffectiveDate, decimal? PreviousTotal, decimal? TotalChange, string Explanation);
 public sealed record PagedResult<T>(IReadOnlyList<T> Items, int Page, int PageSize, int TotalCount);
 // NetWt is kept in both requests for compatibility, but the API ignores it: net weight is always GrossWt minus StoneWt (see ItemWriteRules).
 // Omitted/null Storefront on an update preserves existing metadata for older ERP clients.
 // New items always start as Draft, and an update never changes status. Status moves only through the status endpoint.
-public sealed record ItemCreateRequest(string Code, string Name, int CategoryId, int DesignId, string MetalType, string Purity, decimal GrossWt, decimal NetWt, decimal StoneWt, string MakingType, decimal MakingValue, string? Huid, string? ImageUrl, StorefrontMetadata? Storefront = null);
-public sealed record ItemUpdateRequest(string Code, string Name, int CategoryId, int DesignId, string MetalType, string Purity, decimal GrossWt, decimal NetWt, decimal StoneWt, string MakingType, decimal MakingValue, string? Huid, string? ImageUrl, StorefrontMetadata? Storefront = null);
+public sealed record ItemCreateRequest(string Code, string Name, int CategoryId, int DesignId, string MetalType, string Purity, decimal GrossWt, decimal NetWt, decimal StoneWt, string MakingType, decimal MakingValue, string? Huid, string? ImageUrl, StorefrontMetadata? Storefront = null, decimal? StoneValue = null, decimal? VatPercent = null);
+public sealed record ItemUpdateRequest(string Code, string Name, int CategoryId, int DesignId, string MetalType, string Purity, decimal GrossWt, decimal NetWt, decimal StoneWt, string MakingType, decimal MakingValue, string? Huid, string? ImageUrl, StorefrontMetadata? Storefront = null, decimal? StoneValue = null, decimal? VatPercent = null);
 public sealed record StatusUpdateRequest(string Status);
 // Adds Quantity to the on-hand stock for this item, variant, and store.
 public sealed record StockAddRequest(int? VariantId, int StoreId, int Quantity);

@@ -75,20 +75,21 @@ public sealed class SampleItemRepository : IItemRepository
             .Select(g => g.OrderByDescending(r => r.EffectiveDate).ThenByDescending(r => r.Id).First())
             .OrderBy(x => x.Id).ToList());
 
-    public async Task<ItemPrice?> GetPriceAsync(int itemId, CancellationToken cancellationToken)
+    public Task<ItemPrice?> GetPriceAsync(int itemId, CancellationToken cancellationToken)
     {
         var item = items.FirstOrDefault(x => x.Id == itemId);
-        if (item is null) return null;
-        var latest = await GetLatestRatesAsync(cancellationToken);
-        var rate = latest.FirstOrDefault(x => x.MetalType.Equals(item.MetalType, StringComparison.OrdinalIgnoreCase) && x.Purity.Equals(item.Purity, StringComparison.OrdinalIgnoreCase));
-        return rate is null ? null : ItemPricing.Calculate(item, rate);
+        if (item is null) return Task.FromResult<ItemPrice?>(null);
+        var history = rates.Where(x => x.MetalType.Equals(item.MetalType, StringComparison.OrdinalIgnoreCase) &&
+            x.Purity.Equals(item.Purity, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(x => x.EffectiveDate).ThenByDescending(x => x.Id).Take(2).ToArray();
+        return Task.FromResult<ItemPrice?>(history.Length == 0 ? null : ItemPricing.Calculate(item, history[0], history.ElementAtOrDefault(1)));
     }
 
     public Task<Item> CreateAsync(ItemCreateRequest request, CancellationToken cancellationToken)
     {
         lock (sync)
         {
-            var valid = ItemWriteRules.Validate(request.Code, request.Name, request.GrossWt, request.StoneWt, request.MakingType, request.MakingValue, request.Huid, request.ImageUrl, request.Storefront);
+            var valid = ItemWriteRules.Validate(request.Code, request.Name, request.GrossWt, request.StoneWt, request.MakingType, request.MakingValue, request.Huid, request.ImageUrl, request.Storefront, request.StoneValue ?? 0, request.VatPercent ?? 0);
             EnsureLinks(request.DesignId, request.CategoryId, request.MetalType, request.Purity, valid.Code, null);
             var item = Build(valid, items.Count == 0 ? 1 : items.Max(x => x.Id) + 1, request.CategoryId, request.DesignId, request.MetalType, request.Purity, ItemStatusRules.Draft);
             items.Add(item);
@@ -102,7 +103,7 @@ public sealed class SampleItemRepository : IItemRepository
         {
             var index = items.FindIndex(x => x.Id == id);
             if (index < 0) return Task.FromResult<Item?>(null);
-            var valid = ItemWriteRules.Validate(request.Code, request.Name, request.GrossWt, request.StoneWt, request.MakingType, request.MakingValue, request.Huid, request.ImageUrl, request.Storefront);
+            var valid = ItemWriteRules.Validate(request.Code, request.Name, request.GrossWt, request.StoneWt, request.MakingType, request.MakingValue, request.Huid, request.ImageUrl, request.Storefront, request.StoneValue ?? items[index].StoneValue, request.VatPercent ?? items[index].VatPercent);
             EnsureLinks(request.DesignId, request.CategoryId, request.MetalType, request.Purity, valid.Code, id);
             var item = Build(valid, id, request.CategoryId, request.DesignId, request.MetalType, request.Purity, items[index].Status);
             item.Storefront ??= items[index].Storefront; // Legacy ERP edits must not erase customer copy.
@@ -173,7 +174,7 @@ public sealed class SampleItemRepository : IItemRepository
         {
             Id = id, Code = v.Code, Name = v.Name, CategoryId = categoryId, DesignId = designId,
             MetalType = pair.Metal, Purity = pair.Purity, GrossWt = v.GrossWt, NetWt = v.NetWt, StoneWt = v.StoneWt,
-            MakingType = v.MakingType, MakingValue = v.MakingValue, Huid = v.Huid, ImageUrl = v.ImageUrl, Storefront = v.Storefront, Status = status
+            MakingType = v.MakingType, MakingValue = v.MakingValue, StoneValue = v.StoneValue, VatPercent = v.VatPercent, Huid = v.Huid, ImageUrl = v.ImageUrl, Storefront = v.Storefront, Status = status
         };
         ApplyDesign(item);
         return item;

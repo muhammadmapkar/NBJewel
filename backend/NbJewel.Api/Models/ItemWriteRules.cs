@@ -7,14 +7,14 @@
 namespace NbJewel.Api.Models;
 
 // The cleaned values that are safe to store. NetWt is computed, never taken from the client.
-public sealed record ValidItem(string Code, string Name, decimal GrossWt, decimal StoneWt, decimal NetWt, string MakingType, decimal MakingValue, string? Huid, string? ImageUrl, StorefrontMetadata? Storefront = null);
+public sealed record ValidItem(string Code, string Name, decimal GrossWt, decimal StoneWt, decimal NetWt, string MakingType, decimal MakingValue, string? Huid, string? ImageUrl, StorefrontMetadata? Storefront = null, decimal StoneValue = 0, decimal VatPercent = 0);
 
 public static class ItemWriteRules
 {
     // Making types the API accepts, in the spelling the API returns.
     public static readonly IReadOnlyList<string> MakingTypes = ["perGram", "percent", "flat"];
 
-    public static ValidItem Validate(string? code, string? name, decimal grossWt, decimal stoneWt, string? makingType, decimal makingValue, string? huid, string? imageUrl, StorefrontMetadata? storefront = null)
+    public static ValidItem Validate(string? code, string? name, decimal grossWt, decimal stoneWt, string? makingType, decimal makingValue, string? huid, string? imageUrl, StorefrontMetadata? storefront = null, decimal stoneValue = 0, decimal vatPercent = 0)
     {
         if (string.IsNullOrWhiteSpace(code)) throw new DomainValidationException("Item code is required.");
         if (code.Length > 30) throw new DomainValidationException("Item code can be at most 30 characters.");
@@ -37,7 +37,13 @@ public static class ItemWriteRules
         if (value < 0) throw new DomainValidationException("Making value cannot be negative.");
         if (value > 99_999_999.99m) throw new DomainValidationException("Making value is too large.");
 
-        return new ValidItem(code, name, gross, stone, gross - stone, making, value, huid, imageUrl, ValidateStorefront(storefront));
+        if (stoneValue < 0 || stoneValue > 9_999_999_999.99m)
+            throw new DomainValidationException("Stone value must be between 0 and 9999999999.99.");
+        if (vatPercent < 0 || vatPercent > 100)
+            throw new DomainValidationException("VAT percentage must be between 0 and 100.");
+        return new ValidItem(code, name, gross, stone, gross - stone, making, value, huid, imageUrl,
+            ValidateStorefront(storefront), Math.Round(stoneValue, 2, MidpointRounding.AwayFromZero),
+            Math.Round(vatPercent, 2, MidpointRounding.AwayFromZero));
     }
 
     // Assumed display-copy limits keep the optional JSON small and identical on both providers.

@@ -146,12 +146,13 @@ public static class SqlDatabaseSetup
 
         foreach (var i in items)
         {
-            var valid = ItemWriteRules.Validate(i.Code, i.Name, i.GrossWt, i.StoneWt, i.MakingType, i.MakingValue, i.Huid, i.ImageUrl, i.Storefront); // same rules as the API, so bad seed data fails loudly
-            await InsertAsync(connection, transaction, "Item", "ItemId, ItemCode, Name, CategoryId, DesignId, PurityId, HuidNumber, Status, GrossWeightG, StoneWeightG, MakingType, MakingValue, StorefrontJson",
-                "@id, @code, @name, @category, @design, @purity, @huid, @status, @gross, @stone, @makingType, @makingValue, @storefront",
+            var valid = ItemWriteRules.Validate(i.Code, i.Name, i.GrossWt, i.StoneWt, i.MakingType, i.MakingValue, i.Huid, i.ImageUrl, i.Storefront, i.StoneValue, i.VatPercent); // same rules as the API, so bad seed data fails loudly
+            await InsertAsync(connection, transaction, "Item", "ItemId, ItemCode, Name, CategoryId, DesignId, PurityId, HuidNumber, Status, GrossWeightG, StoneWeightG, MakingType, MakingValue, StorefrontJson, StoneCharge, VatPercent",
+                "@id, @code, @name, @category, @design, @purity, @huid, @status, @gross, @stone, @makingType, @makingValue, @storefront, @stoneValue, @vatPercent",
                 [P("@id", i.Id), P("@code", valid.Code), P("@name", valid.Name), P("@category", i.CategoryId), P("@design", i.DesignId), P("@purity", PurityId(i.MetalType, i.Purity)),
                  P("@huid", valid.Huid), P("@status", ItemStatusRules.Resolve(i.Status)), P("@gross", valid.GrossWt), P("@stone", valid.StoneWt),
                  P("@makingType", ToDbMakingType(valid.MakingType)), P("@makingValue", valid.MakingValue),
+                 P("@stoneValue", valid.StoneValue), P("@vatPercent", valid.VatPercent),
                  P("@storefront", valid.Storefront is null ? null : JsonSerializer.Serialize(valid.Storefront, new JsonSerializerOptions(JsonSerializerDefaults.Web)))], cancellationToken);
             if (!string.IsNullOrWhiteSpace(i.ImageUrl))
                 await ExecAsync(connection, transaction, "INSERT dbo.ItemImage (ItemId, Url, IsPrimary) VALUES (@item, @url, 1)", [P("@item", i.Id), P("@url", i.ImageUrl)], cancellationToken);

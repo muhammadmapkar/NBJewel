@@ -75,7 +75,9 @@ CREATE TABLE dbo.Item (
     MakingType    NVARCHAR(10) NOT NULL DEFAULT 'PERCENT'
                   CHECK (MakingType IN ('PERCENT','PER_GRAM','FIXED')),
     MakingValue   DECIMAL(10,2) NOT NULL DEFAULT 0,
-    StoneCharge   DECIMAL(12,2) NOT NULL DEFAULT 0,
+    StoneCharge   DECIMAL(12,2) NOT NULL DEFAULT 0 CHECK (StoneCharge >= 0),
+    -- ASSUMED explicit per-item demo input, not a tax rule inferred by currency.
+    VatPercent    DECIMAL(5,2) NOT NULL DEFAULT 0 CHECK (VatPercent BETWEEN 0 AND 100),
     -- ASSUMED: optional customer copy, arrays, added date and sample label.
     -- Publication and cutout readiness remain separate from this metadata.
     -- Existing databases need a separately reviewed migration before this repository version is used.

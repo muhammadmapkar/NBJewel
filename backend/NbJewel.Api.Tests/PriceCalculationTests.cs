@@ -35,7 +35,7 @@ public sealed class PriceCalculationTests
         Assert.Equal(54m, price.RatePerGram);
         Assert.Equal(270.22m, price.MetalValue);
         Assert.Equal(28.43m, price.MakingCharge);
-        Assert.Equal(298.64m, price.TotalPrice);
+        Assert.Equal(298.65m, price.TotalPrice); // Sum of the displayed rounded components.
     }
 
     [Theory]

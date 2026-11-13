@@ -2,9 +2,9 @@
 # AI memory handoff
 
 ## Lock
-- Agent: none
-- Since: 2026-11-14T01:21:59+04:00
-- Status: released by codex-storefront in this pushed checkpoint. No agent currently owns the lock.
+- Agent: codex-storefront
+- Since: 2026-11-14T01:41:07+04:00
+- Status: held for tasks 3 and 4, explicitly requested by Muhammad.
 
 ## Branch and last commit
 - Branch: `feature/customer-storefront`.
@@ -16,9 +16,12 @@
 - Snapshot commit: the commit containing this handoff; resolve with `git log -1 --format=%H -- AI-MEMORY-HANDOFF.md`. Compare it with HEAD on the next start. A literal self-referencing commit hash cannot be recorded inside the same commit.
 
 ## Current goal
+Complete tasks 3 and 4 this turn, then push the final checkpoint and release the lock.
+
 Setup and tasks 1-2 complete and checkpointed. Next agent: acquire the Lock, verify HEAD against this snapshot, then start the first unchecked step, phase 2 task 3 (complete pricing and change evidence). API first, then storefront. No SQL execution.
 
 ## Done
+- Phase 2 task 3: explicit validated stone value/VAT percentage retained through both adapters and older updates; prices reconcile rounded line amounts and include dated recorded-rate evidence with previous total/delta. Full backend sample suite passed 339 tests, 6 SQL skips. SQL schema/adapter changes are prepared only, not applied.
 - Phase 2 task 2: anonymous read-only `/api/storefront/products`, `/api/storefront/products/{id}`, `/api/storefront/metal-rates`; explicit named GET boundary exceptions; fresh publication checks, Complete status and category/metal allowlists, narrow DTOs, no-store responses, bounded paging and 503 on unavailable publication storage. Full backend sample suite: 330 passed, 6 SQL skips.
 - Phase 2 task 1: optional validated storefront metadata survives create/read/search/explicit update and legacy ERP edits; labelled Draft sample platinum necklace and historical Pt950 rate added; Sample and SQL mappings prepared; full backend sample suite passed 315 tests, 6 SQL checks skipped.
 - Phase 1 at `a4f8ef3`: equal image cards, details blocks, two-line names, photo preview with Retake/Save/Share, ring uploads blocked, FAQ restored.
@@ -29,7 +32,7 @@ Setup and tasks 1-2 complete and checkpointed. Next agent: acquire the Lock, ver
 - [x] Setup: handoff/protocol validation passed; these four files form the setup checkpoint, pushed before task 1 begins.
 - [x] 1. Storefront metadata and sample platinum support. Size L. Files: backend models, repositories, sample-data, docs/item_catalog_schema.sql. Done when a labelled sample platinum product keeps metal, purity, and storefront metadata. Test: `dotnet test backend/NbJewel.Api.Tests`.
 - [x] 2. Public read-only endpoints for products and metal rates. Size M. Files: controllers, Knowledge/KnowledgeService.cs, Identity/ErpBoundaryFilter.cs, backend tests. Anonymous reads return published allowed products only; unpublished and excluded categories stay hidden. Test: backend suite.
-- [ ] 3. Complete pricing and change evidence. Size L. Files: ItemPricing.cs, ItemModels.cs, repositories, backend tests. A sample rate change gives metal, making, stones, VAT, total, effective date, and change explanation. Test: backend suite.
+- [x] 3. Complete pricing and change evidence. Size L. Files: ItemPricing.cs, ItemModels.cs, repositories, backend tests. A sample rate change gives metal, making, stones, VAT, total, effective date, and change explanation. Test: backend suite.
 - [ ] 4. Durable cutout pipeline link. Size L. Files: Jewelry/, controllers, repositories, existing cutout/catalog scripts. Upload stores a linked transparent preview asset that survives restart. Use existing scripts only; no new removal tooling. Licensing open, quality manual. Test: backend suite.
 - [ ] 5. ERP upload and explicit publication controls. Size M. Files: ERP catalog/core data and KnowledgeController.cs. Ready sample item publishes; unfinished cutout cannot publish. Test: ERP npm test/build and backend suite.
 - [ ] 6. Storefront loads from configurable API address. Size M. Files: storefront catalog service/models, app.config.ts, config/service tests. Configured address uses API; unset address uses static catalog. Test: storefront npm test/build.
@@ -39,8 +42,11 @@ Setup and tasks 1-2 complete and checkpointed. Next agent: acquire the Lock, ver
 - [ ] After task 9: run the lead review, stop, wait for Muhammad.
 
 ## Blockers and decisions
+- Task 3 ruling: missing legacy stone/VAT inputs default to zero; no tax rate is invented. Explicit configured demo values are used when supplied. Component-level rounding makes the existing 18K fixture total AED 298.65 rather than 298.64; this is intentional reconciliation. Rate-change totals hold current item inputs constant and are not claimed historical sale prices. A currency change does not report a monetary delta.
+- Task 3 plan: add explicit StoneValue and VatPercent inputs (legacy missing values remain zero, not inferred tax advice); validate and preserve them on older ERP edits in both adapters; round line amounts to two decimals and VAT on their sum so the displayed breakdown reconciles; select current and immediately prior recorded rate by date then id; return effective date, rate IDs, prior total, delta and deterministic explanation. Compare the same item inputs at both rates, not an invented historical invoice. Prepare SQL columns/seed mappings only. Test RED then full backend suite, checkpoint/push before task 4.
+- Task 4 plan: reuse the existing cutout-jewelry.py algorithm, add bounded decoding/report support, invoke it without a shell and with a timeout, persist item-linked source/preview/manifest under configured local asset storage using generated file names and atomic metadata writes; expose ERP-authorized upload/preview/metadata endpoints. Generated previews require manual quality review and do not publish an item. No new removal engine, SQL, Docker or source-photo scans. Licensing remains open.
 - Task 2 uses the existing IPublicationReader/KnowledgeService on every request rather than duplicating publication state. The real default sample startup currently has no configured KnowledgeDatabase provider, so product reads fail closed with 503 until publication storage is configured. HTTP tests supply an isolated EF in-memory provider; task 5 must resolve sample-only publication storage without enabling SQL or real identity/data. Do not present the full storefront pipeline as operational yet.
-- Public product price is the existing ItemPrice contract. Stones, VAT, effective rate/change evidence are still task 3; no claim of complete pricing is made. Sample platinum remains Draft in fixtures and is not auto-published.
+- Public product price now carries task 3 stones, VAT, effective date/rate ID and recorded-rate change evidence. Sample platinum remains Draft in fixtures and is not auto-published.
 - Task 2 static self-review checked allowed GET actions, DTO field boundaries, paging overflow, search limits, current publication reads and safe failure. No independent lead review was run early; retain that gate after task 9.
 - Task 2 plan: test anonymous HTTP reads and absence of write routes; add `/api/storefront/products`, `/api/storefront/products/{id}`, `/api/storefront/metal-rates`; explicitly permit only these named GET actions through the ERP boundary; read publication each time, require Complete, map an allowlist of supported category names and Gold/Silver/Platinum, return a narrow DTO, disable response caching, bound searches and pagination, return 503 if publication storage is unavailable. No automatic publication or permission bypass on ERP routes.
 - Task 2 category mapping is assumed demo policy: Necklaces -> necklace, Earrings -> earrings, Sets -> set, Maang tikka -> tikka. Rings, coins, bangles, chains, pendants and unknown categories are excluded until explicitly supported. No new chatbot behavior. Cutout readiness publication guard remains task 5.
@@ -52,17 +58,19 @@ Setup and tasks 1-2 complete and checkpointed. Next agent: acquire the Lock, ver
 - The prior handoff described another branch and old SQL authorization. Replaced from Muhammad's current seed and protocol; current instructions prohibit all Docker/SQL data steps.
 - Ruling: use this existing feature checkout and this handoff as the only ledger; no worktree, extra handoff, or AI-memory service mutation. Agents are sequential and the owner's forbidden worktree stays untouched.
 - Ruling: snapshot commit is resolved from git history because a commit cannot embed its own hash. Record verified predecessor and task implementation hashes as work advances.
-- Known gaps: backend pricing omits stone value and VAT; storefront uses static gold rates; cutouts are separate from ERP items.
+- Known gaps: storefront still uses static gold rates; cutouts remain separate until task 4; sample publication storage remains task 5.
 - Known warnings: unused RouterLink in ShopPage; Vitest config loading.
 - No questions to owner. Choose conservative sample-only behavior and log assumptions. Accounts, chatbot, locator are later phases.
 
 ## Files touched
+- Task 3: ItemModels.cs, ItemPricing.cs, ItemWriteRules.cs, SampleItemRepository.cs, SqlItemRepository.cs, SqlDatabaseSetup.cs, CompletePricingTests.cs, PriceCalculationTests.cs, docs/item_catalog_schema.sql, this handoff.
 - Task 2: `backend/NbJewel.Api/Controllers/PublicCatalogController.cs`, `backend/NbJewel.Api/Identity/ErpBoundaryFilter.cs`, `backend/NbJewel.Api.Tests/PublicCatalogHttpTests.cs`, `AI-MEMORY-HANDOFF.md`.
 - Task 1: ItemModels.cs, ItemWriteRules.cs, SampleItemRepository.cs, SqlItemRepository.cs, SqlDatabaseSetup.cs, sample-data/items.json and metal-rates.json, docs/item_catalog_schema.sql, StorefrontMetadataTests.cs, ItemWriteTests.cs, ParityTests.cs, Chat/ChatToolsTests.cs.
 - This turn: `AGENTS.md`, `AI-MEMORY-HANDOFF.md`, `CLAUDE.md`, `.github/copilot-instructions.md`.
 - Pre-existing owner changes preserved, excluded from staging: PROGRESS.md, docs/run-guide.md, customer-tryon/package-lock.json; untracked browser security plan, old proof image, pasted jewelry image.
 
 ## Test commands and last results
+- Latest, task 3: `dotnet test backend/NbJewel.Api.Tests` in forced Sample mode with all SQL/connection env vars removed: 339 passed, 6 skipped, 0 failed. Log `/tmp/nbjewel-task3-green.log`. RED: 9 expected failures before implementation (`/tmp/nbjewel-task3-red.log`). Diff whitespace check passed.
 - Latest, task 2: `dotnet test backend/NbJewel.Api.Tests` with SQL/connection environment variables removed and `Repository__Provider=Sample`: 330 passed, 6 skipped, 0 failed. Build succeeded within this test command, no compiler/analyzer warnings. Log `/tmp/nbjewel-task2-green.log`.
 - Task 2 RED before implementation: 10 expected failures for absent routes, 5 hidden-item 404 cases passed. Final 15 HTTP cases all pass, including narrow fields, publication/category/draft filtering, paging, platinum rates/sample label, unavailable storage, immediate revocation, write-route absence and protected ERP routes. Log `/tmp/nbjewel-task2-red.log`.
 - Task 2 `git diff --check` passed for all four checkpoint paths. No frontend source changed, so frontend suites were not rerun during these backend tasks; phase gate still requires all six checks.
@@ -81,6 +89,9 @@ Setup and tasks 1-2 complete and checkpointed. Next agent: acquire the Lock, ver
 - Real browser CORS and cookies.
 
 ## Agent log (newest first)
+- 2026-11-14T01:47:02+04:00 codex-storefront: task 3 passed 339 tests with 6 SQL skips; static review of parameter/column/reader positions and legacy preservation passed; checkpoint/push before task 4.
+- 2026-11-14 codex-storefront: task 3 RED verified, 9 assertion failures for omitted stones/VAT, absent persisted inputs, invalid input acceptance and non-reconciling totals. Existing script dependencies installed only into /tmp/nbjewel-cutout-runtime-venv for task 4; no new removal engine.
+- 2026-11-14T01:41:07+04:00 codex-storefront: fetched, confirmed branch, ff-only pull succeeded, read handoff fully, verified HEAD and snapshot are bab3127, reacquired released lock for tasks 3-4. Owner files preserved.
 - 2026-11-14T01:21:59+04:00 codex-storefront: task 2 verified (330 passed, 6 SQL skips); updated checklist and limitations, released Lock for the next sequential agent, and prepared explicit-path checkpoint/push. First unchecked task is 3. No owner files, secrets, Docker, SQL data, deployment, merge, deletion or forbidden worktree touched.
 - 2026-11-14 codex-storefront: task 2 RED: 10 expected failures for missing public routes, 5 hidden-item 404 cases already pass. Log `/tmp/nbjewel-task2-red.log`. Implementing read-only controller and named GET boundary exceptions.
 - 2026-11-14 codex-storefront: task 1 pushed as f7d78e3; task 2 plan recorded and HTTP contract tests next.
