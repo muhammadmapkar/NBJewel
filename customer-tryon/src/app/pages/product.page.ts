@@ -44,7 +44,7 @@ import { SiteHeaderComponent } from '../ui/site-header.component';
               <h1 class="serif">{{ p.name }}</h1>
               <p class="code">Item code {{ p.code }}</p>
               <p class="price">{{ catalog.money(price().total) }} <span>incl. VAT</span></p>
-              <p class="rate">Price based on the gold rate of {{ catalog.money(price().rate) }} per gram ({{ p.purity }}, sample)</p>
+              <p class="rate">Price based on the {{ p.metal.toLowerCase() }} rate of {{ catalog.money(price().rate) }} per gram ({{ p.purity }}, sample)</p>
 
               <div class="actions">
                 <a class="btn try" [routerLink]="['/try', p.id]"><ct-icon name="camera" /> {{ p.kinds.length > 1 ? 'Try the full set' : 'Try it on' }}</a>
@@ -74,16 +74,16 @@ import { SiteHeaderComponent } from '../ui/site-header.component';
                 <div><dt>Stones</dt><dd>{{ p.stones.length ? p.stones.join(', ') : 'None (plain gold)' }}</dd></div>
                 <div><dt>Size</dt><dd>{{ p.size }}</dd></div>
                 <div><dt>Hallmark</dt><dd>{{ p.hallmark }}</dd></div>
-                <div><dt>Making charge</dt><dd>{{ p.makingPercent }}% of gold value</dd></div>
+                <div><dt>Making charge</dt><dd>{{ p.makingLabel || (p.makingPercent + '% of gold value') }}</dd></div>
                 <div><dt>Occasion</dt><dd>{{ p.occasions.join(', ') }}</dd></div>
               </dl>
 
               <h2 class="serif">Price breakdown</h2>
               <dl class="specs money">
-                <div><dt>Gold ({{ p.netWeight }} g x {{ catalog.money(price().rate) }})</dt><dd>{{ catalog.money(price().gold) }}</dd></div>
+                <div><dt>{{ p.metal }} ({{ p.netWeight }} g x {{ catalog.money(price().rate) }})</dt><dd>{{ catalog.money(price().gold) }}</dd></div>
                 <div><dt>Making charge</dt><dd>{{ catalog.money(price().making) }}</dd></div>
                 <div><dt>Stones</dt><dd>{{ catalog.money(price().stones) }}</dd></div>
-                <div><dt>VAT ({{ catalog.catalog()?.vatPercent }}%)</dt><dd>{{ catalog.money(price().vat) }}</dd></div>
+                <div><dt>VAT ({{ price().vatPercent ?? catalog.catalog()?.vatPercent }}%)</dt><dd>{{ catalog.money(price().vat) }}</dd></div>
                 <div class="total"><dt>Total</dt><dd>{{ catalog.money(price().total) }}</dd></div>
               </dl>
 
@@ -200,7 +200,7 @@ export class ProductPage {
   readonly store = inject(StoreService);
   private readonly id = toSignal(inject(ActivatedRoute).paramMap.pipe(map(p => p.get('id') ?? '')), { initialValue: '' });
   readonly product = computed(() => this.catalog.find(this.id()));
-  readonly price = computed(() => { const p = this.product(); return p ? this.catalog.price(p) : { gold: 0, making: 0, stones: 0, vat: 0, total: 0, rate: 0 }; });
+  readonly price = computed(() => { const p = this.product(); return p ? this.catalog.price(p) : { gold: 0, making: 0, stones: 0, vat: 0, total: 0, rate: 0, vatPercent: undefined }; });
   readonly similar = computed(() => { const p = this.product(); return p ? similarProducts(p, this.catalog.products()) : []; });
   // The whole design first, then each piece on its own.
   readonly images = computed(() => {

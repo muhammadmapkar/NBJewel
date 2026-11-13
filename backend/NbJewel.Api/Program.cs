@@ -1,5 +1,5 @@
 // Role: Composes the API, registers the sample or SQL repository, configures Swagger,
-// enables CORS for the origins in CORS_ORIGINS (default http://localhost:4200), sets up the
+// enables CORS for the origins in CORS_ORIGINS (defaults http://localhost:4200 and http://localhost:4300), sets up the
 // chatbot (tools, guards, Gemini client) that runs inside this API, registers the separate
 // try-on jewelry feature (images served from JEWELRY_STORAGE_PATH), and adds one global error handler.
 
@@ -65,11 +65,11 @@ builder.Services.AddControllersWithViews(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 // CORS_ORIGINS is a comma separated list, for example "https://nbjewel-demo.vercel.app".
-// When it is empty, only the local Angular development server is allowed.
+// When empty, allow only the two local Angular development origins.
 var corsOrigins = (builder.Configuration["CORS_ORIGINS"] ?? "")
     .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
     .Select(x => x.TrimEnd('/')).ToArray();
-if (corsOrigins.Length == 0) corsOrigins = ["http://localhost:4200"];
+if (corsOrigins.Length == 0) corsOrigins = ["http://localhost:4200", "http://localhost:4300"];
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AngularDevelopment", policy =>

@@ -1,9 +1,12 @@
 // Role: App wide providers (router with scroll restore, HTTP client) and the routes: home,
 // catalogue, product page, camera try-on, bag, wishlist and the reservation confirmation.
 
-import { provideHttpClient } from '@angular/common/http';
-import { ApplicationConfig } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import { HttpClient, provideHttpClient } from '@angular/common/http';
+import { ApplicationConfig, inject, provideAppInitializer } from '@angular/core';
 import { Routes, provideRouter, withInMemoryScrolling } from '@angular/router';
+
+import { STOREFRONT_CONFIG, loadStorefrontConfig } from './config/storefront-config';
 
 const routes: Routes = [
   { path: '', title: 'NB Jewel | Try on gold jewellery', loadComponent: () => import('./pages/home.page').then(m => m.HomePage) },
@@ -19,6 +22,7 @@ const routes: Routes = [
 export const appConfig: ApplicationConfig = {
   providers: [
     provideRouter(routes, withInMemoryScrolling({ scrollPositionRestoration: 'enabled' })),
-    provideHttpClient()
+    provideHttpClient(),
+    provideAppInitializer(() => loadStorefrontConfig(inject(HttpClient), inject(STOREFRONT_CONFIG), inject(DOCUMENT).baseURI))
   ]
 };

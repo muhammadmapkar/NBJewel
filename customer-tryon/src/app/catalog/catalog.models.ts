@@ -32,6 +32,8 @@ export interface Product {
   hallmark: string;
   grossWeight: number; // grams
   netWeight: number; // grams of gold
+  apiPrice?: PriceBreakdown; // Authoritative API calculation, including flat/per-gram making.
+  makingLabel?: string;
   makingPercent: number; // of the gold value
   stones: string[];
   stoneValue: number;
@@ -50,18 +52,21 @@ export interface Catalog {
   branches: string[];
   sample: boolean;
   products: Product[];
+  metalRates?: PublicMetalRate[];
 }
 
 export const KIND_LABELS: Record<PieceKind, string> = { necklace: 'Necklace', earrings: 'Earrings', tikka: 'Maang tikka' };
 
 // ---------- Price ----------
 
-export interface PriceBreakdown { gold: number; making: number; stones: number; vat: number; total: number; rate: number }
+export interface PublicMetalRate { id: number; metalType: string; purity: string; ratePerGram: number; currency: string; effectiveDate: string; }
+export interface PriceBreakdown { gold: number; making: number; stones: number; vat: number; total: number; rate: number; vatPercent?: number; effectiveDate?: string; changeExplanation?: string; }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
 // Gold value = net weight x rate; making charge = a percent of the gold value; VAT on the sum.
 export function priceOf(product: Product, catalog: Pick<Catalog, 'rates' | 'vatPercent'>): PriceBreakdown {
+  if (product.apiPrice) return product.apiPrice;
   const rate = catalog.rates[product.purity] ?? 0;
   const gold = round2(product.netWeight * rate);
   const making = round2(gold * product.makingPercent / 100);

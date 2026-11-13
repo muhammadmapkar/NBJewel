@@ -234,6 +234,7 @@ export class TryonPage implements OnDestroy {
   private async loadImages(product: Product): Promise<void> {
     const load = (path?: string) => path ? new Promise<HTMLImageElement | undefined>(resolve => {
       const img = new Image();
+      img.crossOrigin = 'anonymous'; // Public API previews need CORS for camera export.
       img.onload = () => resolve(img);
       img.onerror = () => resolve(undefined);
       img.src = this.catalog.url(path);

@@ -127,6 +127,18 @@ public sealed class PublicCatalogHttpTests
     }
 
     [Fact]
+    public async Task LocalCustomerStorefrontOriginCanReadPublicRates()
+    {
+        await using var factory = new KnowledgeHttpFactory(); using var client = factory.CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/storefront/metal-rates");
+        request.Headers.Add("Origin", "http://localhost:4300");
+        using var response = await client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.True(response.Headers.TryGetValues("Access-Control-Allow-Origin", out var origins));
+        Assert.Equal("http://localhost:4300", Assert.Single(origins!));
+    }
+
+    [Fact]
     public async Task PublicRoutesDoNotProvideWritesOrOpenProtectedErpRoutes()
     {
         await using var factory = new KnowledgeHttpFactory();
