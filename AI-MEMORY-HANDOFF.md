@@ -1,31 +1,61 @@
-<!-- Role: Provides a project-root continuation pointer for the ai-memory handoff. -->
+<!-- Role: Records the only shared handoff and lock for turn-based customer storefront work. -->
 # AI memory handoff
 
-Resume in `/Users/muhammadnazirahmedmapkar/Documents/NBJewel`, the main project checkout. The completed implementation is committed locally and available directly in that folder. Do not create another worktree to resume this task.
+## Lock
+- Agent: codex-storefront
+- Since: 2026-11-14T01:08:23+04:00
+- Status: held for setup and phase 2 task 1.
 
-Read `docs/unified-ai-progress.md` and `docs/unified-ai-review.md` first. Both assistants, scoped tools, owned conversations, approved knowledge retrieval, protected key storage and local security remediation are implemented. Independent review passed the local implementation scope.
+## Branch and last commit
+- Branch: `feature/customer-storefront`.
+- Remote: `origin/feature/customer-storefront`; upstream exists; fetch and fast-forward pull succeeded.
+- Verified starting HEAD: `a4f8ef3acb049daaea9016dc18dfbf2886e708f0` (Phase 1).
+- Snapshot commit: the commit containing this handoff; resolve with `git log -1 --format=%H -- AI-MEMORY-HANDOFF.md`. Compare it with HEAD on the next start. A literal self-referencing commit hash cannot be recorded inside the same commit.
 
-Verified before integration: 303 backend tests passed, 0 failed, 2 skipped (SQL parity); 66 frontend tests passed; Angular production build passed. Real SQL persistence/concurrency, browser cookies/CORS, Gemini, SMTP delivery and deployment remain unverified.
+## Current goal
+Complete setup, then phase 2 task 1: preserve storefront metadata and a clearly labelled sample platinum product through the swappable catalog data layer. API first, then storefront. No SQL execution.
 
-The user has now explicitly approved creating the disposable local Docker/SQL test environment and running sample-data tests. No remote push, merge to main or deployment is authorized. Actual ERP role mapping and production provisioning still need the real application/security model.
+## Done
+- Phase 1 at `a4f8ef3`: equal image cards, details blocks, two-line names, photo preview with Retake/Save/Share, ring uploads blocked, FAQ restored.
+- Startup: fetched all remotes, confirmed branch and upstream, pulled with `--ff-only`, read the prior handoff fully, checked date and found no active lock, matched HEAD to the supplied seed.
+- Setup files written: replaced stale handoff statements, added the handoff protocol to AGENTS.md, and added Claude/Copilot routing instructions. Validation passed; setup checkpoint prepared.
 
-Latest verification on 2026-11-13:
-- Backend with real SQL Server: 355 passed, 0 failed, 0 skipped (see "SQL verification continuation" below). The earlier run without SQL was 303 passed, 2 skipped because `NBJEWEL_SQL_CONNECTION` was unset.
-- Frontend: 66 tests passed and the production Angular build passed.
-- Uncommitted and awaiting review: the SQL fixes (`SampleRepositoryFactory.cs`, `KnowledgeService.cs`, `docs/item_catalog_schema.sql`), the new `PlatformSqlIntegrationTests.cs`, and this file. The pre-existing untracked jewelry image is preserved.
-- Still unverified: real-browser cookies/CSRF/CORS/isolation, Gemini, SMTP, and proxy/TLS deployment.
-- No production or non-local database was used. No `.env`, secret or production data was touched.
+## Next steps (ordered checklist)
+- [x] Setup: handoff/protocol validation passed; these four files form the setup checkpoint, pushed before task 1 begins.
+- [ ] 1. Storefront metadata and sample platinum support. Size L. Files: backend models, repositories, sample-data, docs/item_catalog_schema.sql. Done when a labelled sample platinum product keeps metal, purity, and storefront metadata. Test: `dotnet test backend/NbJewel.Api.Tests`.
+- [ ] 2. Public read-only endpoints for products and metal rates. Size M. Files: controllers, Knowledge/KnowledgeService.cs, Identity/ErpBoundaryFilter.cs, backend tests. Anonymous reads return published allowed products only; unpublished and excluded categories stay hidden. Test: backend suite.
+- [ ] 3. Complete pricing and change evidence. Size L. Files: ItemPricing.cs, ItemModels.cs, repositories, backend tests. A sample rate change gives metal, making, stones, VAT, total, effective date, and change explanation. Test: backend suite.
+- [ ] 4. Durable cutout pipeline link. Size L. Files: Jewelry/, controllers, repositories, existing cutout/catalog scripts. Upload stores a linked transparent preview asset that survives restart. Use existing scripts only; no new removal tooling. Licensing open, quality manual. Test: backend suite.
+- [ ] 5. ERP upload and explicit publication controls. Size M. Files: ERP catalog/core data and KnowledgeController.cs. Ready sample item publishes; unfinished cutout cannot publish. Test: ERP npm test/build and backend suite.
+- [ ] 6. Storefront loads from configurable API address. Size M. Files: storefront catalog service/models, app.config.ts, config/service tests. Configured address uses API; unset address uses static catalog. Test: storefront npm test/build.
+- [ ] 7. Dated rates, metal filters, price explanations. Size M. Files: storefront header, catalog, shop/product pages. Gold, silver, platinum use matching rate, breakdown, real effective date, no invented freshness. Test: storefront npm test/build.
+- [ ] 8. Prove updates appear without rebuilding. Size M. Files: backend and storefront service tests. Publish, update, revoke a sample product; storefront reads reflect each change. Test: backend/storefront suites.
+- [ ] 9. Warnings, docs, phase gate. Size S. Files: shop page, vitest.config.ts, README.md, docs/superpowers/plans/, this handoff. All six baseline checks pass; completed work and manual checks stay separate. Test: backend build/test, ERP npm test/build, storefront npm test/build.
+- [ ] After task 9: run the lead review, stop, wait for Muhammad.
 
-The ai-memory handoff is scoped to workspace `default`, project `muhammadmapkar-nbjewel`, with this main checkout as its working directory. The shared ai-memory service remains responsible for the handoff lifecycle; this file is its project-local continuation pointer.
+## Blockers and decisions
+- The prior handoff described another branch and old SQL authorization. Replaced from Muhammad's current seed and protocol; current instructions prohibit all Docker/SQL data steps.
+- Ruling: use this existing feature checkout and this handoff as the only ledger; no worktree, extra handoff, or AI-memory service mutation. Agents are sequential and the owner's forbidden worktree stays untouched.
+- Ruling: snapshot commit is resolved from git history because a commit cannot embed its own hash. Record verified predecessor and task implementation hashes as work advances.
+- Known gaps: backend pricing omits stone value and VAT; storefront uses static gold rates; cutouts are separate from ERP items.
+- Known warnings: unused RouterLink in ShopPage; Vitest config loading.
+- No questions to owner. Choose conservative sample-only behavior and log assumptions. Accounts, chatbot, locator are later phases.
 
-## SQL verification continuation
-- Docker Desktop is installed and running (engine 29.9.3, Apple Silicon, approximately 8 GB allocated). Its CLI is at `/Applications/Docker.app/Contents/Resources/bin/docker`, outside the current terminal PATH. Include that directory in child-process PATH so the credential helper can be found; no global settings change is needed.
-- Approved target: a new isolated `nbjewel-sql-test` container, bound only to `127.0.0.1:15433`, using `mcr.microsoft.com/mssql/server:2022-latest` under amd64 emulation. No other containers were present and the port was free.
-- SQL Server is running and answered `SELECT 1` at `127.0.0.1:15433` in the approved `nbjewel-sql-test` container. The image was downloaded and the container created with 4 GB memory limit, 2 CPUs, SQL Developer edition and only a localhost port binding. Temporary credentials were generated inside `/tmp/nbjewel-disposable-sql-runner.py` and are never printed or written to `.env`.
-- The initial runner (`27712`) was stopped after real SQL exposed a source-root lookup bug. Use `python3 -u /tmp/nbjewel-sql-verify.py` to run the full SQL-enabled suite, or pass one VSTest filter argument. This helper verifies the disposable label and localhost-only port, reads only this container's test credential in memory, and writes redacted output to `/tmp/nbjewel-sql-verification.log`. It never reads `.env` or prints credentials.
-- Added `backend/NbJewel.Api.Tests/PlatformSqlIntegrationTests.cs` for explicit local test database `NBJewelPlatformTest`: actual SQL schema application, protected key/identity/history restart, admission revision and idempotency constraints, knowledge publish/revoke concurrency, and bulk/scoped catalog parity across more than 2,100 IDs.
-- Real SQL tests already passed protected key/identity/history restart and admission revision/idempotency constraints. Three observed failures are being fixed and retested: FindRoot selected copied output data instead of source schemas; a `sample-data` wildcard inside a T-SQL block comment accidentally opened a nested comment; repeated publication did not issue an UPDATE, skipping the SQL concurrency predicate. Root lookup and schema comment were corrected; publication now explicitly marks PublishedVersionId modified.
-- Focused real SQL verification is now green: 5 passed, 0 failed, 0 skipped. This includes source-root regression, key/identity/history persistence, revision and uniqueness constraints, version publication/revocation concurrency, and bulk/scoped reads across 2,200 IDs. New fixes/tests are uncommitted; implementation commit de790b4 is unchanged.
-- The first complete SQL-enabled run exited with 51 failures because SQL Server terminated with exit code 139 during repeated test-database resets; the resulting failures were connection-refused cascades, not assertion failures. After restarting the same isolated container, the focused platform suite passed 5/5, the remaining SQL-enabled tests passed 350/350, and the complete suite passed 355/355 with 0 skipped. No production or non-local database was used.
-- The catalog test harness resets only its sample `NBJewelTest` database, and the platform tests use `NBJewelPlatformTest`, both on this isolated server. Rerunning the suite resets them again, so ask the user before any Docker or SQL data step.
-- The user asked to save the handoff when the remaining limit reaches 3%. Account percentage is not exposed by available tools, so save checkpoints proactively rather than claiming that percentage can be monitored.
+## Files touched
+- This turn: `AGENTS.md`, `AI-MEMORY-HANDOFF.md`, `CLAUDE.md`, `.github/copilot-instructions.md`.
+- Pre-existing owner changes preserved, excluded from staging: PROGRESS.md, docs/run-guide.md, customer-tryon/package-lock.json; untracked browser security plan, old proof image, pasted jewelry image.
+
+## Test commands and last results
+- Prior seed only, not rerun today: backend 309 passed, 6 skipped; ERP 66 passed; storefront 50 passed; builds OK.
+- Startup: `git fetch --all --prune` passed; `git pull --ff-only` reported already up to date.
+- Setup validation: Python assertions on all required sections, four role comments, routing pointers and no em-dashes passed; `git diff --check -- AGENTS.md AI-MEMORY-HANDOFF.md CLAUDE.md .github/copilot-instructions.md` passed.
+- Task 1 backend tests pending; SQL connection variables will be removed from child processes and `.env` files will not be read.
+
+## Manual checks for Muhammad
+- Phone and desktop alignment.
+- Camera capture, Retake, native share.
+- Cutout quality (manual review required).
+- Real browser CORS and cookies.
+
+## Agent log (newest first)
+- 2026-11-14T01:08:23+04:00 codex-storefront: took the previously absent lock, matched seed commit, wrote setup files. Owner changes untouched. Setup validation passed; setup commit/push followed by task 1.
