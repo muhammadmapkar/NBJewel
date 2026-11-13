@@ -9,7 +9,7 @@
      and it holds no sample rows.
    - "dotnet run --project backend/NbJewel.Api -- --setup-db" creates the
      database named in NBJEWEL_SQL_CONNECTION, runs this file (GO splits it
-     into batches), then loads sample-data/*.json (the seed step).
+     into batches), then loads the JSON files from sample-data (the seed step).
    - Run it only on an empty database. The setup tool skips it when
      dbo.Item already exists.
    ========================================================== */

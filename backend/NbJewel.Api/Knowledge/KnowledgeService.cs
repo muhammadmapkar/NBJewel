@@ -49,6 +49,9 @@ public sealed class KnowledgeService(KnowledgeDatabase db) : IKnowledgeRetriever
         var d = await db.Documents.SingleOrDefaultAsync(x => x.Id == id, ct) ?? throw new KeyNotFoundException();
         if (published && d.LatestVersionId != versionId) throw new KnowledgeVersionConflictException();
         d.PublishedVersionId = published ? versionId : null;
+        // A repeated publish may assign the existing value. Force the UPDATE so its
+        // latest-version concurrency predicate is still checked by SQL Server.
+        db.Entry(d).Property(x => x.PublishedVersionId).IsModified = true;
         Audit(actor, published ? "document.publish" : "document.revoke", id);
         try { await db.SaveChangesAsync(ct); }
         catch (DbUpdateConcurrencyException) { throw new KnowledgeVersionConflictException(); }

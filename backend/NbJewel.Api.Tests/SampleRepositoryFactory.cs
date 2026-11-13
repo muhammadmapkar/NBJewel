@@ -24,8 +24,10 @@ internal static class SampleRepositoryFactory
     public static string FindRoot()
     {
         var path = Directory.GetCurrentDirectory();
-        while (path is not null && !File.Exists(Path.Combine(path, "sample-data", "items.json"))) path = Directory.GetParent(path)?.FullName;
-        return path ?? throw new DirectoryNotFoundException("sample-data was not found.");
+        // The output directory also contains copied sample data, but not the source SQL schemas.
+        while (path is not null && !(File.Exists(Path.Combine(path, "sample-data", "items.json")) &&
+            File.Exists(Path.Combine(path, "docs", "item_catalog_schema.sql")))) path = Directory.GetParent(path)?.FullName;
+        return path ?? throw new DirectoryNotFoundException("The source sample-data and SQL schema directory was not found.");
     }
 
     // A sample-data folder path. With a fixture file, it is a temp copy whose metal-rates.json is swapped for that fixture.
