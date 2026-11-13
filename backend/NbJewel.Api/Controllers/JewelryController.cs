@@ -19,7 +19,8 @@ public sealed class JewelryController(IJewelryRepository repository) : Controlle
 
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<JewelryItem>>> GetActive(CancellationToken cancellationToken) =>
-        Ok((await repository.ListAsync(activeOnly: true, cancellationToken)).Select(ToItem).ToList());
+        Ok((await repository.ListAsync(activeOnly: true, cancellationToken))
+            .Where(x => JewelryTypes.IsCustomerVisible(x.Type)).Select(ToItem).ToList());
 
     [HttpGet("all")]
     [EnableRateLimiting(OwnerPin.RateLimitPolicy)]

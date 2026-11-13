@@ -85,7 +85,7 @@ public sealed class JewelryRepositoryTests
         await repository.SetActiveAsync(first.Id, false, Ct);
         var result = await JewelryTestKit.Controller(repository).GetActive(Ct);
         var items = Assert.IsAssignableFrom<IReadOnlyList<JewelryItem>>(Assert.IsType<OkObjectResult>(result.Result).Value);
-        Assert.Equal(5, items.Count);
+        Assert.Equal(3, items.Count);
         Assert.All(items, x => Assert.StartsWith("/jewelry-images/", x.ImageUrl));
     }
 

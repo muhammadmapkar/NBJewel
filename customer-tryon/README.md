@@ -31,7 +31,7 @@ specifications, gold rates and stores are SAMPLE data (assumed), and the app say
     the skin); a soft shadow falls under each piece.
   - Necklaces rest at the base of the neck: the catalog build finds each necklace's inner front edge.
   - Chips switch pieces of a set; a strip switches designs; price and Add to bag stay in view;
-    shutter saves a photo (Save, or Share where supported).
+    shutter opens a photo preview with Retake, Save photo, and Share where supported.
   - Jewelry hides 0.25 s after the face is lost, so it never floats where the face was.
   - Friendly messages: no https, camera blocked, no camera, camera busy, model failed to load, no face.
 
@@ -109,3 +109,29 @@ jewelry is always drawn on the frame it was found in (no trailing on slow phones
 - The headless test browser cannot run MediaPipe's GPU face detector, so tests used the CPU path
   for jumps. Real phone GPU tracking was confirmed by hand on the earlier version.
 - Tested in headless Chromium with a fake camera fed test photos, not yet on many real phones.
+
+## Phase 1 customer review
+
+Product cards share one layout on home, shop and wishlist: a fixed 4:5 image frame,
+a 160px details block, and two reserved lines for the name. Long names are clamped.
+The frame contains the whole source image so different image sizes cannot move the
+price or Try on button. The existing theme and components are reused.
+
+The storefront catalog contains necklaces, earrings, tikka and sets. Rings, watches
+and bracelets are not customer choices. The older ERP try-on upload choices now
+contain earrings and necklaces only. Its public API and image URLs hide legacy rings;
+their records and source files are preserved. No file deletion is needed.
+
+Manual checks for the owner:
+
+1. On home, shop and wishlist, compare short and long product names at phone and
+   desktop widths. Image bottoms, prices and Try on buttons should line up within each row.
+2. Open Try on, allow the camera and take a photo wearing a piece. Check that the
+   preview includes the piece, Save photo downloads it and Retake returns to live camera.
+3. On a device supporting file sharing, check Share opens the native share sheet with
+   the captured image. Other devices keep Save photo available.
+4. In the ERP upload form, check that only earrings and necklaces can be selected.
+
+Phase 1 does not connect the storefront to live ERP products, pricing or accounts.
+Camera hardware, native sharing, visual alignment and browser behavior still require
+the owner's manual checks. All product and pricing data remains sample data (assumed).

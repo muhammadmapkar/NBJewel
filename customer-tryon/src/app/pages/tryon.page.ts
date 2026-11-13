@@ -88,7 +88,7 @@ const HINT_AFTER_MS = 700;
           <div class="buttons">
             <a class="btn" [href]="url" [download]="photoName">Save photo</a>
             @if (canShare()) { <button type="button" class="btn ghost" (click)="share()">Share</button> }
-            <button type="button" class="btn ghost" (click)="closePhoto()">Close</button>
+            <button type="button" class="btn ghost" (click)="closePhoto()">Retake</button>
           </div>
         </div>
       </div>

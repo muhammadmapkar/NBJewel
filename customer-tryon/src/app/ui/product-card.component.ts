@@ -30,21 +30,21 @@ import { IconComponent } from './icon.component';
     </article>
   `,
   styles: [`
-    :host { display: block; }
+    :host { display: block; min-width: 0; }
     .card { position: relative; display: flex; flex-direction: column; height: 100%; border-radius: var(--radius); background: var(--card); box-shadow: var(--shadow); overflow: hidden; }
-    .pic { position: relative; aspect-ratio: 1; display: grid; place-items: center; padding: 14px; background: radial-gradient(circle at 50% 40%, #fff 0%, var(--cream) 75%); }
-    .pic img { max-height: 100%; object-fit: contain; filter: drop-shadow(0 6px 10px rgba(80, 50, 10, 0.18)); }
+    /* Out-of-flow images cannot stretch the frame when source dimensions differ. */
+    .pic { position: relative; width: 100%; aspect-ratio: 4 / 5; flex: none; overflow: hidden; background: radial-gradient(circle at 50% 40%, #fff 0%, var(--cream) 75%); }
+    .pic img { position: absolute; inset: 14px; width: calc(100% - 28px); height: calc(100% - 28px); object-fit: contain; filter: drop-shadow(0 6px 10px rgba(80, 50, 10, 0.18)); }
     .badge { position: absolute; top: 10px; left: 10px; padding: 3px 9px; border-radius: 999px; background: var(--ink); color: var(--gold-soft); font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
     .badge.new { background: var(--gold); color: #fff; }
     .heart { position: absolute; top: 6px; right: 6px; width: 38px; height: 38px; display: grid; place-items: center; border: 0; border-radius: 50%; background: rgba(255,255,255,0.85); color: var(--maroon); }
     .heart ct-icon { width: 20px; height: 20px; }
-    .info { display: flex; flex-direction: column; gap: 3px; padding: 11px 12px 13px; flex: 1; }
-    .name { color: var(--ink); text-decoration: none; font-size: 18px; font-weight: 600; line-height: 1.15; }
-    .meta { color: var(--muted); font-size: 12px; }
-    .price { margin-top: 2px; font-weight: 600; font-size: 15px; color: var(--maroon); }
-    .try { margin-top: auto; min-height: 40px; padding: 0 14px; font-size: 14px; }
+    .info { box-sizing: border-box; display: flex; flex-direction: column; gap: 3px; padding: 11px 12px 13px; height: 160px; flex: none; }
+    .name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; height: 2.3em; flex: none; color: var(--ink); text-decoration: none; font-size: 18px; font-weight: 600; line-height: 1.15; }
+    .meta { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: none; }
+    .price { margin-top: 2px; font-weight: 600; font-size: 15px; color: var(--maroon); white-space: nowrap; flex: none; }
+    .try { margin-top: auto; height: 40px; min-height: 40px; padding: 0 14px; font-size: 14px; flex: none; }
     .try ct-icon { width: 18px; height: 18px; }
-    .info .try { margin-top: 10px; }
   `]
 })
 export class ProductCardComponent {

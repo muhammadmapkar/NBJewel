@@ -94,6 +94,35 @@ public sealed class IdentitySessionTests
     }
 
     [Fact]
+    public async Task PublicTryOnExcludesRingsWithoutRemovingOwnerRecords()
+    {
+        await using var factory = new IdentityTestFactory();
+        var repo = factory.Services.GetRequiredService<IJewelryRepository>();
+        var stored = await repo.ListAsync(false, default);
+        var rings = stored.Where(x => x.Type == "ring").ToArray();
+        Assert.Equal(2, rings.Length);
+        using var client = factory.CreateClient();
+        var visible = await client.GetFromJsonAsync<List<JewelryItem>>("/api/jewelry");
+        Assert.Equal(4, visible!.Count);
+        Assert.All(visible, item => Assert.Contains(item.Type, new[] { "earring", "necklace" }));
+        foreach (var ring in rings)
+        {
+            Assert.NotNull(await repo.GetAsync(ring.Id, default));
+        }
+    }
+
+    [Fact]
+    public async Task RingImageIsHiddenEvenWhenActiveAndFilenameIsKnown()
+    {
+        await using var factory = new IdentityTestFactory();
+        var repo = factory.Services.GetRequiredService<IJewelryRepository>();
+        var ring = (await repo.ListAsync(true, default)).First(x => x.Type == "ring");
+        using var client = factory.CreateClient();
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/jewelry-images/" + ring.File)).StatusCode);
+        Assert.NotNull(await repo.GetAsync(ring.Id, default));
+    }
+
+    [Fact]
     public async Task InactiveImageIsHiddenEvenWhenFilenameIsKnown()
     {
         await using var factory = new IdentityTestFactory();

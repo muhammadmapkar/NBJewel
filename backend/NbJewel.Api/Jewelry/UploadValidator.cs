@@ -32,7 +32,7 @@ public static class UploadValidator
         if (cleanName.Length > MaxNameLength) return UploadCheck.Fail($"The name can have at most {MaxNameLength} characters.");
         if (cleanName.Any(char.IsControl)) return UploadCheck.Fail("The name has characters that are not allowed.");
         var cleanType = JewelryTypes.Resolve(type);
-        if (cleanType is null) return UploadCheck.Fail("Choose a type: earring, necklace or ring.");
+        if (cleanType is null || !JewelryTypes.IsCustomerVisible(cleanType)) return UploadCheck.Fail("Choose a type: earring or necklace.");
         if (declaredLength > MaxBytes || content.Length > MaxBytes) return UploadCheck.Fail("The image is larger than 5 MB.");
         if (content.Length == 0) return UploadCheck.Fail("Choose an image file.");
         var extension = DetectExtension(content);

@@ -43,18 +43,21 @@ public sealed class UploadValidationTests
         Assert.True(UploadValidator.Check("Stud", "earring", UploadValidator.MaxBytes, JewelryTestKit.Png((int)UploadValidator.MaxBytes)).Ok);
 
     [Fact]
-    public void EmptyFile_IsRejected() => Assert.Equal("Choose an image file.", UploadValidator.Check("Stud", "ring", 0, []).Error);
+    public void EmptyFile_IsRejected() => Assert.Equal("Choose an image file.", UploadValidator.Check("Stud", "earring", 0, []).Error);
 
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
     [InlineData("a\u0007bell")]
-    public void BadName_IsRejected(string name) => Assert.False(UploadValidator.Check(name, "ring", 64, JewelryTestKit.Png()).Ok);
+    public void BadName_IsRejected(string name) => Assert.False(UploadValidator.Check(name, "earring", 64, JewelryTestKit.Png()).Ok);
 
     [Fact]
-    public void LongName_IsRejected() => Assert.False(UploadValidator.Check(new string('x', 61), "ring", 64, JewelryTestKit.Png()).Ok);
+    public void LongName_IsRejected() => Assert.False(UploadValidator.Check(new string('x', 61), "earring", 64, JewelryTestKit.Png()).Ok);
 
     [Theory]
+    [InlineData("ring")]
+    [InlineData(" RING ")]
+    [InlineData("watch")]
     [InlineData("bracelet")]
     [InlineData("")]
     [InlineData(null)]
@@ -63,9 +66,9 @@ public sealed class UploadValidationTests
     [Fact]
     public void TypeAndName_AreCleaned()
     {
-        var check = UploadValidator.Check("  Gold Band ", " RING ", 64, JewelryTestKit.Jpeg());
+        var check = UploadValidator.Check("  Gold Stud ", " EARRING ", 64, JewelryTestKit.Jpeg());
         Assert.True(check.Ok);
-        Assert.Equal(("Gold Band", "ring", ".jpg"), (check.Name, check.Type, check.Extension));
+        Assert.Equal(("Gold Stud", "earring", ".jpg"), (check.Name, check.Type, check.Extension));
     }
 
     [Fact]

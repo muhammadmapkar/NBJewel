@@ -4,10 +4,10 @@
 
 export type JewelryType = 'earring' | 'necklace' | 'ring';
 
+// Legacy ring records remain readable for owner administration, but cannot be selected for upload.
 export const JEWELRY_TYPES: readonly { value: JewelryType; label: string; plural: string }[] = [
   { value: 'earring', label: 'Earring', plural: 'Earrings' },
-  { value: 'necklace', label: 'Necklace', plural: 'Necklaces' },
-  { value: 'ring', label: 'Ring', plural: 'Rings' }
+  { value: 'necklace', label: 'Necklace', plural: 'Necklaces' }
 ];
 
 export interface JewelryItem {

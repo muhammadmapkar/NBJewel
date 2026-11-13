@@ -172,7 +172,7 @@ app.MapGet("/jewelry-images/{file}", async (string file, IJewelryRepository repo
 {
     if (Path.GetFileName(file) != file) return Results.NotFound();
     var published = await repository.ListAsync(activeOnly: true, cancellationToken);
-    if (!published.Any(x => x.File == file)) return Results.NotFound();
+    if (!published.Any(x => x.File == file && JewelryTypes.IsCustomerVisible(x.Type))) return Results.NotFound();
     var path = Path.Combine(storage.ImagesFolder, file);
     if (!File.Exists(path)) return Results.NotFound();
     context.Response.Headers["X-Content-Type-Options"] = "nosniff";

@@ -11,6 +11,9 @@ public static class JewelryTypes
     public const string Ring = "ring";
     public static readonly IReadOnlyList<string> All = [Earring, Necklace, Ring];
 
+    // Retain historical records while limiting customer previews and new uploads to supported pieces.
+    public static bool IsCustomerVisible(string type) => type is Earring or Necklace;
+
     // Returns the canonical lower case type, or null when the value is not a known type.
     public static string? Resolve(string? value)
     {
