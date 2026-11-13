@@ -31,6 +31,8 @@ public sealed class ErpBoundaryFilter(IPermissionAdapter permissions) : IAsyncAu
         {
             // These endpoints perform their own identity/resource checks, or are explicitly public.
             if (controller is "Auth" or "Knowledge" or "AiConversations" || (controller == "Jewelry" && name == "GetActive")) return;
+            if (controller == "PublicCatalog" && HttpMethods.IsGet(context.HttpContext.Request.Method) &&
+                name is "GetProducts" or "GetProduct" or "GetMetalRates") return;
             context.Result = new ForbidResult();
             return;
         }
