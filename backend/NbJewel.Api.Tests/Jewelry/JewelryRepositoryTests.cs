@@ -1,7 +1,5 @@
-// Role: Tests FileJewelryRepository and the PIN rules of JewelryController: first start seeds
-// 6 sample items (2 per type), uploads persist across restarts, the Active toggle hides items
-// from the public list, delete removes the image file, bad ids are unknown, and the owner
-// endpoints need the right PIN (401 when wrong, 503 when OWNER_PIN is not set).
+// Role: Tests file jewelry persistence and business operations; HTTP identity boundaries have integration tests. First start seeds
+// Six sample items seed initially, uploads persist, and inactive items disappear from the public list.
 
 using Microsoft.AspNetCore.Mvc;
 using NbJewel.Api.Jewelry;
@@ -92,37 +90,14 @@ public sealed class JewelryRepositoryTests
     }
 
     [Fact]
-    public async Task OwnerEndpoints_WrongPin_Return401()
+    public async Task OwnerOperations_ReturnExpectedBusinessResults()
     {
         var repository = new FileJewelryRepository(JewelryTestKit.TempOptions());
-        var controller = JewelryTestKit.Controller(repository, "4321");
+        var controller = JewelryTestKit.Controller(repository);
         var id = (await repository.ListAsync(false, Ct))[0].Id;
-        Assert.Equal(401, JewelryTestKit.Status((await controller.GetAll("1111", Ct)).Result!));
-        Assert.Equal(401, JewelryTestKit.Status((await controller.GetAll(null, Ct)).Result!));
-        Assert.Equal(401, JewelryTestKit.Status((await controller.SetActive(id, new JewelryActiveRequest(false), "0000", Ct)).Result!));
-        Assert.Equal(401, JewelryTestKit.Status(await controller.Delete(id, "0000", Ct)));
-        Assert.Equal(401, JewelryTestKit.Status((await controller.Upload("0000", "x", "ring", JewelryTestKit.File(JewelryTestKit.Png(), "a.png"), Ct)).Result!));
-        Assert.Equal(6, (await repository.ListAsync(true, Ct)).Count);
-    }
-
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    public async Task OwnerEndpoints_PinNotConfigured_Return503(string? configured)
-    {
-        var controller = JewelryTestKit.Controller(new FileJewelryRepository(JewelryTestKit.TempOptions()), configured);
-        Assert.Equal(503, JewelryTestKit.Status((await controller.GetAll("", Ct)).Result!));
-    }
-
-    [Fact]
-    public async Task OwnerEndpoints_RightPin_Work()
-    {
-        var repository = new FileJewelryRepository(JewelryTestKit.TempOptions());
-        var controller = JewelryTestKit.Controller(repository, "4321");
-        var id = (await repository.ListAsync(false, Ct))[0].Id;
-        Assert.IsType<OkObjectResult>((await controller.GetAll("4321", Ct)).Result);
-        Assert.IsType<OkObjectResult>((await controller.SetActive(id, new JewelryActiveRequest(false), "4321", Ct)).Result);
-        Assert.IsType<NoContentResult>(await controller.Delete(id, "4321", Ct));
-        Assert.IsType<NotFoundResult>(await controller.Delete(id, "4321", Ct));
+        Assert.IsType<OkObjectResult>((await controller.GetAll(Ct)).Result);
+        Assert.IsType<OkObjectResult>((await controller.SetActive(id, new JewelryActiveRequest(false), Ct)).Result);
+        Assert.IsType<NoContentResult>(await controller.Delete(id, Ct));
+        Assert.IsType<NotFoundResult>(await controller.Delete(id, Ct));
     }
 }

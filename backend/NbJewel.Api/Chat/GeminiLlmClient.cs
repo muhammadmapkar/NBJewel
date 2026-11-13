@@ -28,31 +28,36 @@ public sealed record GeminiOptions(string ApiKey, string Model, string ThinkingL
 public sealed class GeminiLlmClient(HttpClient http, GeminiOptions options, ILogger<GeminiLlmClient> logger) : ILlmClient
 {
     public static readonly Uri BaseAddress = new("https://generativelanguage.googleapis.com/");
-    private bool thinkingRejected;
 
     public async Task<LlmResponse> GenerateAsync(IReadOnlyList<LlmMessage> messages, IReadOnlyList<ToolDeclaration> tools, double temperature, CancellationToken cancellationToken)
     {
-        if (!options.IsConfigured) throw new LlmException("GEMINI_API_KEY or GEMINI_MODEL is not set.");
+        return await GenerateAsync(messages, tools, temperature, new LlmRequestSettings(options.Model, 2048), cancellationToken);
+    }
+    public async Task<LlmResponse> GenerateAsync(IReadOnlyList<LlmMessage> messages, IReadOnlyList<ToolDeclaration> tools,
+        double temperature, LlmRequestSettings settings, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(options.ApiKey) || string.IsNullOrWhiteSpace(settings.Model)) throw new LlmException("GEMINI_API_KEY or GEMINI_MODEL is not set.");
         if (!options.ThinkingLevelIsValid) throw new LlmException("GEMINI_THINKING_LEVEL must be minimal, low, medium, high or empty.");
 
-        var retried = false;
+        if (settings.MaxOutputTokens is < 128 or > 8192) throw new LlmException("Invalid model output token limit.");
+        var budget = settings.RetryBudget ?? new ModelRetryBudget();
         while (true)
         {
-            var (status, body) = await SendAsync(BuildRequest(messages, tools, temperature), cancellationToken);
+            var thinkingRejected = budget.OmitThinking;
+            var (status, body) = await SendAsync(BuildRequest(messages, tools, temperature, settings, thinkingRejected), settings.Model, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             if (status == HttpStatusCode.OK) return ParseResponse(body);
 
-            if (!retried && status == HttpStatusCode.BadRequest && !thinkingRejected && options.ThinkingLevelOrNull is not null && body.Contains("think", StringComparison.OrdinalIgnoreCase))
+            if (status == HttpStatusCode.BadRequest && !thinkingRejected && options.ThinkingLevelOrNull is not null && body.Contains("think", StringComparison.OrdinalIgnoreCase) && budget.TryConsume())
             {
                 // This model does not accept the thinking setting. Carry on without it.
                 logger.LogWarning("The model rejected the thinking level. Retrying once without it.");
-                thinkingRejected = true;
-                retried = true;
+                budget.MarkThinkingUnsupported();
                 continue;
             }
-            if (!retried && status is HttpStatusCode.TooManyRequests or HttpStatusCode.InternalServerError or HttpStatusCode.ServiceUnavailable)
+            if ((status is HttpStatusCode.TooManyRequests or HttpStatusCode.InternalServerError or HttpStatusCode.ServiceUnavailable) && budget.TryConsume())
             {
                 logger.LogWarning("Gemini returned status {Status}. Retrying once.", (int)status);
-                retried = true;
                 await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
                 continue;
             }
@@ -61,9 +66,9 @@ public sealed class GeminiLlmClient(HttpClient http, GeminiOptions options, ILog
         }
     }
 
-    private async Task<(HttpStatusCode Status, string Body)> SendAsync(JsonObject request, CancellationToken cancellationToken)
+    private async Task<(HttpStatusCode Status, string Body)> SendAsync(JsonObject request, string model, CancellationToken cancellationToken)
     {
-        using var message = new HttpRequestMessage(HttpMethod.Post, $"v1beta/models/{Uri.EscapeDataString(options.Model)}:generateContent")
+        using var message = new HttpRequestMessage(HttpMethod.Post, $"v1beta/models/{Uri.EscapeDataString(model)}:generateContent")
         {
             Content = JsonContent.Create(request)
         };
@@ -86,10 +91,10 @@ public sealed class GeminiLlmClient(HttpClient http, GeminiOptions options, ILog
 
     // ---------- request ----------
 
-    private JsonObject BuildRequest(IReadOnlyList<LlmMessage> messages, IReadOnlyList<ToolDeclaration> tools, double temperature)
+    private JsonObject BuildRequest(IReadOnlyList<LlmMessage> messages, IReadOnlyList<ToolDeclaration> tools, double temperature, LlmRequestSettings settings, bool thinkingRejected)
     {
         var systemText = string.Join("\n\n", messages.Where(m => m.Role == "system" && m.Content.Length > 0).Select(m => m.Content));
-        var generationConfig = new JsonObject { ["temperature"] = temperature };
+        var generationConfig = new JsonObject { ["temperature"] = temperature, ["maxOutputTokens"] = settings.MaxOutputTokens };
         if (options.ThinkingLevelOrNull is { } level && !thinkingRejected)
             generationConfig["thinkingConfig"] = new JsonObject { ["thinkingLevel"] = level };
 
@@ -159,6 +164,10 @@ public sealed class GeminiLlmClient(HttpClient http, GeminiOptions options, ILog
             }
         }
         var joined = string.Concat(texts);
-        return new LlmResponse(joined.Length > 0 ? joined : null, calls);
+        var usageNode = root?["usageMetadata"] as JsonObject;
+        int? Count(string name) => usageNode?[name] is JsonValue value && value.TryGetValue<int>(out var count) && count >= 0 ? count : null;
+        var usage = usageNode is null ? null : new LlmUsage(Count("promptTokenCount"), Count("candidatesTokenCount"), Count("totalTokenCount"));
+        var finishReason = root?["candidates"]?[0]?["finishReason"]?.GetValue<string>();
+        return new LlmResponse(joined.Length > 0 ? joined : null, calls, usage, finishReason);
     }
 }

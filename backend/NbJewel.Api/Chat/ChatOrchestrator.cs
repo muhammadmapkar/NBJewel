@@ -28,7 +28,7 @@ public sealed partial class ChatOrchestrator(ILlmClient llm, ChatTools tools, IL
 
     private static ChatResponse Refusal() => new(Guards.RefusalText, [], true);
 
-    public async Task<ChatResponse> AskAsync(string question, IReadOnlyList<ChatHistoryMessage>? history, CancellationToken cancellationToken)
+    public async Task<ChatResponse> AskAsync(string question, IReadOnlyList<ChatHistoryMessage>? history, CancellationToken cancellationToken, AssistantDefinition? assistant = null)
     {
         if (InputScreen.IsBlocked(question))
         {
@@ -36,8 +36,9 @@ public sealed partial class ChatOrchestrator(ILlmClient llm, ChatTools tools, IL
             return Refusal();
         }
 
-        var messages = new List<LlmMessage> { new("system", SystemPrompt.Text) };
-        foreach (var message in (history ?? []).TakeLast(MaxHistory))
+        var systemInstruction = assistant is null ? SystemPrompt.Text : assistant.Instructions + "\n\nStyle: " + assistant.Style;
+        var messages = new List<LlmMessage> { new("system", systemInstruction) };
+        foreach (var message in (history ?? []).TakeLast(assistant?.HistoryLimit ?? MaxHistory))
             messages.Add(new LlmMessage(message.Role == "assistant" ? "assistant" : "user", message.Content));
         messages.Add(new LlmMessage("user", question));
 
@@ -47,16 +48,21 @@ public sealed partial class ChatOrchestrator(ILlmClient llm, ChatTools tools, IL
 
         while (true)
         {
-            if (++modelCalls > MaxModelCalls)
+            if (++modelCalls > (assistant?.MaxModelCalls ?? MaxModelCalls))
             {
                 logger.LogInformation("guard=model_limit result=refused");
                 return Refusal();
             }
-            var response = await llm.GenerateAsync(messages, tools.Declarations, Temperature, cancellationToken);
+            var response = await llm.GenerateAsync(messages, tools.Declarations.Where(x => assistant is null || assistant.AllowedTools.Contains(x.Name)).ToArray(), Temperature, cancellationToken);
 
             if (response.ToolCalls.Count > 0)
             {
-                if (runs.Count + response.ToolCalls.Count > MaxToolCalls)
+                if (assistant is not null && response.ToolCalls.Any(call => !assistant.AllowedTools.Contains(call.Name)))
+                {
+                    logger.LogInformation("guard=tool_allowlist result=refused");
+                    return Refusal();
+                }
+                if (runs.Count + response.ToolCalls.Count > (assistant?.MaxToolCalls ?? MaxToolCalls))
                 {
                     logger.LogInformation("guard=tool_limit result=refused calls={Calls}", runs.Count);
                     return Refusal();
@@ -94,10 +100,10 @@ public sealed partial class ChatOrchestrator(ILlmClient llm, ChatTools tools, IL
                 continue;
             }
 
-            var verdict = Guards.Run(answer, runs, SystemPrompt.Text);
+            var verdict = Guards.Run(answer, runs, systemInstruction);
             if (!verdict.Passed)
             {
-                logger.LogInformation("guard={Guard} result=refused reason={Reason}", verdict.Guard, verdict.Reason);
+                logger.LogInformation("guard={Guard} result=refused", verdict.Guard);
                 return Refusal();
             }
             logger.LogInformation("guard=all result=passed sources={Sources}", answer.Sources.Count);

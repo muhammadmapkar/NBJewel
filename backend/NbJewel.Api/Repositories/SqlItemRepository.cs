@@ -65,6 +65,22 @@ public sealed class SqlItemRepository(string connectionString) : IItemRepository
         return await QueryAsync(connection, null, StockSelect + " WHERE s.ItemId = @itemId ORDER BY ISNULL(s.VariantId, 0), s.StoreId", [new("@itemId", itemId)], ReadStock, cancellationToken);
     }
 
+    // One query per chunk of item ids instead of one per item. Only generated parameter names are concatenated into the SQL; ids are always parameters.
+    public async Task<IReadOnlyList<StockRecord>> GetStockForItemsAsync(IReadOnlyCollection<int> itemIds, CancellationToken cancellationToken)
+    {
+        var rows = new List<StockRecord>();
+        var ids = itemIds.Distinct().ToArray();
+        if (ids.Length == 0) return rows;
+        await using var connection = await OpenAsync(cancellationToken);
+        foreach (var chunk in ids.Chunk(500))
+        {
+            var names = chunk.Select((_, i) => "@i" + i).ToArray();
+            var parameters = chunk.Select((id, i) => new SqlParameter("@i" + i, id)).ToList();
+            rows.AddRange(await QueryAsync(connection, null, StockSelect + " WHERE s.ItemId IN (" + string.Join(",", names) + ") ORDER BY s.ItemId, ISNULL(s.VariantId, 0), s.StoreId", parameters, ReadStock, cancellationToken));
+        }
+        return rows;
+    }
+
     // Low means on hand minus reserved is below the threshold, the same rule as the sample repository.
     public async Task<IReadOnlyList<StockRecord>> GetLowStockAsync(int threshold, CancellationToken cancellationToken)
     {

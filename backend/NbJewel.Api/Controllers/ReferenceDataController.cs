@@ -4,6 +4,7 @@
 using Microsoft.AspNetCore.Mvc;
 using NbJewel.Api.Models;
 using NbJewel.Api.Repositories;
+using NbJewel.Api.Identity;
 
 namespace NbJewel.Api.Controllers;
 
@@ -11,10 +12,11 @@ namespace NbJewel.Api.Controllers;
 [Route("api")]
 public sealed class ReferenceDataController(IItemRepository repository) : ControllerBase
 {
+    private bool StoreAllowed(int id) => HttpContext?.Items["ErpAccess"] is not AccountAccess a || a.AllStores || a.StoreIds.Contains(id);
     [HttpGet("categories")]
     public async Task<ActionResult<IReadOnlyList<Category>>> GetCategories(CancellationToken cancellationToken) => Ok(await repository.GetCategoriesAsync(cancellationToken));
     [HttpGet("stores")]
-    public async Task<ActionResult<IReadOnlyList<Store>>> GetStores(CancellationToken cancellationToken) => Ok(await repository.GetStoresAsync(cancellationToken));
+    public async Task<ActionResult<IReadOnlyList<Store>>> GetStores(CancellationToken cancellationToken) => Ok((await repository.GetStoresAsync(cancellationToken)).Where(x => StoreAllowed(x.Id)).ToArray());
     [HttpGet("designs")]
     public async Task<ActionResult<IReadOnlyList<Design>>> GetDesigns(CancellationToken cancellationToken) => Ok(await repository.GetDesignsAsync(cancellationToken));
     [HttpGet("metal-rates/latest")]
@@ -22,5 +24,5 @@ public sealed class ReferenceDataController(IItemRepository repository) : Contro
     // Stock rows with fewer than "threshold" units available. The default of 2 is assumed.
     [HttpGet("stock/low")]
     public async Task<ActionResult<IReadOnlyList<StockRecord>>> GetLowStock(int threshold = 2, CancellationToken cancellationToken = default) =>
-        threshold is < 1 or > 1000 ? BadRequest("threshold must be between 1 and 1000.") : Ok(await repository.GetLowStockAsync(threshold, cancellationToken));
+        threshold is < 1 or > 1000 ? BadRequest("threshold must be between 1 and 1000.") : Ok((await repository.GetLowStockAsync(threshold, cancellationToken)).Where(x => StoreAllowed(x.StoreId)).ToArray());
 }

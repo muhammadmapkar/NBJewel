@@ -10,12 +10,18 @@ import { InMemorySampleDataService } from './core/data/in-memory-sample-data.ser
 import { ItemDataService } from './core/data/item-data.service';
 import { errorInterceptor } from './core/http/error.interceptor';
 import { ShellComponent } from './core/layout/shell.component';
+import { authInterceptor } from './core/auth/auth.interceptor';
+import { erpGuard } from './core/auth/erp.guard';
 
 const routes: Routes = [
-  // Customer try-on pages, outside the ERP shell (no ERP menu, no chatbot).
+  { path: 'sign-in', loadComponent: () => import('./features/auth/sign-in.component').then(m => m.SignInComponent) },
+  { path: 'verify-email', loadComponent: () => import('./features/auth/verify-email.component').then(m => m.VerifyEmailComponent) },
+  { path: 'register', data: { register: true }, loadComponent: () => import('./features/auth/sign-in.component').then(m => m.SignInComponent) },
+  { path: 'access-denied', loadComponent: () => import('./features/auth/access-denied.component').then(m => m.AccessDeniedComponent) },
+  // Public try-on and its customer assistant sit outside the protected ERP shell.
   { path: 'tryon', loadChildren: () => import('./features/tryon/tryon.routes').then(m => m.TRYON_ROUTES) },
   {
-  path: '', component: ShellComponent, children: [
+  path: '', component: ShellComponent, canActivate: [erpGuard], canActivateChild: [erpGuard], children: [
     { path: '', pathMatch: 'full', redirectTo: 'home' },
     { path: 'home', loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent) },
     { path: 'scheme-master', loadComponent: () => import('./features/gold-scheme/scheme-master.component').then(m => m.SchemeMasterComponent) },
@@ -30,7 +36,7 @@ const routes: Routes = [
 export const appConfig: ApplicationConfig = {
   providers: [
     provideRouter(routes),
-    provideHttpClient(withInterceptors([errorInterceptor])),
+    provideHttpClient(withInterceptors([errorInterceptor, authInterceptor])),
     // To swap the data source, change useClass here (for example to a SQL or real ERP service).
     InMemorySampleDataService,
     { provide: ItemDataService, useClass: HttpItemDataService }

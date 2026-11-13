@@ -4,12 +4,12 @@
 // saved to browser storage and never written to the console. All text is shown
 // as plain text, never as HTML.
 
-import { Component, effect, ElementRef, inject, input, output, signal, viewChild } from '@angular/core';
+import { Component, computed, effect, ElementRef, inject, input, output, signal, viewChild } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { ItemDataService } from '../../core/data/item-data.service';
 import { Item } from '../../core/models';
-import { ChatHistoryMessage, ChatMessage, ChatSource } from './chat.models';
+import { AssistantId, ChatMessage, ChatSource } from './chat.models';
 import { ChatService } from './chat.service';
 
 const SUGGESTIONS = [
@@ -23,13 +23,11 @@ const SUGGESTIONS = [
 const ITEM_TOOLS = new Set(['search_items', 'get_item_details', 'get_item_price_breakdown', 'get_stock_by_store', 'list_low_stock', 'list_items_by_status']);
 const FALLBACK_ERROR = 'The assistant is busy. Please try again.';
 const MAX_LENGTH = 500;
-const MAX_HISTORY = 6;
-const HISTORY_TEXT_LIMIT = 2000;
 const MAX_CHIPS = 8;
 const PHONE_WIDTH = 600;
 
 interface SourceChip { key: string; label: string; itemId: number | null; }
-interface LastRequest { question: string; history: ChatHistoryMessage[]; }
+interface LastRequest { question: string; clientRequestId: string; }
 
 @Component({
   selector: 'nb-chat-panel', standalone: true, imports: [RouterLink],
@@ -46,9 +44,9 @@ interface LastRequest { question: string; history: ChatHistoryMessage[]; }
       <div class="log" #log role="log" aria-live="polite">
         @if (messages().length === 0 && !loading() && !failed()) {
           <div class="empty">
-            <p>Ask about items, prices, and stock. I answer only from NB Jewel data.</p>
+            <p>{{ assistant() === 'website' ? 'Ask about virtual try-on and public jewelry information.' : 'Ask about items, prices, and stock. I answer only from NB Jewel data.' }}</p>
             <div class="suggestions">
-              @for (s of suggestions; track s) { <button type="button" class="suggestion" (click)="send(s)">{{ s }}</button> }
+              @for (s of suggestions(); track s) { <button type="button" class="suggestion" (click)="send(s)">{{ s }}</button> }
             </div>
           </div>
         }
@@ -85,7 +83,7 @@ interface LastRequest { question: string; history: ChatHistoryMessage[]; }
           <div class="row assistant">
             <div class="bubble assistant-bubble error" role="alert">
               <span>{{ errorText() }}</span>
-              <button type="button" class="retry" (click)="retry()">Retry</button>
+              <button type="button" class="retry" (click)="clearFailed() ? clear() : retry()">{{ conversationExpired() ? 'Start new chat' : 'Retry' }}</button>
             </div>
           </div>
         }
@@ -145,7 +143,6 @@ interface LastRequest { question: string; history: ChatHistoryMessage[]; }
 export class ChatPanelComponent {
   private readonly chat = inject(ChatService);
   private readonly items = inject(ItemDataService);
-  private readonly router = inject(Router);
   private readonly log = viewChild<ElementRef<HTMLElement>>('log');
   private readonly box = viewChild<ElementRef<HTMLTextAreaElement>>('box');
   private token = 0;
@@ -154,20 +151,25 @@ export class ChatPanelComponent {
   private readonly requestedItems = new Set<number>();
 
   readonly open = input(false);
+  readonly assistant = input<AssistantId>('erp');
   readonly closed = output<void>();
 
-  readonly suggestions = SUGGESTIONS;
+  readonly suggestions = computed(() => this.assistant() === 'erp' ? SUGGESTIONS : ['How do I use virtual try-on?', 'What happens to my camera video?', 'What jewelry can I try on?']);
   readonly maxLength = MAX_LENGTH;
   readonly messages = signal<ChatMessage[]>([]);
   readonly draft = signal('');
   readonly loading = signal(false);
   readonly failed = signal(false);
+  readonly conversationExpired = signal(false);
+  readonly clearFailed = signal(false);
   // The server's message when it sent one (the 503 text), else a fixed fallback.
   readonly errorText = signal(FALLBACK_ERROR);
   // Items found for source chips. null means the id is not an item.
   private readonly itemCache = signal<Record<number, Item | null>>({});
 
   constructor() {
+    // Erase display state on identity or assistant changes, including pending responses.
+    effect(() => { this.chat.identityKey(); this.assistant(); this.resetDisplay(); });
     // Keep the newest message in view.
     effect(() => {
       this.messages(); this.loading(); this.failed(); this.open();
@@ -194,22 +196,46 @@ export class ChatPanelComponent {
   send(text: string): void {
     const question = text.trim().slice(0, MAX_LENGTH);
     if (!question || this.loading()) return;
-    const history = this.messages().slice(-MAX_HISTORY).map((m): ChatHistoryMessage => ({ role: m.role, content: m.text.slice(0, HISTORY_TEXT_LIMIT) }));
     this.messages.update(list => [...list, this.message('user', question)]);
     this.draft.set('');
-    this.dispatch({ question, history });
+    this.dispatch({ question, clientRequestId: crypto.randomUUID() });
   }
 
   retry(): void {
-    if (this.lastRequest && !this.loading()) this.dispatch(this.lastRequest);
+    if (this.lastRequest && !this.loading()) {
+      if (this.messages().length === 0) this.messages.set([this.message('user', this.lastRequest.question)]);
+      this.dispatch(this.lastRequest);
+    }
   }
 
   clear(): void {
+    this.clearFailed.set(false);
+    const token = ++this.token;
+    this.loading.set(true);
+    this.failed.set(false);
+    this.chat.clearChat(this.assistant()).subscribe({
+      next: () => { if (token === this.token) this.resetDisplay(); },
+      error: () => {
+        if (token !== this.token) return;
+        this.loading.set(false);
+        this.clearFailed.set(true);
+        this.errorText.set('Could not clear the conversation. Please try Clear chat again.');
+        this.failed.set(true);
+      }
+    });
+  }
+
+  private resetDisplay(): void {
     this.token++;
     this.messages.set([]);
+    this.draft.set('');
     this.loading.set(false);
     this.failed.set(false);
     this.lastRequest = null;
+    this.conversationExpired.set(false);
+    this.clearFailed.set(false);
+    this.itemCache.set({});
+    this.requestedItems.clear();
   }
 
   onChip(): void {
@@ -228,19 +254,32 @@ export class ChatPanelComponent {
   hiddenChips(m: ChatMessage): number { return Math.max(0, m.sources.length - MAX_CHIPS); }
 
   private dispatch(request: LastRequest): void {
+    this.clearFailed.set(false);
+    this.conversationExpired.set(false);
     this.lastRequest = request;
     this.loading.set(true);
     this.failed.set(false);
     const token = ++this.token;
-    this.chat.ask(request.question, request.history).subscribe({
+    const identity = this.chat.identityKey();
+    const assistant = this.assistant();
+    this.chat.ask(this.assistant(), request.question, request.clientRequestId).subscribe({
       next: response => {
-        if (token !== this.token) return;
+        if (token !== this.token || identity !== this.chat.identityKey() || assistant !== this.assistant()) return;
         this.messages.update(list => [...list, { ...this.message('assistant', response.answer), sources: response.sources, refused: response.refused }]);
         this.loading.set(false);
         this.lookUpItems(response.sources);
       },
       error: (err: HttpErrorResponse) => {
-        if (token !== this.token) return;
+        if (token !== this.token || identity !== this.chat.identityKey() || assistant !== this.assistant()) return;
+        if (err.status === 410) {
+          this.messages.set([]);
+          this.itemCache.set({});
+          this.requestedItems.clear();
+          this.conversationExpired.set(true);
+          this.errorText.set('This conversation is no longer available. Start a new chat to retry your question.');
+          this.loading.set(false); this.failed.set(true);
+          return;
+        }
         const text = err?.error?.message;
         this.errorText.set(typeof text === 'string' && text.length > 0 ? text : FALLBACK_ERROR);
         this.loading.set(false);
@@ -254,18 +293,20 @@ export class ChatPanelComponent {
   }
 
   private itemId(source: ChatSource): number | null {
-    return ITEM_TOOLS.has(source.tool) && /^\d+$/.test(source.recordId) ? Number(source.recordId) : null;
+    return this.assistant() === 'erp' && ITEM_TOOLS.has(source.tool) && /^\d+$/.test(source.recordId) ? Number(source.recordId) : null;
   }
 
   // Checks which source ids are real items, so only those chips become links.
   private lookUpItems(sources: ChatSource[]): void {
+    if (this.assistant() !== 'erp') return;
+    const token = this.token;
     for (const source of sources.slice(0, MAX_CHIPS)) {
       const id = this.itemId(source);
       if (id === null || this.requestedItems.has(id)) continue;
       this.requestedItems.add(id);
       this.items.getItem(id).subscribe({
-        next: item => this.itemCache.update(c => ({ ...c, [id]: item })),
-        error: () => this.itemCache.update(c => ({ ...c, [id]: null }))
+        next: item => { if (token === this.token) this.itemCache.update(c => ({ ...c, [id]: item })); },
+        error: () => { if (token === this.token) this.itemCache.update(c => ({ ...c, [id]: null })); }
       });
     }
   }

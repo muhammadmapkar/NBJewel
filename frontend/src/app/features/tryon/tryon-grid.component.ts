@@ -1,21 +1,23 @@
 // Role: The customer page (/tryon). Shows the active try-on jewelry as a grid, filtered by
 // type. Tapping an item opens the camera try-on (/tryon/:id). It sits outside the ERP shell
-// so customers never see the ERP menu or the chatbot (assumed), but it uses the same theme
+// so customers see a public assistant and use the same theme
 // colors, card and button styles. Images load with crossorigin so the browser cache holds the
 // CORS copy the camera canvas needs (a plain cached copy would block the snapshot and overlay).
 
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { ChatPanelComponent } from '../chat/chat-panel.component';
 import { ApiError } from '../../core/http/error.interceptor';
 import { JEWELRY_TYPES, JewelryItem, JewelryType } from './jewelry.models';
 import { JewelryService } from './jewelry.service';
 
 @Component({
-  selector: 'nb-tryon-grid', standalone: true, imports: [RouterLink],
+  selector: 'nb-tryon-grid', standalone: true, imports: [RouterLink, ChatPanelComponent],
   template: `
     <header class="brand-bar"><span class="brand-name">NB <small>JEWEL</small></span><span class="title">Virtual Try-On</span></header>
     <main class="page">
       <p class="intro">Pick a piece, allow the camera, and see it on you. The video stays on your phone.</p>
+      <div class="chips"><button type="button" (click)="chatOpen.set(!chatOpen())" [attr.aria-expanded]="chatOpen()">Ask assistant</button></div>
       <div class="chips" role="tablist" aria-label="Filter by type">
         <button type="button" role="tab" [class.on]="filter() === 'all'" [attr.aria-selected]="filter() === 'all'" (click)="filter.set('all')">All</button>
         @for (t of types; track t.value) {
@@ -41,6 +43,7 @@ import { JewelryService } from './jewelry.service';
         </div>
       }
     </main>
+    <nb-chat-panel assistant="website" [open]="chatOpen()" (closed)="chatOpen.set(false)" />
   `,
   styles: [`
     :host { display:block; min-height:100vh; background:var(--page); }
@@ -68,6 +71,7 @@ import { JewelryService } from './jewelry.service';
   `]
 })
 export class TryonGridComponent {
+  readonly chatOpen = signal(false);
   readonly jewelry = inject(JewelryService);
   readonly types = JEWELRY_TYPES;
   readonly items = signal<JewelryItem[]>([]);

@@ -296,9 +296,11 @@ public sealed class ChatTools
 
     private async Task<Dictionary<int, IReadOnlyList<StockRecord>>> StockOfAsync(IEnumerable<int> itemIds, CancellationToken ct)
     {
-        var stock = new Dictionary<int, IReadOnlyList<StockRecord>>();
-        foreach (var id in itemIds.Distinct()) stock[id] = await data.GetStockAsync(id, ct);
-        return stock;
+        var ids = itemIds.Distinct().ToArray();
+        var rows = ids.Length == 0 ? [] : await data.GetStockForItemsAsync(ids, ct);
+        var byItem = rows.GroupBy(r => r.ItemId).ToDictionary(g => g.Key, g => (IReadOnlyList<StockRecord>)g.ToList());
+        // Items with no stock rows still get an empty entry, as the one-by-one read gave.
+        return ids.ToDictionary(id => id, id => byItem.TryGetValue(id, out var list) ? list : []);
     }
 
     private static int OnHand(IEnumerable<StockRecord> records, int? storeId = null) => records.Where(r => storeId is null || r.StoreId == storeId).Sum(r => r.OnHand);

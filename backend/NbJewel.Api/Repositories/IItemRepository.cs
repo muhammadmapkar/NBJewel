@@ -12,6 +12,13 @@ public interface IItemRepository
     Task<PagedResult<Item>> SearchItemsAsync(string? search, int? categoryId, string? metal, string? purity, string? status, int page, int pageSize, CancellationToken cancellationToken);
     Task<Item?> GetItemAsync(int id, CancellationToken cancellationToken);
     Task<IReadOnlyList<StockRecord>> GetStockAsync(int itemId, CancellationToken cancellationToken);
+    // Stock rows for several items at once. The default asks one item at a time; SqlItemRepository overrides it with one query per chunk.
+    async Task<IReadOnlyList<StockRecord>> GetStockForItemsAsync(IReadOnlyCollection<int> itemIds, CancellationToken cancellationToken)
+    {
+        var rows = new List<StockRecord>();
+        foreach (var id in itemIds.Distinct()) rows.AddRange(await GetStockAsync(id, cancellationToken));
+        return rows;
+    }
     // Read-only. Stock rows whose available quantity (on hand minus reserved) is below the threshold.
     Task<IReadOnlyList<StockRecord>> GetLowStockAsync(int threshold, CancellationToken cancellationToken);
     Task<IReadOnlyList<ItemVariant>> GetVariantsAsync(int itemId, CancellationToken cancellationToken);

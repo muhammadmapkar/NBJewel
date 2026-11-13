@@ -4,11 +4,15 @@
 // try-on jewelry feature (images served from JEWELRY_STORAGE_PATH), and adds one global error handler.
 
 using System.Threading.RateLimiting;
-using Microsoft.Extensions.FileProviders;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using NbJewel.Api.Identity;
 using NbJewel.Api.Chat;
 using NbJewel.Api.Jewelry;
 using NbJewel.Api.Models;
 using NbJewel.Api.Repositories;
+using NbJewel.Api.Platform;
+using NbJewel.Api.Knowledge;
 
 // Developer tool, not the web server: "dotnet run --project backend/NbJewel.Api -- --setup-db [--reset]"
 // creates the SQL Server database, applies docs/item_catalog_schema.sql, and seeds sample-data/*.json.
@@ -24,9 +28,40 @@ if (args.Contains("--setup-db"))
     return 0;
 }
 
+// Prints a reviewable schema without opening a SQL connection or applying changes.
+if (args.Contains("--identity-schema"))
+{
+    using var schema = new IdentityDatabase(new DbContextOptionsBuilder<IdentityDatabase>()
+        .UseSqlServer("Server=unused;Database=unused").Options);
+    Console.WriteLine(schema.Database.GenerateCreateScript());
+    return 0;
+}
+
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+if (args.Contains("--platform-schema"))
+{
+    using var platform = new PlatformDatabase(new DbContextOptionsBuilder<PlatformDatabase>().UseSqlServer("Server=unused;Database=unused").Options);
+    using var knowledge = new KnowledgeDatabase(new DbContextOptionsBuilder<KnowledgeDatabase>().UseSqlServer("Server=unused;Database=unused").Options);
+    Console.WriteLine(platform.Database.GenerateCreateScript());
+    Console.WriteLine(knowledge.Database.GenerateCreateScript());
+    return 0;
+}
+
+builder.Services.AddPlatformKeyProtection(builder.Configuration, builder.Environment);
+builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 1024 * 1024);
+// The site and API sit behind one proxy. Forwarded headers are honored only from TRUSTED_PROXIES, so rate limits see the real client address.
+TrustedProxySetup.Configure(builder.Services);
+
+builder.AddIdentityFoundation();
+builder.Services.AddSingleton<IAccountVerificationSender, SmtpAccountVerificationSender>();
+builder.Services.AddScoped<AccountVerification>();
+builder.Services.AddSingleton<IPasswordWork, PasswordWork>();
+builder.Services.AddControllersWithViews(options =>
+{
+    options.Filters.AddService<ErpBoundaryFilter>();
+    options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 // CORS_ORIGINS is a comma separated list, for example "https://nbjewel-demo.vercel.app".
@@ -38,7 +73,7 @@ if (corsOrigins.Length == 0) corsOrigins = ["http://localhost:4200"];
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AngularDevelopment", policy =>
-        policy.WithOrigins(corsOrigins).AllowAnyHeader().AllowAnyMethod());
+        policy.WithOrigins(corsOrigins).AllowAnyHeader().AllowAnyMethod().AllowCredentials());
 });
 // Repository:Provider picks the data layer. "Sample" (default) is JSON in memory.
 // "Sql" uses SQL Server and needs the NBJEWEL_SQL_CONNECTION environment variable.
@@ -70,6 +105,22 @@ builder.Services.AddHttpClient<ILlmClient, GeminiLlmClient>(client =>
     client.Timeout = TimeSpan.FromSeconds(30); // one Gemini request; the whole question is capped separately in ChatController
 });
 builder.Services.AddScoped<ChatOrchestrator>();
+builder.Services.AddSingleton<AssistantRegistry>();
+builder.Services.AddScoped<GatewayProvider>();
+var platformConnection = builder.Configuration["AI_PLATFORM_CONNECTION"] ?? builder.Configuration["NBJEWEL_IDENTITY_CONNECTION"];
+builder.Services.AddDbContext<PlatformDatabase>(options => { if (!string.IsNullOrWhiteSpace(platformConnection)) options.UseSqlServer(platformConnection); });
+builder.Services.AddDbContext<KnowledgeDatabase>(options => { if (!string.IsNullOrWhiteSpace(platformConnection)) options.UseSqlServer(platformConnection); });
+builder.Services.AddScoped<KnowledgeService>();
+builder.Services.AddScoped<IKnowledgeRetriever>(services => services.GetRequiredService<KnowledgeService>());
+builder.Services.AddScoped<IKnowledgeEvidenceValidator>(services => services.GetRequiredService<KnowledgeService>());
+builder.Services.AddScoped<IPublicationReader>(services => services.GetRequiredService<KnowledgeService>());
+builder.Services.AddScoped<IAssistantTools, AssistantTools>();
+builder.Services.AddScoped<AssistantAccess>();
+builder.Services.AddScoped<AssistantEvidence>();
+builder.Services.AddScoped<PlatformOrchestrator>();
+builder.Services.AddScoped<ConversationService>();
+builder.Services.AddScoped<ILegacyAssistant, LegacyAssistant>();
+builder.Services.AddHostedService<PlatformMaintenance>();
 
 // Try-on jewelry: metadata JSON and images on disk under JEWELRY_STORAGE_PATH (default App_Data/jewelry
 // inside the API folder). Swap FileJewelryRepository for a SQL or blob version later.
@@ -88,46 +139,61 @@ builder.Services.AddSingleton<OwnerPin>();
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("ai-ip", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions
+        { PermitLimit = 60, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+    options.AddPolicy("auth", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
     options.AddPolicy(OwnerPin.RateLimitPolicy, context => RateLimitPartition.GetFixedWindowLimiter(
         context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
 });
 
 var app = builder.Build();
-// A short owner PIN can be guessed even with the rate limit. Warn, do not stop (assumed demo gate).
-var ownerPinValue = builder.Configuration["OWNER_PIN"];
-if (string.IsNullOrWhiteSpace(ownerPinValue))
-    app.Logger.LogWarning("OWNER_PIN is not set: the try-on owner endpoints answer 503.");
-else if (ownerPinValue.Trim().Length < 8)
-    app.Logger.LogWarning("OWNER_PIN is shorter than 8 characters. Use a longer one before sharing the app link.");
+if (args.Contains("--bootstrap-identity")) return await IdentitySetup.BootstrapAsync(app);
+// Must run first: later middleware (HTTPS redirect, rate limiter, cookies) reads the corrected address and scheme.
+// It does nothing until TRUSTED_PROXIES names at least one proxy.
+app.UseForwardedHeaders();
 // One global error handler: clients get a short message, never a stack trace.
 app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
 {
     context.Response.StatusCode = StatusCodes.Status500InternalServerError;
     await context.Response.WriteAsJsonAsync(new ErrorMessage("Something went wrong. Try again."));
 }));
-app.UseSwagger();
-app.UseSwaggerUI();
+if (app.Environment.IsDevelopment()) { app.UseSwagger(); app.UseSwaggerUI(); }
 app.UseCors("AngularDevelopment");
+if (app.Environment.IsProduction()) { app.UseHsts(); app.UseHttpsRedirection(); }
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseRateLimiter();
-// Uploaded try-on images. Only PNG and JPG are ever written there (checked by content on upload).
-Directory.CreateDirectory(jewelryOptions.ImagesFolder);
-app.UseStaticFiles(new StaticFileOptions
+// Resolve published metadata on every image request, including requests for known inactive files.
+app.MapGet("/jewelry-images/{file}", async (string file, IJewelryRepository repository, JewelryStorageOptions storage, HttpContext context, CancellationToken cancellationToken) =>
 {
-    FileProvider = new PhysicalFileProvider(jewelryOptions.ImagesFolder),
-    RequestPath = JewelryStorageOptions.ImagesRequestPath,
-    OnPrepareResponse = context =>
-    {
-        context.Context.Response.Headers["X-Content-Type-Options"] = "nosniff";
-        context.Context.Response.Headers["Cache-Control"] = "public, max-age=3600";
-        // The same image is loaded plainly (grid) and with CORS (camera canvas). Vary: Origin stops a
-        // browser from reusing the plain cached copy, which has no CORS header, for the camera.
-        context.Context.Response.Headers.Append("Vary", "Origin");
-        // The try-on page draws these images on a canvas for the snapshot, so it needs CORS headers.
-        context.Context.Response.Headers["Cross-Origin-Resource-Policy"] = "cross-origin";
-    }
+    if (Path.GetFileName(file) != file) return Results.NotFound();
+    var published = await repository.ListAsync(activeOnly: true, cancellationToken);
+    if (!published.Any(x => x.File == file)) return Results.NotFound();
+    var path = Path.Combine(storage.ImagesFolder, file);
+    if (!File.Exists(path)) return Results.NotFound();
+    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    context.Response.Headers.CacheControl = "no-store";
+    context.Response.Headers["Cross-Origin-Resource-Policy"] = "cross-origin";
+    return Results.File(path, Path.GetExtension(file).Equals(".png", StringComparison.OrdinalIgnoreCase) ? "image/png" : "image/jpeg");
 });
 app.MapControllers();
+app.MapGet("/health/live", () => Results.Ok(new { status = "alive" }));
+app.MapGet("/health/ready", async (PlatformDatabase platform, KnowledgeDatabase knowledge, IdentityDatabase identity, GeminiOptions model, AssistantRegistry assistants, CancellationToken ct) =>
+{
+    try
+    {
+        if (string.IsNullOrWhiteSpace(model.ApiKey) || new[] { "erp", "website" }.Any(id => string.IsNullOrWhiteSpace(assistants.Get(id).Model))) return Results.StatusCode(503);
+        _ = await platform.Conversations.Take(1).AnyAsync(ct);
+        _ = await knowledge.Documents.Take(1).AnyAsync(ct);
+        _ = await identity.Users.Take(1).AnyAsync(ct);
+        return Results.Ok(new { status = "ready" });
+    }
+    catch (Exception) { return Results.StatusCode(503); }
+});
 app.Run();
 return 0;
 

@@ -27,6 +27,10 @@ export function toFriendlyMessage(error: HttpErrorResponse): string {
       return 'Cannot reach the server. Check that the API is running and try again.';
     case 400:
       return serverText(error) ?? 'The request was not valid. Please check the details and try again.';
+    case 401:
+      return serverText(error) ?? 'Sign-in failed or your session expired. Please sign in again.';
+    case 403:
+      return serverText(error) ?? 'You do not have permission to perform this action.';
     case 404:
       return 'That record was not found. It may have been removed.';
     case 422:

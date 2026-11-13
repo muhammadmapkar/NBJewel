@@ -99,7 +99,7 @@ public sealed class ChatToolParityTests
             var store = stores.First(s => s!["id"]!.GetValue<int>() == r!["storeId"]!.GetValue<int>())!;
             return (JsonNode)new JsonObject
             {
-                ["storeId"] = r["storeId"]!.DeepClone(), ["storeName"] = store["name"]!.DeepClone(), ["city"] = store["city"]!.DeepClone(),
+                ["storeId"] = r!["storeId"]!.DeepClone(), ["storeName"] = store["name"]!.DeepClone(), ["city"] = store["city"]!.DeepClone(),
                 ["onHand"] = r["onHand"]!.DeepClone(), ["reserved"] = r["reserved"]!.DeepClone(),
                 ["available"] = r["onHand"]!.GetValue<int>() - r["reserved"]!.GetValue<int>(),
             };

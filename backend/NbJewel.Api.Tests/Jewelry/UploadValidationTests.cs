@@ -73,7 +73,7 @@ public sealed class UploadValidationTests
     {
         var controller = JewelryTestKit.Controller(new FileJewelryRepository(JewelryTestKit.TempOptions()));
         var file = JewelryTestKit.File("<script>alert(1)</script>"u8.ToArray(), "evil.png");
-        var result = await controller.Upload("4321", "Evil", "earring", file, CancellationToken.None);
+        var result = await controller.Upload( "Evil", "earring", file, CancellationToken.None);
         Assert.IsType<BadRequestObjectResult>(result.Result);
     }
 
@@ -83,7 +83,7 @@ public sealed class UploadValidationTests
         var repository = new FileJewelryRepository(JewelryTestKit.TempOptions());
         var controller = JewelryTestKit.Controller(repository);
         var file = JewelryTestKit.File(JewelryTestKit.Png(), "../../etc/passwd.exe");
-        var result = await controller.Upload("4321", "Stud", "earring", file, CancellationToken.None);
+        var result = await controller.Upload( "Stud", "earring", file, CancellationToken.None);
         var item = Assert.IsType<JewelryItem>(Assert.IsType<CreatedResult>(result.Result).Value);
         Assert.Equal($"/jewelry-images/{item.Id}.png", item.ImageUrl);
         Assert.DoesNotContain("passwd", item.ImageUrl);
@@ -94,7 +94,7 @@ public sealed class UploadValidationTests
     {
         var controller = JewelryTestKit.Controller(new FileJewelryRepository(JewelryTestKit.TempOptions()));
         var file = JewelryTestKit.File(JewelryTestKit.Png((int)UploadValidator.MaxBytes + 10), "big.png");
-        var result = await controller.Upload("4321", "Big", "necklace", file, CancellationToken.None);
+        var result = await controller.Upload( "Big", "necklace", file, CancellationToken.None);
         Assert.IsType<BadRequestObjectResult>(result.Result);
     }
 
@@ -102,7 +102,7 @@ public sealed class UploadValidationTests
     public async Task Controller_MissingFile_Returns400()
     {
         var controller = JewelryTestKit.Controller(new FileJewelryRepository(JewelryTestKit.TempOptions()));
-        var result = await controller.Upload("4321", "None", "ring", null, CancellationToken.None);
+        var result = await controller.Upload( "None", "ring", null, CancellationToken.None);
         Assert.IsType<BadRequestObjectResult>(result.Result);
     }
 }

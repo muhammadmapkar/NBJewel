@@ -37,8 +37,8 @@ internal static class JewelryTestKit
     public static OwnerPin Pin(string? value) =>
         new(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["OWNER_PIN"] = value }).Build());
 
-    public static JewelryController Controller(IJewelryRepository repository, string? ownerPin = "4321") =>
-        new(repository, Pin(ownerPin)) { ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() } };
+    public static JewelryController Controller(IJewelryRepository repository) =>
+        new(repository) { ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() } };
 
     public static IFormFile File(byte[] content, string fileName)
     {

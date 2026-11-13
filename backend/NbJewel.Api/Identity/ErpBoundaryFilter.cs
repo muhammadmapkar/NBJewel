@@ -1,0 +1,51 @@
+// Role: Enforces deterministic permissions and denies endpoints whose queries cannot honor store scope.
+using System.Security.Claims;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+
+namespace NbJewel.Api.Identity;
+
+public sealed class ErpBoundaryFilter(IPermissionAdapter permissions) : IAsyncAuthorizationFilter
+{
+    public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
+    {
+        var action = context.ActionDescriptor.RouteValues;
+        action.TryGetValue("controller", out var controller);
+        action.TryGetValue("action", out var name);
+        string[] required = (controller, name) switch
+        {
+            ("Items", "GetStock") => ["items.read", "stock.read"],
+            ("Items", "AddStock") => ["items.read", "stock.write", "stock.read"],
+            ("Items", "GetPrice" or "GetVariants") => ["items.read", "prices.read"],
+            ("Items", "UpdateStatus") => ["items.read", "prices.read", "status.read", "status.write"],
+            ("Items", "Create" or "Update") => ["items.read", "items.write", "prices.read", "status.read"],
+            ("Items", _) => ["items.read", "prices.read", "status.read"],
+            ("ReferenceData", "GetLowStock") => ["reference.read", "stock.read"],
+            ("ReferenceData", "GetLatestRates") => ["reference.read", "prices.read"],
+            ("ReferenceData", _) => ["reference.read"],
+            ("Chat", _) => ["chat.read"],
+            ("Jewelry", _) when name != "GetActive" => ["jewelry.manage"],
+            _ => []
+        };
+        if (required.Length == 0)
+        {
+            // These endpoints perform their own identity/resource checks, or are explicitly public.
+            if (controller is "Auth" or "Knowledge" or "AiConversations" || (controller == "Jewelry" && name == "GetActive")) return;
+            context.Result = new ForbidResult();
+            return;
+        }
+        var principal = context.HttpContext.User;
+        if (principal.Identity?.IsAuthenticated != true)
+        {
+            context.Result = new UnauthorizedResult();
+            return;
+        }
+        var id = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+        var access = id is null ? null : await permissions.ResolveAsync(id, context.HttpContext.RequestAborted);
+        var requiresAllStores = controller == "Jewelry" || (controller == "Items" &&
+            !HttpMethods.IsGet(context.HttpContext.Request.Method) && name != "AddStock");
+        if (access is null || access.AccountType != "erp" || (requiresAllStores && !access.AllStores) || !required.All(access.Permissions.Contains))
+            context.Result = new ForbidResult();
+        else context.HttpContext.Items["ErpAccess"] = access;
+    }
+}

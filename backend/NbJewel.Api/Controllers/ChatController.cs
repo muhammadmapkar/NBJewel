@@ -7,12 +7,14 @@
 using Microsoft.AspNetCore.Mvc;
 using NbJewel.Api.Chat;
 using NbJewel.Api.Models;
+using NbJewel.Api.Platform;
+using Microsoft.EntityFrameworkCore;
 
 namespace NbJewel.Api.Controllers;
 
 [ApiController]
 [Route("api/chat")]
-public sealed class ChatController(ChatOrchestrator orchestrator, ILogger<ChatController> logger) : ControllerBase
+public sealed class ChatController(ILegacyAssistant gateway, ILogger<ChatController> logger) : ControllerBase
 {
     public const int MaxQuestionLength = 500;
     public const int MaxHistoryMessages = 50;
@@ -37,8 +39,14 @@ public sealed class ChatController(ChatOrchestrator orchestrator, ILogger<ChatCo
         deadline.CancelAfter(Deadline);
         try
         {
-            return Ok(await orchestrator.AskAsync(question, request.History, deadline.Token));
+            // Browser history is untrusted. Only the current question reaches the model.
+            return Ok(await gateway.AskAsync(HttpContext, question, deadline.Token));
         }
+        catch (AssistantDeniedException) { return StatusCode(403); }
+        catch (AssistantBusyException) { return StatusCode(429); }
+        catch (AssistantConflictException) { return StatusCode(409); }
+        catch (Exception error) when (error is AssistantUnavailableException or DbUpdateException or InvalidOperationException or System.Data.Common.DbException)
+        { logger.LogWarning("Assistant call failed: {ErrorType}", error.GetType().Name); return StatusCode(503, new ErrorMessage(BusyMessage)); }
         catch (Exception error) when (error is LlmException || (error is OperationCanceledException && !cancellationToken.IsCancellationRequested))
         {
             // A timeout or the question deadline surfaces as a cancelled request that the caller did not cancel.

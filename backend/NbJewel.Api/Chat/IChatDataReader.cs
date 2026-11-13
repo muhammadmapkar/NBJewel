@@ -13,6 +13,13 @@ public interface IChatDataReader
     Task<PagedResult<Item>> SearchItemsAsync(string? search, int? categoryId, string? metal, string? purity, string? status, int page, int pageSize, CancellationToken cancellationToken);
     Task<Item?> GetItemAsync(int id, CancellationToken cancellationToken);
     Task<IReadOnlyList<StockRecord>> GetStockAsync(int itemId, CancellationToken cancellationToken);
+    // Stock rows for several items at once. The default asks one item at a time; the repository-backed readers override it.
+    async Task<IReadOnlyList<StockRecord>> GetStockForItemsAsync(IReadOnlyCollection<int> itemIds, CancellationToken cancellationToken)
+    {
+        var rows = new List<StockRecord>();
+        foreach (var id in itemIds.Distinct()) rows.AddRange(await GetStockAsync(id, cancellationToken));
+        return rows;
+    }
     Task<ItemPrice?> GetPriceAsync(int itemId, CancellationToken cancellationToken);
     Task<IReadOnlyList<Category>> GetCategoriesAsync(CancellationToken cancellationToken);
     Task<IReadOnlyList<Store>> GetStoresAsync(CancellationToken cancellationToken);
@@ -25,6 +32,7 @@ public sealed class ChatDataReader(IItemRepository repository) : IChatDataReader
         repository.SearchItemsAsync(search, categoryId, metal, purity, status, page, pageSize, cancellationToken);
     public Task<Item?> GetItemAsync(int id, CancellationToken cancellationToken) => repository.GetItemAsync(id, cancellationToken);
     public Task<IReadOnlyList<StockRecord>> GetStockAsync(int itemId, CancellationToken cancellationToken) => repository.GetStockAsync(itemId, cancellationToken);
+    public Task<IReadOnlyList<StockRecord>> GetStockForItemsAsync(IReadOnlyCollection<int> itemIds, CancellationToken cancellationToken) => repository.GetStockForItemsAsync(itemIds, cancellationToken);
     public Task<ItemPrice?> GetPriceAsync(int itemId, CancellationToken cancellationToken) => repository.GetPriceAsync(itemId, cancellationToken);
     public Task<IReadOnlyList<Category>> GetCategoriesAsync(CancellationToken cancellationToken) => repository.GetCategoriesAsync(cancellationToken);
     public Task<IReadOnlyList<Store>> GetStoresAsync(CancellationToken cancellationToken) => repository.GetStoresAsync(cancellationToken);

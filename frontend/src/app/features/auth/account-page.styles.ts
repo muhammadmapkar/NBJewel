@@ -1,0 +1,2 @@
+// Role: Shares the existing account page theme styles across sign-in and email verification.
+export const ACCOUNT_PAGE_STYLES = `.account-page { max-width:480px; margin:60px auto; padding:16px; } form, label { display:grid; gap:8px; } form { gap:16px; } input { min-width:0; padding:10px; border:1px solid var(--line); border-radius:4px; } button { padding:10px; background:var(--button); border:1px solid var(--gold); border-radius:4px; color:var(--ink); } button:disabled { opacity:.6; } a { color:var(--gold); } .error { color:var(--danger); }`;
