@@ -26,5 +26,13 @@
     "purity": "925",
     "ratePerGram": 0.9,
     "effectiveDate": "2026-09-30"
+  },
+  {
+    "id": 5,
+    "metalType": "Platinum",
+    "purity": "950",
+    "ratePerGram": 110.0,
+    "currency": "AED",
+    "effectiveDate": "2026-09-30"
   }
 ]

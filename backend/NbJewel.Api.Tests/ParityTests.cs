@@ -79,10 +79,10 @@ public sealed class ParityTests
         Add("create stone>gross", Describe(await items.Create(create with { Code = "PAR-2", GrossWt = 1m, StoneWt = 2m }, Ct)));
         Add("create bad category", Describe(await items.Create(create with { Code = "PAR-3", CategoryId = 99 }, Ct)));
         Add("create bad purity", Describe(await items.Create(create with { Code = "PAR-4", Purity = "11K" }, Ct)));
-        Add("update", Describe(await items.Update(31, new ItemUpdateRequest("PAR-1", "Parity Ring 2", 3, 4, "Gold", "18K", 20m, 0m, 2m, "flat", 50m, null, null), Ct)));
+        Add("update", Describe(await items.Update(32, new ItemUpdateRequest("PAR-1", "Parity Ring 2", 3, 4, "Gold", "18K", 20m, 0m, 2m, "flat", 50m, null, null), Ct)));
         Add("update missing", Describe(await items.Update(9999, new ItemUpdateRequest("PAR-9", "None", 2, 1, "Gold", "22K", 1m, 0m, 0m, "flat", 1m, null, null), Ct)));
-        Add("status", Describe(await items.UpdateStatus(31, new StatusUpdateRequest("with smith"), Ct)));
-        Add("status bad", Describe(await items.UpdateStatus(31, new StatusUpdateRequest("Pending"), Ct)));
+        Add("status", Describe(await items.UpdateStatus(32, new StatusUpdateRequest("with smith"), Ct)));
+        Add("status bad", Describe(await items.UpdateStatus(32, new StatusUpdateRequest("Pending"), Ct)));
         Add("stock add new row", Describe(await items.AddStock(1, new StockAddRequest(12, 1, 3), Ct)));
         Add("stock add existing row", Describe(await items.AddStock(1, new StockAddRequest(11, 1, 2), Ct)));
         Add("stock add no-variant item", Describe(await items.AddStock(3, new StockAddRequest(null, 2, 4), Ct)));

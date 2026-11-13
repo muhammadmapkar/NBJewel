@@ -4,25 +4,27 @@
 ## Lock
 - Agent: codex-storefront
 - Since: 2026-11-14T01:08:23+04:00
-- Status: held for setup and phase 2 task 1.
+- Status: held; task 1 complete, continuing to task 2.
 
 ## Branch and last commit
 - Branch: `feature/customer-storefront`.
 - Remote: `origin/feature/customer-storefront`; upstream exists; fetch and fast-forward pull succeeded.
-- Verified starting HEAD: `a4f8ef3acb049daaea9016dc18dfbf2886e708f0` (Phase 1).
+- Verified Phase 1 baseline: `a4f8ef3acb049daaea9016dc18dfbf2886e708f0` (Phase 1).
+- Verified predecessor for task 1 checkpoint: `d44c748` (setup, pushed).
 - Snapshot commit: the commit containing this handoff; resolve with `git log -1 --format=%H -- AI-MEMORY-HANDOFF.md`. Compare it with HEAD on the next start. A literal self-referencing commit hash cannot be recorded inside the same commit.
 
 ## Current goal
-Complete setup, then phase 2 task 1: preserve storefront metadata and a clearly labelled sample platinum product through the swappable catalog data layer. API first, then storefront. No SQL execution.
+Task 1 complete. Next: phase 2 task 2, anonymous read-only published-product and metal-rate endpoints. API first, then storefront. No SQL execution.
 
 ## Done
+- Phase 2 task 1: optional validated storefront metadata survives create/read/search/explicit update and legacy ERP edits; labelled Draft sample platinum necklace and historical Pt950 rate added; Sample and SQL mappings prepared; full backend sample suite passed 315 tests, 6 SQL checks skipped.
 - Phase 1 at `a4f8ef3`: equal image cards, details blocks, two-line names, photo preview with Retake/Save/Share, ring uploads blocked, FAQ restored.
 - Startup: fetched all remotes, confirmed branch and upstream, pulled with `--ff-only`, read the prior handoff fully, checked date and found no active lock, matched HEAD to the supplied seed.
 - Setup files written: replaced stale handoff statements, added the handoff protocol to AGENTS.md, and added Claude/Copilot routing instructions. Validation passed; setup checkpoint prepared.
 
 ## Next steps (ordered checklist)
 - [x] Setup: handoff/protocol validation passed; these four files form the setup checkpoint, pushed before task 1 begins.
-- [ ] 1. Storefront metadata and sample platinum support. Size L. Files: backend models, repositories, sample-data, docs/item_catalog_schema.sql. Done when a labelled sample platinum product keeps metal, purity, and storefront metadata. Test: `dotnet test backend/NbJewel.Api.Tests`.
+- [x] 1. Storefront metadata and sample platinum support. Size L. Files: backend models, repositories, sample-data, docs/item_catalog_schema.sql. Done when a labelled sample platinum product keeps metal, purity, and storefront metadata. Test: `dotnet test backend/NbJewel.Api.Tests`.
 - [ ] 2. Public read-only endpoints for products and metal rates. Size M. Files: controllers, Knowledge/KnowledgeService.cs, Identity/ErpBoundaryFilter.cs, backend tests. Anonymous reads return published allowed products only; unpublished and excluded categories stay hidden. Test: backend suite.
 - [ ] 3. Complete pricing and change evidence. Size L. Files: ItemPricing.cs, ItemModels.cs, repositories, backend tests. A sample rate change gives metal, making, stones, VAT, total, effective date, and change explanation. Test: backend suite.
 - [ ] 4. Durable cutout pipeline link. Size L. Files: Jewelry/, controllers, repositories, existing cutout/catalog scripts. Upload stores a linked transparent preview asset that survives restart. Use existing scripts only; no new removal tooling. Licensing open, quality manual. Test: backend suite.
@@ -34,6 +36,11 @@ Complete setup, then phase 2 task 1: preserve storefront metadata and a clearly 
 - [ ] After task 9: run the lead review, stop, wait for Muhammad.
 
 ## Blockers and decisions
+- Task 1 implementation checkpoint: optional metadata mapped through both repository adapters and SQL seed/schema files; sample product 31 (Platinum/950) is Draft with no image. Historical assumed rate: AED 110/g on 2026-09-30, not a live or fresh market claim. Counts/next-id tests updated for the added fixture; unknown-metal test now uses Palladium. SQL execution is not authorized; SQL parity tests remain skipped. Existing SQL databases require a future reviewed migration for StorefrontJson.
+- JSON fixtures remain strict JSON (the format does not allow comments); sample role and assumptions are explicit in the new product's copy and this handoff.
+- Task 1 design (assumed demo contract): optional typed storefront metadata on Item and create/update requests, including display description/note, collection, occasions, stones, size, badge, popularity, added date, and sample label. Metadata does not grant publication. Old requests omitting metadata preserve it on update; explicit metadata replaces it.
+- Task 1 plan: baseline backend sample suite; write repository tests for platinum seed/read/filter, metadata create/update/legacy writes and validation; observe RED; add the model/shared validation and Sample/SQL mappings; add one Draft sample platinum necklace plus an explicitly historical assumed Pt950 rate; prepare SQL JSON column/check and seed mapping as files; run backend suite and static diff review; checkpoint and push.
+- Dependencies reviewed: task 2 consumes item metal/purity/metadata but publication remains in KnowledgeService; task 3 consumes Pt950 rate and Item pricing, stones/VAT remain task 3; task 4 will link cutout assets without treating metadata as readiness; task 6 maps existing storefront display fields. No public endpoints or frontend behavior are added in task 1.
 - The prior handoff described another branch and old SQL authorization. Replaced from Muhammad's current seed and protocol; current instructions prohibit all Docker/SQL data steps.
 - Ruling: use this existing feature checkout and this handoff as the only ledger; no worktree, extra handoff, or AI-memory service mutation. Agents are sequential and the owner's forbidden worktree stays untouched.
 - Ruling: snapshot commit is resolved from git history because a commit cannot embed its own hash. Record verified predecessor and task implementation hashes as work advances.
@@ -42,14 +49,18 @@ Complete setup, then phase 2 task 1: preserve storefront metadata and a clearly 
 - No questions to owner. Choose conservative sample-only behavior and log assumptions. Accounts, chatbot, locator are later phases.
 
 ## Files touched
+- Task 1: ItemModels.cs, ItemWriteRules.cs, SampleItemRepository.cs, SqlItemRepository.cs, SqlDatabaseSetup.cs, sample-data/items.json and metal-rates.json, docs/item_catalog_schema.sql, StorefrontMetadataTests.cs, ItemWriteTests.cs, ParityTests.cs, Chat/ChatToolsTests.cs.
 - This turn: `AGENTS.md`, `AI-MEMORY-HANDOFF.md`, `CLAUDE.md`, `.github/copilot-instructions.md`.
 - Pre-existing owner changes preserved, excluded from staging: PROGRESS.md, docs/run-guide.md, customer-tryon/package-lock.json; untracked browser security plan, old proof image, pasted jewelry image.
 
 ## Test commands and last results
+- Task 1 final: `dotnet test backend/NbJewel.Api.Tests` in forced sample mode with SQL/connection variables removed: 315 passed, 6 skipped, 0 failed. Build performed by dotnet test, no compiler/analyzer warnings. Log `/tmp/nbjewel-task1-green.log`.
+- Task 1 RED: 5 failed, 1 passed before implementation. Full-run fixture-count failure corrected, then final full suite passed. `git diff --check` on all task paths passed.
+- Static self-review completed for task 1 shared validation, SQL column/parameter/reader and seed mapping, legacy update behavior, sample labels, and excluded owner paths. No independent lead review yet; that gate remains after task 9.
 - Prior seed only, not rerun today: backend 309 passed, 6 skipped; ERP 66 passed; storefront 50 passed; builds OK.
 - Startup: `git fetch --all --prune` passed; `git pull --ff-only` reported already up to date.
 - Setup validation: Python assertions on all required sections, four role comments, routing pointers and no em-dashes passed; `git diff --check -- AGENTS.md AI-MEMORY-HANDOFF.md CLAUDE.md .github/copilot-instructions.md` passed.
-- Task 1 backend tests pending; SQL connection variables will be removed from child processes and `.env` files will not be read.
+- Task 1 baseline: `dotnet test backend/NbJewel.Api.Tests` with all SQL/connection environment variables removed and `Repository__Provider=Sample`: 309 passed, 6 skipped, 0 failed. Initial sandbox run aborted at VSTest socket binding; same command outside sandbox passed. No SQL executed. Logs: `/tmp/nbjewel-task1-baseline.log`.
 
 ## Manual checks for Muhammad
 - Phone and desktop alignment.
@@ -58,4 +69,9 @@ Complete setup, then phase 2 task 1: preserve storefront metadata and a clearly 
 - Real browser CORS and cookies.
 
 ## Agent log (newest first)
+- 2026-11-14T01:16:25+04:00 codex-storefront: task 1 complete after 315 passing sample tests, 6 SQL skips. Preparing explicit-path commit and push; task 2 next. SQL adapters/schema were reviewed as files only.
+- 2026-11-14 codex-storefront: new metadata/platinum contracts passed in the full run; one pre-existing low-stock fixture-count assertion failed (30 versus 31). The tool correctly treats the new stockless draft sample as zero available. Updated that expectation and added an explicit zero-stock platinum assertion; rerunning the suite.
+- 2026-11-14 codex-storefront: task 1 RED confirmed: 5 expected contract failures (missing platinum, metadata create/read/update/preservation and rejection); 1 legacy-null behavior already passes. Log `/tmp/nbjewel-task1-red.log`. Implementing shared validation and repository mappings.
+- 2026-11-14 codex-storefront: task 1 baseline passed 309/6 skipped in explicit sample mode. Writing contract tests before implementation.
+- 2026-11-14T01:10:18+04:00 codex-storefront: setup pushed as d44c748; task 1 design and ordered implementation plan recorded. New platinum fixture will be Draft, sample-only, without a claimed real photo or cutout.
 - 2026-11-14T01:08:23+04:00 codex-storefront: took the previously absent lock, matched seed commit, wrote setup files. Owner changes untouched. Setup validation passed; setup commit/push followed by task 1.

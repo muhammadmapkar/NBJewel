@@ -1,3 +1,4 @@
+-- Role: Defines the assumed sample item catalog schema for later reviewed SQL setup.
 /* ==========================================================
    NB Jewel item catalog. SAMPLE schema for demo.
    ALL table and column names are ASSUMED.
@@ -30,7 +31,7 @@ CREATE TABLE dbo.Metal (
 CREATE TABLE dbo.Purity (
     PurityId     INT IDENTITY(1,1) PRIMARY KEY,
     MetalId      INT NOT NULL REFERENCES dbo.Metal(MetalId),
-    Label        NVARCHAR(20) NOT NULL,           -- 24K, 22K, 18K, 925
+    Label        NVARCHAR(20) NOT NULL,           -- 24K, 22K, 18K, 925, 950 (sample platinum)
     Fineness     DECIMAL(5,4) NOT NULL,           -- 0.9160 for 22K
     CONSTRAINT UQ_Purity UNIQUE (MetalId, Label)
 );
@@ -75,6 +76,11 @@ CREATE TABLE dbo.Item (
                   CHECK (MakingType IN ('PERCENT','PER_GRAM','FIXED')),
     MakingValue   DECIMAL(10,2) NOT NULL DEFAULT 0,
     StoneCharge   DECIMAL(12,2) NOT NULL DEFAULT 0,
+    -- ASSUMED: optional customer copy, arrays, added date and sample label.
+    -- Publication and cutout readiness remain separate from this metadata.
+    -- Existing databases need a separately reviewed migration before this repository version is used.
+    StorefrontJson NVARCHAR(MAX) NULL
+                   CHECK (StorefrontJson IS NULL OR ISJSON(StorefrontJson) = 1),
     CreatedAt     DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     UpdatedAt     DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     CONSTRAINT CK_Stone_LE_Gross CHECK (StoneWeightG <= GrossWeightG)

@@ -538,5 +538,37 @@
     "huid": "1K87WF",
     "status": "Complete",
     "imageUrl": "/images/COIN-0030.jpg"
+  },
+  {
+    "id": 31,
+    "code": "SAMPLE-PT-0031",
+    "name": "Sample platinum necklace",
+    "categoryId": 3,
+    "designId": 6,
+    "designCode": "DSN-106",
+    "metalType": "Platinum",
+    "purity": "950",
+    "grossWt": 10.5,
+    "netWt": 10.5,
+    "stoneWt": 0.0,
+    "makingType": "percent",
+    "makingValue": 10.0,
+    "huid": null,
+    "status": "Draft",
+    "imageUrl": null,
+    "storefront": {
+      "note": "Assumed sample product. Not published.",
+      "description": "Assumed sample platinum necklace for the internship demo. No real product or reviewed cutout is claimed.",
+      "collection": "Sample platinum",
+      "occasions": [
+        "Daily wear"
+      ],
+      "stones": [],
+      "size": "Sample adjustable length",
+      "badge": null,
+      "popularity": 0,
+      "addedOn": "2026-09-30",
+      "isSample": true
+    }
   }
 ]

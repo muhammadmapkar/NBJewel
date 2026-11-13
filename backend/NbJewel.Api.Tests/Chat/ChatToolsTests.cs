@@ -102,7 +102,9 @@ public sealed class ChatToolsTests
     {
         var all = await RunTool("list_low_stock", new { threshold = 1000 });
         Assert.Equal("ok", Status(all));
-        Assert.Equal(30, Data(all)["count"]!.GetValue<int>());
+        Assert.Equal(31, Data(all)["count"]!.GetValue<int>());
+        var platinum = Assert.Single(Data(all)["items"]!.AsArray(), x => x!["code"]!.GetValue<string>() == "SAMPLE-PT-0031");
+        Assert.Equal(0, platinum!["available"]!.GetValue<int>());
         var availables = Data(all)["items"]!.AsArray().Select(i => i!["available"]!.GetValue<int>()).ToList();
         Assert.Equal(availables.Order().ToList(), availables);
 
@@ -131,7 +133,7 @@ public sealed class ChatToolsTests
         Assert.Equal(3, Data(gold).AsArray().Count);
         var gold22 = await RunTool("get_latest_metal_rate", new { metal = "Gold", purity = "22k" });
         Assert.Equal(66m, Data(gold22)[0]!["ratePerGram"]!.GetValue<decimal>());
-        Assert.Equal("not_found", Status(await RunTool("get_latest_metal_rate", new { metal = "Platinum" })));
+        Assert.Equal("not_found", Status(await RunTool("get_latest_metal_rate", new { metal = "Palladium" })));
     }
 
     [Fact]
@@ -140,7 +142,7 @@ public sealed class ChatToolsTests
         var draft = await RunTool("list_items_by_status", new { status = "draft" });
         Assert.Equal("ok", Status(draft));
         Assert.Equal("Draft", Data(draft)["status"]!.GetValue<string>());
-        Assert.Equal(2, Data(draft)["totalCount"]!.GetValue<int>());
+        Assert.Equal(3, Data(draft)["totalCount"]!.GetValue<int>());
         Assert.False(Data(draft)["truncated"]!.GetValue<bool>());
         Assert.NotNull(Data(draft)["items"]![0]!["onHand"]);
         Assert.Equal("not_found", Status(await RunTool("list_items_by_status", new { status = "With Smith" })));

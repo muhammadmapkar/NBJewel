@@ -19,7 +19,7 @@ public static class SqlDatabaseSetup
     // Assumed purity strengths for the sample purities. Not confirmed by NB Jewel.
     private static readonly Dictionary<string, decimal> Fineness = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["24K"] = 0.9990m, ["22K"] = 0.9160m, ["18K"] = 0.7500m, ["925"] = 0.9250m
+        ["24K"] = 0.9990m, ["22K"] = 0.9160m, ["18K"] = 0.7500m, ["925"] = 0.9250m, ["950"] = 0.9500m
     };
 
     // Creates the database, applies the schema when the database is empty, and seeds it.
@@ -146,12 +146,13 @@ public static class SqlDatabaseSetup
 
         foreach (var i in items)
         {
-            var valid = ItemWriteRules.Validate(i.Code, i.Name, i.GrossWt, i.StoneWt, i.MakingType, i.MakingValue, i.Huid, i.ImageUrl); // same rules as the API, so bad seed data fails loudly
-            await InsertAsync(connection, transaction, "Item", "ItemId, ItemCode, Name, CategoryId, DesignId, PurityId, HuidNumber, Status, GrossWeightG, StoneWeightG, MakingType, MakingValue",
-                "@id, @code, @name, @category, @design, @purity, @huid, @status, @gross, @stone, @makingType, @makingValue",
+            var valid = ItemWriteRules.Validate(i.Code, i.Name, i.GrossWt, i.StoneWt, i.MakingType, i.MakingValue, i.Huid, i.ImageUrl, i.Storefront); // same rules as the API, so bad seed data fails loudly
+            await InsertAsync(connection, transaction, "Item", "ItemId, ItemCode, Name, CategoryId, DesignId, PurityId, HuidNumber, Status, GrossWeightG, StoneWeightG, MakingType, MakingValue, StorefrontJson",
+                "@id, @code, @name, @category, @design, @purity, @huid, @status, @gross, @stone, @makingType, @makingValue, @storefront",
                 [P("@id", i.Id), P("@code", valid.Code), P("@name", valid.Name), P("@category", i.CategoryId), P("@design", i.DesignId), P("@purity", PurityId(i.MetalType, i.Purity)),
                  P("@huid", valid.Huid), P("@status", ItemStatusRules.Resolve(i.Status)), P("@gross", valid.GrossWt), P("@stone", valid.StoneWt),
-                 P("@makingType", ToDbMakingType(valid.MakingType)), P("@makingValue", valid.MakingValue)], cancellationToken);
+                 P("@makingType", ToDbMakingType(valid.MakingType)), P("@makingValue", valid.MakingValue),
+                 P("@storefront", valid.Storefront is null ? null : JsonSerializer.Serialize(valid.Storefront, new JsonSerializerOptions(JsonSerializerDefaults.Web)))], cancellationToken);
             if (!string.IsNullOrWhiteSpace(i.ImageUrl))
                 await ExecAsync(connection, transaction, "INSERT dbo.ItemImage (ItemId, Url, IsPrimary) VALUES (@item, @url, 1)", [P("@item", i.Id), P("@url", i.ImageUrl)], cancellationToken);
         }

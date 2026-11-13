@@ -7,14 +7,14 @@
 namespace NbJewel.Api.Models;
 
 // The cleaned values that are safe to store. NetWt is computed, never taken from the client.
-public sealed record ValidItem(string Code, string Name, decimal GrossWt, decimal StoneWt, decimal NetWt, string MakingType, decimal MakingValue, string? Huid, string? ImageUrl);
+public sealed record ValidItem(string Code, string Name, decimal GrossWt, decimal StoneWt, decimal NetWt, string MakingType, decimal MakingValue, string? Huid, string? ImageUrl, StorefrontMetadata? Storefront = null);
 
 public static class ItemWriteRules
 {
     // Making types the API accepts, in the spelling the API returns.
     public static readonly IReadOnlyList<string> MakingTypes = ["perGram", "percent", "flat"];
 
-    public static ValidItem Validate(string? code, string? name, decimal grossWt, decimal stoneWt, string? makingType, decimal makingValue, string? huid, string? imageUrl)
+    public static ValidItem Validate(string? code, string? name, decimal grossWt, decimal stoneWt, string? makingType, decimal makingValue, string? huid, string? imageUrl, StorefrontMetadata? storefront = null)
     {
         if (string.IsNullOrWhiteSpace(code)) throw new DomainValidationException("Item code is required.");
         if (code.Length > 30) throw new DomainValidationException("Item code can be at most 30 characters.");
@@ -37,6 +37,41 @@ public static class ItemWriteRules
         if (value < 0) throw new DomainValidationException("Making value cannot be negative.");
         if (value > 99_999_999.99m) throw new DomainValidationException("Making value is too large.");
 
-        return new ValidItem(code, name, gross, stone, gross - stone, making, value, huid, imageUrl);
+        return new ValidItem(code, name, gross, stone, gross - stone, making, value, huid, imageUrl, ValidateStorefront(storefront));
+    }
+
+    // Assumed display-copy limits keep the optional JSON small and identical on both providers.
+    public static StorefrontMetadata? ValidateStorefront(StorefrontMetadata? value)
+    {
+        if (value is null) return null;
+        if (string.IsNullOrWhiteSpace(value.Description))
+            throw new DomainValidationException("Storefront description is required when metadata is supplied.");
+        if (value.Badge is not (null or "new" or "bestseller"))
+            throw new DomainValidationException("Storefront badge must be new, bestseller, or null.");
+        if (value.Popularity < 0)
+            throw new DomainValidationException("Storefront popularity cannot be negative.");
+        return value with
+        {
+            Note = Text(value.Note, 200, "note"),
+            Description = Text(value.Description, 4000, "description"),
+            Collection = Text(value.Collection, 100, "collection"),
+            Size = Text(value.Size, 100, "size"),
+            Occasions = Labels(value.Occasions, "occasions"),
+            Stones = Labels(value.Stones, "stones")
+        };
+    }
+
+    private static string Text(string? value, int limit, string field)
+    {
+        if (value is { Length: var length } && length > limit)
+            throw new DomainValidationException($"Storefront {field} can be at most {limit} characters.");
+        return value?.Trim() ?? "";
+    }
+
+    private static string[] Labels(string[]? values, string field)
+    {
+        if (values is null || values.Length > 16 || values.Any(x => string.IsNullOrWhiteSpace(x) || x.Length > 100))
+            throw new DomainValidationException($"Storefront {field} must contain at most 16 nonempty labels of at most 100 characters.");
+        return values.Select(x => x.Trim()).ToArray();
     }
 }

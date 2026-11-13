@@ -22,6 +22,23 @@ public sealed class Item
     public string? Huid { get; set; }
     public string Status { get; set; } = string.Empty;
     public string? ImageUrl { get; set; }
+    // Optional customer-facing copy. Publication and cutout readiness are separate controls.
+    public StorefrontMetadata? Storefront { get; set; }
+}
+
+// Assumed demo metadata, not confirmed NB Jewel fields. No publication flag lives here.
+public sealed record StorefrontMetadata
+{
+    public string Note { get; init; } = "";
+    public string Description { get; init; } = "";
+    public string Collection { get; init; } = "";
+    public string[] Occasions { get; init; } = [];
+    public string[] Stones { get; init; } = [];
+    public string Size { get; init; } = "";
+    public string? Badge { get; init; }
+    public int Popularity { get; init; }
+    public DateOnly? AddedOn { get; init; }
+    public bool IsSample { get; init; } = true;
 }
 
 public sealed class Category { public int Id { get; set; } public string Name { get; set; } = ""; public int? ParentId { get; set; } }
@@ -33,9 +50,10 @@ public sealed class MetalRate { public int Id { get; set; } public string MetalT
 public sealed record ItemPrice(int ItemId, string Currency, decimal NetWeight, decimal RatePerGram, decimal MetalValue, string MakingType, decimal MakingValue, decimal MakingCharge, decimal TotalPrice);
 public sealed record PagedResult<T>(IReadOnlyList<T> Items, int Page, int PageSize, int TotalCount);
 // NetWt is kept in both requests for compatibility, but the API ignores it: net weight is always GrossWt minus StoneWt (see ItemWriteRules).
+// Omitted/null Storefront on an update preserves existing metadata for older ERP clients.
 // New items always start as Draft, and an update never changes status. Status moves only through the status endpoint.
-public sealed record ItemCreateRequest(string Code, string Name, int CategoryId, int DesignId, string MetalType, string Purity, decimal GrossWt, decimal NetWt, decimal StoneWt, string MakingType, decimal MakingValue, string? Huid, string? ImageUrl);
-public sealed record ItemUpdateRequest(string Code, string Name, int CategoryId, int DesignId, string MetalType, string Purity, decimal GrossWt, decimal NetWt, decimal StoneWt, string MakingType, decimal MakingValue, string? Huid, string? ImageUrl);
+public sealed record ItemCreateRequest(string Code, string Name, int CategoryId, int DesignId, string MetalType, string Purity, decimal GrossWt, decimal NetWt, decimal StoneWt, string MakingType, decimal MakingValue, string? Huid, string? ImageUrl, StorefrontMetadata? Storefront = null);
+public sealed record ItemUpdateRequest(string Code, string Name, int CategoryId, int DesignId, string MetalType, string Purity, decimal GrossWt, decimal NetWt, decimal StoneWt, string MakingType, decimal MakingValue, string? Huid, string? ImageUrl, StorefrontMetadata? Storefront = null);
 public sealed record StatusUpdateRequest(string Status);
 // Adds Quantity to the on-hand stock for this item, variant, and store.
 public sealed record StockAddRequest(int? VariantId, int StoreId, int Quantity);

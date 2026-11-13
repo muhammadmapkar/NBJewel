@@ -6,6 +6,7 @@
 // same computed net weight (the database column NetWeightG = gross - stone).
 
 using System.Data;
+using System.Text.Json;
 using Microsoft.Data.SqlClient;
 using NbJewel.Api.Models;
 
@@ -13,12 +14,14 @@ namespace NbJewel.Api.Repositories;
 
 public sealed class SqlItemRepository(string connectionString) : IItemRepository
 {
+    private static readonly JsonSerializerOptions StorefrontJson = new(JsonSerializerDefaults.Web);
+
     private const string ItemSelect = """
         SELECT i.ItemId, i.ItemCode, i.Name, i.CategoryId,
                ISNULL(i.DesignId, 0) AS DesignId, ISNULL(d.DesignCode, N'') AS DesignCode,
                m.Name AS MetalType, p.Label AS Purity,
                i.GrossWeightG, i.NetWeightG, i.StoneWeightG, i.MakingType, i.MakingValue,
-               i.HuidNumber, i.Status, img.Url AS ImageUrl
+               i.HuidNumber, i.Status, img.Url AS ImageUrl, i.StorefrontJson
         FROM dbo.Item i
         JOIN dbo.Purity p ON p.PurityId = i.PurityId
         JOIN dbo.Metal m ON m.MetalId = p.MetalId
@@ -133,7 +136,7 @@ public sealed class SqlItemRepository(string connectionString) : IItemRepository
 
     public async Task<Item> CreateAsync(ItemCreateRequest request, CancellationToken cancellationToken)
     {
-        var valid = ItemWriteRules.Validate(request.Code, request.Name, request.GrossWt, request.StoneWt, request.MakingType, request.MakingValue, request.Huid, request.ImageUrl);
+        var valid = ItemWriteRules.Validate(request.Code, request.Name, request.GrossWt, request.StoneWt, request.MakingType, request.MakingValue, request.Huid, request.ImageUrl, request.Storefront);
         await using var connection = await OpenAsync(cancellationToken);
         await using var transaction = (SqlTransaction)await connection.BeginTransactionAsync(cancellationToken);
         try
@@ -142,9 +145,9 @@ public sealed class SqlItemRepository(string connectionString) : IItemRepository
             var purityId = await FindPurityAsync(connection, transaction, request.MetalType, request.Purity, cancellationToken);
             // NetWeightG is a computed column (gross minus stone), so it is never written here.
             var id = await ScalarAsync<int>(connection, transaction, """
-                INSERT dbo.Item (ItemCode, Name, CategoryId, DesignId, PurityId, HuidNumber, Status, GrossWeightG, StoneWeightG, MakingType, MakingValue)
+                INSERT dbo.Item (ItemCode, Name, CategoryId, DesignId, PurityId, HuidNumber, Status, GrossWeightG, StoneWeightG, MakingType, MakingValue, StorefrontJson)
                 OUTPUT INSERTED.ItemId
-                VALUES (@code, @name, @category, @design, @purity, @huid, @status, @gross, @stone, @makingType, @makingValue)
+                VALUES (@code, @name, @category, @design, @purity, @huid, @status, @gross, @stone, @makingType, @makingValue, @storefront)
                 """,
                 [.. WriteParameters(valid, request.CategoryId, request.DesignId, purityId), new("@status", ItemStatusRules.Draft)],
                 cancellationToken);
@@ -163,7 +166,7 @@ public sealed class SqlItemRepository(string connectionString) : IItemRepository
         try
         {
             if (await GetItemAsync(connection, transaction, id, cancellationToken) is null) return null;
-            var valid = ItemWriteRules.Validate(request.Code, request.Name, request.GrossWt, request.StoneWt, request.MakingType, request.MakingValue, request.Huid, request.ImageUrl);
+            var valid = ItemWriteRules.Validate(request.Code, request.Name, request.GrossWt, request.StoneWt, request.MakingType, request.MakingValue, request.Huid, request.ImageUrl, request.Storefront);
             await EnsureLinksAsync(connection, transaction, request.DesignId, request.CategoryId, cancellationToken);
             var purityId = await FindPurityAsync(connection, transaction, request.MetalType, request.Purity, cancellationToken);
             // Status is not touched here. It only changes through UpdateStatusAsync.
@@ -171,7 +174,8 @@ public sealed class SqlItemRepository(string connectionString) : IItemRepository
                 UPDATE dbo.Item
                 SET ItemCode = @code, Name = @name, CategoryId = @category, DesignId = @design, PurityId = @purity,
                     HuidNumber = @huid, GrossWeightG = @gross, StoneWeightG = @stone,
-                    MakingType = @makingType, MakingValue = @makingValue, UpdatedAt = SYSUTCDATETIME()
+                    MakingType = @makingType, MakingValue = @makingValue,
+                    StorefrontJson = COALESCE(@storefront, StorefrontJson), UpdatedAt = SYSUTCDATETIME()
                 WHERE ItemId = @id
                 """,
                 [.. WriteParameters(valid, request.CategoryId, request.DesignId, purityId), new("@id", id)],
@@ -290,7 +294,8 @@ public sealed class SqlItemRepository(string connectionString) : IItemRepository
         MakingValue = r.GetDecimal(12),
         Huid = r.IsDBNull(13) ? null : r.GetString(13),
         Status = r.GetString(14),
-        ImageUrl = r.IsDBNull(15) ? null : r.GetString(15)
+        ImageUrl = r.IsDBNull(15) ? null : r.GetString(15),
+        Storefront = r.IsDBNull(16) ? null : JsonSerializer.Deserialize<StorefrontMetadata>(r.GetString(16), StorefrontJson)
     };
 
     // The API uses perGram, percent, flat. The schema uses PER_GRAM, PERCENT, FIXED.
@@ -300,7 +305,9 @@ public sealed class SqlItemRepository(string connectionString) : IItemRepository
     [
         new("@code", v.Code), new("@name", v.Name), new("@category", categoryId), new("@design", designId), new("@purity", purityId),
         new("@huid", (object?)v.Huid ?? DBNull.Value), new("@gross", v.GrossWt), new("@stone", v.StoneWt),
-        new("@makingType", SqlDatabaseSetup.ToDbMakingType(v.MakingType)), new("@makingValue", v.MakingValue)
+        new("@makingType", SqlDatabaseSetup.ToDbMakingType(v.MakingType)), new("@makingValue", v.MakingValue),
+        new SqlParameter("@storefront", SqlDbType.NVarChar, -1)
+        { Value = v.Storefront is null ? DBNull.Value : JsonSerializer.Serialize(v.Storefront, StorefrontJson) }
     ];
 
     // Keeps one primary image row per item: no URL removes it, a URL updates it or adds it.

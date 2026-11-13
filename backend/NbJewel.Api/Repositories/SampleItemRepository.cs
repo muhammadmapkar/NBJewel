@@ -39,6 +39,7 @@ public sealed class SampleItemRepository : IItemRepository
             .DistinctBy(x => (x.Item1.ToLowerInvariant(), x.Item2.ToLowerInvariant())).ToList();
         foreach (var item in items)
         {
+            item.Storefront = ItemWriteRules.ValidateStorefront(item.Storefront);
             ApplyDesign(item);
             item.NetWt = item.GrossWt - item.StoneWt; // net weight is always computed, never trusted from the file
         }
@@ -87,7 +88,7 @@ public sealed class SampleItemRepository : IItemRepository
     {
         lock (sync)
         {
-            var valid = ItemWriteRules.Validate(request.Code, request.Name, request.GrossWt, request.StoneWt, request.MakingType, request.MakingValue, request.Huid, request.ImageUrl);
+            var valid = ItemWriteRules.Validate(request.Code, request.Name, request.GrossWt, request.StoneWt, request.MakingType, request.MakingValue, request.Huid, request.ImageUrl, request.Storefront);
             EnsureLinks(request.DesignId, request.CategoryId, request.MetalType, request.Purity, valid.Code, null);
             var item = Build(valid, items.Count == 0 ? 1 : items.Max(x => x.Id) + 1, request.CategoryId, request.DesignId, request.MetalType, request.Purity, ItemStatusRules.Draft);
             items.Add(item);
@@ -101,9 +102,10 @@ public sealed class SampleItemRepository : IItemRepository
         {
             var index = items.FindIndex(x => x.Id == id);
             if (index < 0) return Task.FromResult<Item?>(null);
-            var valid = ItemWriteRules.Validate(request.Code, request.Name, request.GrossWt, request.StoneWt, request.MakingType, request.MakingValue, request.Huid, request.ImageUrl);
+            var valid = ItemWriteRules.Validate(request.Code, request.Name, request.GrossWt, request.StoneWt, request.MakingType, request.MakingValue, request.Huid, request.ImageUrl, request.Storefront);
             EnsureLinks(request.DesignId, request.CategoryId, request.MetalType, request.Purity, valid.Code, id);
             var item = Build(valid, id, request.CategoryId, request.DesignId, request.MetalType, request.Purity, items[index].Status);
+            item.Storefront ??= items[index].Storefront; // Legacy ERP edits must not erase customer copy.
             items[index] = item;
             return Task.FromResult<Item?>(item);
         }
@@ -171,7 +173,7 @@ public sealed class SampleItemRepository : IItemRepository
         {
             Id = id, Code = v.Code, Name = v.Name, CategoryId = categoryId, DesignId = designId,
             MetalType = pair.Metal, Purity = pair.Purity, GrossWt = v.GrossWt, NetWt = v.NetWt, StoneWt = v.StoneWt,
-            MakingType = v.MakingType, MakingValue = v.MakingValue, Huid = v.Huid, ImageUrl = v.ImageUrl, Status = status
+            MakingType = v.MakingType, MakingValue = v.MakingValue, Huid = v.Huid, ImageUrl = v.ImageUrl, Storefront = v.Storefront, Status = status
         };
         ApplyDesign(item);
         return item;

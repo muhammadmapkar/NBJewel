@@ -47,7 +47,7 @@ public sealed class ItemWriteTests
     public async Task SampleItems_AllHaveNetWeightEqualToGrossMinusStone(string provider)
     {
         var items = (await Repos.Create(provider).SearchItemsAsync(null, null, null, null, null, 1, 100, Ct)).Items;
-        Assert.Equal(30, items.Count);
+        Assert.Equal(31, items.Count);
         Assert.All(items, x => Assert.Equal(x.GrossWt - x.StoneWt, x.NetWt));
     }
 
@@ -60,7 +60,7 @@ public sealed class ItemWriteTests
         var ex = await Assert.ThrowsAsync<DomainValidationException>(() => repository.CreateAsync(Create(gross: 5m, stone: 5.001m), Ct));
 
         Assert.Equal("Stone weight cannot be greater than gross weight.", ex.Message);
-        Assert.Equal(30, (await repository.SearchItemsAsync(null, null, null, null, null, 1, 100, Ct)).TotalCount);
+        Assert.Equal(31, (await repository.SearchItemsAsync(null, null, null, null, null, 1, 100, Ct)).TotalCount);
     }
 
     [Theory]
@@ -151,7 +151,7 @@ public sealed class ItemWriteTests
     public async Task Create_ReturnsTheNextIdAndStartsAsDraft(string provider)
     {
         var item = await Repos.Create(provider).CreateAsync(Create(), Ct);
-        Assert.Equal(31, item.Id);
+        Assert.Equal(32, item.Id);
         Assert.Equal("Draft", item.Status);
         Assert.Equal("DSN-ZORK", item.DesignCode);
     }
