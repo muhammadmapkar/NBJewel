@@ -5,5 +5,6 @@ namespace NbJewel.Api.Repositories;
 public interface IItemImageAssetRepository
 {
     Task<ItemImageAsset?> GetAsync(int itemId, CancellationToken ct);
+    Task<ItemImageAsset?> ReviewAsync(int itemId, string revisionId, bool approve, CancellationToken ct);
     Task SaveAsync(ItemImageAsset asset, CancellationToken ct);
 }

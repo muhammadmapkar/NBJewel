@@ -174,6 +174,7 @@ GO
 CREATE TABLE [AiPublicationProducts] (
     [ItemId] int NOT NULL IDENTITY,
     [Published] bit NOT NULL,
+    [AssetRevisionId] nvarchar(32) NULL, -- ASSUMED: approved current cutout revision. Migration not applied.
     CONSTRAINT [PK_AiPublicationProducts] PRIMARY KEY ([ItemId])
 );
 GO

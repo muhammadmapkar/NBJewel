@@ -124,6 +124,9 @@ builder.Services.AddScoped<GatewayProvider>();
 var platformConnection = builder.Configuration["AI_PLATFORM_CONNECTION"] ?? builder.Configuration["NBJEWEL_IDENTITY_CONNECTION"];
 builder.Services.AddDbContext<PlatformDatabase>(options => { if (!string.IsNullOrWhiteSpace(platformConnection)) options.UseSqlServer(platformConnection); });
 builder.Services.AddDbContext<KnowledgeDatabase>(options => { if (!string.IsNullOrWhiteSpace(platformConnection)) options.UseSqlServer(platformConnection); });
+// Sample product decisions persist on disk without enabling SQL or bypassing ERP identity.
+if (provider.Equals("Sample", StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(platformConnection))
+    builder.Services.AddSingleton<IProductPublicationStore, FileProductPublicationStore>();
 builder.Services.AddScoped<KnowledgeService>();
 builder.Services.AddScoped<IKnowledgeRetriever>(services => services.GetRequiredService<KnowledgeService>());
 builder.Services.AddScoped<IKnowledgeEvidenceValidator>(services => services.GetRequiredService<KnowledgeService>());

@@ -3,9 +3,11 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using System.Text;
 using NbJewel.Api.Platform;
+using NbJewel.Api.Jewelry;
+using NbJewel.Api.Repositories;
 namespace NbJewel.Api.Knowledge;
 
-public sealed class KnowledgeService(KnowledgeDatabase db) : IKnowledgeRetriever, IPublicationReader, IKnowledgeEvidenceValidator
+public sealed class KnowledgeService(KnowledgeDatabase db, IProductPublicationStore? productStore = null, IItemImageAssetRepository? assets = null, ItemCutoutPipeline? previews = null) : IKnowledgeRetriever, IPublicationReader, IKnowledgeEvidenceValidator
 {
     private static string Id() => Guid.NewGuid().ToString("N");
     private void Audit(string? actor, string operation, string target) => db.Audits.Add(new KnowledgeAudit
@@ -56,10 +58,51 @@ public sealed class KnowledgeService(KnowledgeDatabase db) : IKnowledgeRetriever
         try { await db.SaveChangesAsync(ct); }
         catch (DbUpdateConcurrencyException) { throw new KnowledgeVersionConflictException(); }
     }
-    public async Task SetProductAsync(int id, bool published, CancellationToken ct, string? actor = null)
-    { if (id <= 0) throw new ArgumentException("Invalid item ID."); var p = await db.Products.FindAsync([id], ct); if (p is null) db.Products.Add(new ProductPublication { ItemId = id, Published = published }); else p.Published = published; Audit(actor, published ? "product.publish" : "product.revoke", id.ToString(System.Globalization.CultureInfo.InvariantCulture)); await db.SaveChangesAsync(ct); }
+    public async Task SetProductAsync(int id, bool published, CancellationToken ct, string? actor = null, string? assetRevisionId = null)
+    {
+        if (id <= 0) throw new ArgumentException("Invalid item ID.");
+        if (published && assets is not null)
+        {
+            var asset = await assets.GetAsync(id, ct);
+            if (asset is not { State: "ready", QualityReview: "approved" } ||
+                (assetRevisionId is not null && asset.RevisionId != assetRevisionId) ||
+                (previews is not null && await previews.PreviewAsync(id, ct) is null)) throw new ProductNotReadyException();
+            assetRevisionId = asset.RevisionId;
+        }
+        if (productStore is not null)
+        {
+            await productStore.SaveAsync(new() { ItemId = id, Published = published, AssetRevisionId = published ? assetRevisionId : null }, actor, ct);
+            return;
+        }
+        var p = await db.Products.FindAsync([id], ct);
+        if (p is null) { p = new ProductPublication { ItemId = id }; db.Products.Add(p); }
+        p.Published = published; p.AssetRevisionId = published ? assetRevisionId : null;
+        Audit(actor, published ? "product.publish" : "product.revoke", id.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        await db.SaveChangesAsync(ct);
+    }
+    public async Task<ProductPublication?> ProductDecisionAsync(int id, CancellationToken ct) =>
+        (await ProductRows(ct)).FirstOrDefault(x => x.ItemId == id);
+    private async Task<IReadOnlyList<ProductPublication>> ProductRows(CancellationToken ct) => productStore is not null
+        ? await productStore.ListAsync(ct) : await db.Products.AsNoTracking().ToListAsync(ct);
     public async Task<IReadOnlySet<int>> PublishedItemIdsAsync(CancellationToken ct)
-    { try { return (await db.Products.Where(x => x.Published).Select(x => x.ItemId).ToListAsync(ct)).ToHashSet(); } catch (Exception e) when (e is not OperationCanceledException) { throw new AssistantUnavailableException(); } }
+    {
+        try
+        {
+            var result = new HashSet<int>();
+            foreach (var row in (await ProductRows(ct)).Where(x => x.Published))
+            {
+                if (assets is not null)
+                {
+                    var asset = await assets.GetAsync(row.ItemId, ct);
+                    if (asset is not { State: "ready", QualityReview: "approved" } || asset.RevisionId != row.AssetRevisionId ||
+                        (previews is not null && await previews.PreviewAsync(row.ItemId, ct) is null)) continue;
+                }
+                result.Add(row.ItemId);
+            }
+            return result;
+        }
+        catch (Exception e) when (e is not OperationCanceledException) { throw new AssistantUnavailableException(); }
+    }
     public async Task<IReadOnlyList<KnowledgeHit>> SearchAsync(AssistantContext context, string query, CancellationToken ct)
     {
         try {
@@ -82,3 +125,5 @@ public sealed class KnowledgeService(KnowledgeDatabase db) : IKnowledgeRetriever
 }
 
 public sealed class KnowledgeVersionConflictException : Exception;
+
+public sealed class ProductNotReadyException : Exception;

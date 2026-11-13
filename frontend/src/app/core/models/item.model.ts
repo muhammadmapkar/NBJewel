@@ -18,6 +18,9 @@ export interface Item {
   huid: string | null;
   status: string;
   imageUrl: string | null;
+  storefront?: StorefrontMetadata | null;
+  stoneValue?: number;
+  vatPercent?: number;
 }
 
 // Body sent when creating or fully updating an item (the API has no id field here).
@@ -36,6 +39,9 @@ export interface ItemWriteRequest {
   makingValue: number;
   huid: string | null;
   imageUrl: string | null;
+  storefront?: StorefrontMetadata | null;
+  stoneValue?: number;
+  vatPercent?: number;
 }
 
 // Filters accepted by GET /api/items. Every field is optional.
@@ -55,4 +61,10 @@ export interface PagedResult<T> {
   page: number;
   pageSize: number;
   totalCount: number;
+}
+
+// Assumed customer-facing demo copy; publishing is a separate confirmed server action.
+export interface StorefrontMetadata {
+  description: string; collection?: string; note?: string; occasions?: string[]; stones?: string[];
+  size?: string; badge?: 'new' | 'bestseller' | null; popularity?: number; addedOn?: string | null; isSample?: boolean;
 }

@@ -75,11 +75,11 @@ public sealed class ItemCutoutPipeline(IItemRepository items, IItemImageAssetRep
         finally { gate.Release(); }
     }
 
-    public async Task<byte[]?> PreviewAsync(int itemId, CancellationToken ct)
+    public async Task<byte[]?> PreviewAsync(int itemId, CancellationToken ct, string? revisionId = null)
     {
         if (await items.GetItemAsync(itemId, ct) is null) return null;
         var asset = await assets.GetAsync(itemId, ct);
-        if (asset is not { State: "ready", PreviewSha256: not null }) return null;
+        if (asset is not { State: "ready", PreviewSha256: not null } || (revisionId is not null && revisionId != asset.RevisionId)) return null;
         var path = Path.Combine(options.RevisionFolder(asset.RevisionId), "preview.png");
         if (!File.Exists(path)) return null;
         var bytes = await File.ReadAllBytesAsync(path, ct);

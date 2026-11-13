@@ -15,8 +15,13 @@ public sealed class PublicCatalogHttpTests
     private static async Task Publish(KnowledgeHttpFactory factory, params int[] ids)
     {
         using var scope = factory.Services.CreateScope();
-        var service = scope.ServiceProvider.GetRequiredService<KnowledgeService>();
-        foreach (var id in ids) await service.SetProductAsync(id, true, default);
+        var database = scope.ServiceProvider.GetRequiredService<KnowledgeDatabase>();
+        foreach (var id in ids)
+        {
+            var asset = await PreparedStorefrontAsset.Create(factory, id);
+            database.Products.Add(new ProductPublication { ItemId = id, Published = true, AssetRevisionId = asset.RevisionId });
+        }
+        await database.SaveChangesAsync(); // Includes intentionally excluded/draft legacy records for boundary checks.
     }
 
     [Fact]
@@ -60,7 +65,7 @@ public sealed class PublicCatalogHttpTests
         await Publish(factory, 7);
         using var client = factory.CreateClient();
         var product = await client.GetFromJsonAsync<JsonElement>("/api/storefront/products/7");
-        Assert.Equal(new[] { "category", "code", "grossWeight", "id", "imageUrl", "metalType", "name", "netWeight", "price", "purity", "storefront" }, product.EnumerateObject().Select(x => x.Name).Order());
+        Assert.Equal(new[] { "category", "code", "grossWeight", "id", "imageUrl", "metalType", "name", "netWeight", "previewAspect", "previewUrl", "price", "purity", "storefront" }, product.EnumerateObject().Select(x => x.Name).Order());
         Assert.Equal(7, product.GetProperty("id").GetInt32());
         Assert.Equal("Gold", product.GetProperty("metalType").GetString());
         using (var scope = factory.Services.CreateScope())

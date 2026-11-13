@@ -19,6 +19,28 @@ public sealed class FileItemImageAssetRepository(ItemCutoutOptions options) : II
         return asset;
     }
 
+    public async Task<ItemImageAsset?> ReviewAsync(int itemId, string revisionId, bool approve, CancellationToken ct)
+    {
+        await gate.WaitAsync(ct);
+        try
+        {
+            var asset = await GetAsync(itemId, ct);
+            if (asset is null) return null;
+            if (asset.RevisionId != revisionId || asset.State != "ready") throw new ItemAssetConflictException();
+            var updated = asset with { QualityReview = approve ? "approved" : "pending" };
+            await WriteAsync(updated, ct);
+            return updated;
+        }
+        finally { gate.Release(); }
+    }
+    private async Task WriteAsync(ItemImageAsset asset, CancellationToken ct)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(Link(asset.ItemId))!);
+        var temp = Link(asset.ItemId) + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        await File.WriteAllTextAsync(temp, JsonSerializer.Serialize(asset, Json), ct);
+        File.Move(temp, Link(asset.ItemId), overwrite: true);
+    }
+
     public async Task SaveAsync(ItemImageAsset asset, CancellationToken ct)
     {
         if (asset.ItemId < 1 || !Guid.TryParseExact(asset.RevisionId, "N", out _))
@@ -26,10 +48,7 @@ public sealed class FileItemImageAssetRepository(ItemCutoutOptions options) : II
         await gate.WaitAsync(ct);
         try
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(Link(asset.ItemId))!);
-            var temp = Link(asset.ItemId) + "." + Guid.NewGuid().ToString("N") + ".tmp";
-            await File.WriteAllTextAsync(temp, JsonSerializer.Serialize(asset, Json), ct);
-            File.Move(temp, Link(asset.ItemId), overwrite: true);
+            await WriteAsync(asset, ct);
         }
         finally { gate.Release(); }
     }

@@ -54,8 +54,9 @@ public sealed class KnowledgeAdminHttpTests
         await using var factory = new KnowledgeHttpFactory { DisableKnowledgeProvider = true };
         await factory.Seed("erp", true, ["knowledge.manage"]);
         using var client = factory.CreateClient(); await Login(client);
+        var ready = await PreparedStorefrontAsset.Create(factory, 7);
         Assert.Equal(HttpStatusCode.ServiceUnavailable, (await client.GetAsync("/api/ai/knowledge/documents")).StatusCode);
-        Assert.Equal(HttpStatusCode.ServiceUnavailable, (await client.PostAsJsonAsync("/api/ai/knowledge/products/1/publish", new { confirm = true })).StatusCode);
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, (await client.PostAsJsonAsync("/api/ai/knowledge/products/7/publish", new { confirm = true, assetRevisionId = ready.RevisionId })).StatusCode);
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<IdentityDatabase>();
         db.PermissionGrants.RemoveRange(db.PermissionGrants); await db.SaveChangesAsync();
@@ -71,6 +72,7 @@ public sealed class KnowledgeAdminHttpTests
         await Token(client);
         Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/ai/knowledge/documents", Input(false))).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/ai/knowledge/documents", new { title = (string?)null, text = (string?)null, collection = "public", audience = "public", confirm = true })).StatusCode);
+        var asset = await PreparedStorefrontAsset.Create(factory, 7);
         var create = await client.PostAsJsonAsync("/api/ai/knowledge/documents", Input()); Assert.Equal(HttpStatusCode.OK, create.StatusCode);
         var id = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString();
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/ai/knowledge/documents")).StatusCode);
@@ -81,13 +83,13 @@ public sealed class KnowledgeAdminHttpTests
             string? versionId;
             using (var versionScope = factory.Services.CreateScope()) versionId = (await versionScope.ServiceProvider.GetRequiredService<KnowledgeDatabase>().Documents.AsNoTracking().SingleAsync(x => x.Id == id)).LatestVersionId;
             Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync($"/api/ai/knowledge/documents/{id}/{action}", new { confirm = true, versionId })).StatusCode);
-            Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync($"/api/ai/knowledge/products/1/{action}", new { confirm = true })).StatusCode);
+            Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync($"/api/ai/knowledge/products/7/{action}", new { confirm = true, assetRevisionId = asset.RevisionId })).StatusCode);
         }
         using var scope = factory.Services.CreateScope();
         var database = scope.ServiceProvider.GetRequiredService<KnowledgeDatabase>();
         var audits = await database.Audits.ToListAsync();
         Assert.Contains(audits, x => x.Operation == "document.publish" && x.TargetId == id && x.Outcome == "confirmed");
-        Assert.Contains(audits, x => x.Operation == "product.publish" && x.TargetId == "1");
+        Assert.Contains(audits, x => x.Operation == "product.publish" && x.TargetId == "7");
         Assert.All(audits, audit => { Assert.Equal(64, audit.ActorHash.Length); Assert.DoesNotContain("admin@example.test", JsonSerializer.Serialize(audit)); Assert.DoesNotContain("emerald", JsonSerializer.Serialize(audit)); });
     }
 }
@@ -95,12 +97,14 @@ public sealed class KnowledgeHttpFactory : WebApplicationFactory<Program>
 {
     private readonly string name = Guid.NewGuid().ToString();
     public bool DisableKnowledgeProvider { get; init; }
+    public bool UseFilePublications { get; init; }
     public Dictionary<string, string?> TestConfiguration { get; init; } = [];
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
-        builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?> { ["NBJEWEL_IDENTITY_CONNECTION"] = "", ["AI_PLATFORM_CONNECTION"] = "", ["Repository:Provider"] = "Sample" }.Concat(TestConfiguration)));
+        builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?> { ["NBJEWEL_IDENTITY_CONNECTION"] = "", ["AI_PLATFORM_CONNECTION"] = "", ["Repository:Provider"] = "Sample", ["ITEM_ASSET_STORAGE_PATH"] = Path.Combine(Path.GetTempPath(), "nbjewel-http-assets-" + name) }).AddInMemoryCollection(TestConfiguration));
         builder.ConfigureTestServices(services => {
+            if (!UseFilePublications) services.RemoveAll<IProductPublicationStore>();
             services.RemoveAll<DbContextOptions<IdentityDatabase>>(); services.RemoveAll<IDbContextOptionsConfiguration<IdentityDatabase>>();
             services.AddDbContext<IdentityDatabase>(o => o.UseInMemoryDatabase(name + "identity"));
             services.RemoveAll<DbContextOptions<KnowledgeDatabase>>(); services.RemoveAll<IDbContextOptionsConfiguration<KnowledgeDatabase>>();

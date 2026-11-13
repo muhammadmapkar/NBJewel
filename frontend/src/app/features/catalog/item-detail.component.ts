@@ -11,7 +11,7 @@ import { ApiError } from '../../core/http/error.interceptor';
 import { Category, Item, PriceBreakdown } from '../../core/models';
 import { ToastComponent } from '../../shared/ui/toast.component';
 import { errorMessage, makingTypeLabel } from './item-options';
-import { ImageGalleryComponent } from './image-gallery.component';
+import { StorefrontPanelComponent } from './storefront-panel.component';
 import { Loadable } from './loadable';
 import { StatusDialogComponent } from './status-dialog.component';
 import { StatusPillComponent } from './status-pill.component';
@@ -23,7 +23,7 @@ type TabId = 'overview' | 'images' | 'variants' | 'stock';
 
 @Component({
   selector: 'nb-item-detail', standalone: true,
-  imports: [DecimalPipe, RouterLink, StatusPillComponent, StatusDialogComponent, ToastComponent, ImageGalleryComponent, VariantsTableComponent, StockPanelComponent],
+  imports: [DecimalPipe, RouterLink, StatusPillComponent, StatusDialogComponent, ToastComponent, StorefrontPanelComponent, VariantsTableComponent, StockPanelComponent],
   template: `
     <nb-toast [message]="toast()" (dismissed)="toast.set(null)" />
 
@@ -63,7 +63,7 @@ type TabId = 'overview' | 'images' | 'variants' | 'stock';
 
           <div role="tabpanel" [attr.aria-labelledby]="'tab-' + tab()">
             @switch (tab()) {
-              @case ('images') { <nb-image-gallery [itemId]="it.id" /> }
+              @case ('images') { <nb-storefront-panel [item]="it" /> }
               @case ('variants') { <nb-variants-table [itemId]="it.id" /> }
               @case ('stock') { <nb-stock-panel [itemId]="it.id" /> }
               @default {

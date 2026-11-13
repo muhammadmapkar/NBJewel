@@ -15,6 +15,7 @@ public sealed class KnowledgeDatabase(DbContextOptions<KnowledgeDatabase> option
         b.Entity<KnowledgeVersion>().ToTable("AiKnowledgeVersions").HasKey(x => x.Id);
         b.Entity<KnowledgeChunk>().ToTable("AiKnowledgeChunks").HasKey(x => x.Id);
         b.Entity<KnowledgeAudit>().ToTable("AiKnowledgeAudit").HasKey(x => x.Id);
+        b.Entity<ProductPublication>().Property(x => x.AssetRevisionId).HasMaxLength(32);
         b.Entity<ProductPublication>().ToTable("AiPublicationProducts").HasKey(x => x.ItemId);
         b.Entity<KnowledgeDocument>().Property(x => x.LatestVersionId).IsConcurrencyToken();
         b.Entity<KnowledgeDocument>().Property(x => x.PublishedVersionId).IsConcurrencyToken();
@@ -25,7 +26,7 @@ public sealed class KnowledgeDatabase(DbContextOptions<KnowledgeDatabase> option
 public sealed class KnowledgeDocument { public string Id { get; set; } = ""; public string? PublishedVersionId { get; set; } public string LatestVersionId { get; set; } = ""; }
 public sealed class KnowledgeVersion { public string Id { get; set; } = ""; public string DocumentId { get; set; } = ""; public string Title { get; set; } = ""; public string Collection { get; set; } = ""; public string Audience { get; set; } = ""; public string? RequiredPermission { get; set; } public string StoreIds { get; set; } = ""; public string? OwnerId { get; set; } }
 public sealed class KnowledgeChunk { public string Id { get; set; } = ""; public string VersionId { get; set; } = ""; public string Text { get; set; } = ""; }
-public sealed class ProductPublication { public int ItemId { get; set; } public bool Published { get; set; } }
+public sealed class ProductPublication { public int ItemId { get; set; } public bool Published { get; set; } public string? AssetRevisionId { get; set; } }
 public sealed record KnowledgeInput(string Title, string Text, string Collection, string Audience, string? RequiredPermission, int[]? StoreIds, string? OwnerId, bool Confirm = false);
 
 public sealed class KnowledgeAudit { public string Id { get; set; } = ""; public string ActorHash { get; set; } = ""; public string Operation { get; set; } = ""; public string TargetId { get; set; } = ""; public string Outcome { get; set; } = "confirmed"; public DateTimeOffset Timestamp { get; set; } }

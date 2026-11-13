@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace NbJewel.Api.Tests.Jewelry;
 
@@ -16,13 +17,14 @@ public sealed class ItemCutoutHttpTests
     private static string Python => Environment.GetEnvironmentVariable("CUTOUT_PYTHON_PATH") ?? "python3";
     private static KnowledgeHttpFactory Factory(string storage) => new()
     {
+        UseFilePublications = true,
         TestConfiguration = new() { ["ITEM_ASSET_STORAGE_PATH"] = storage, ["CUTOUT_PYTHON_PATH"] = Python }
     };
     private static async Task<HttpClient> Admin(KnowledgeHttpFactory factory, string accountType = "erp", bool allStores = true, bool canWrite = true)
     {
         await factory.Seed(accountType, allStores, canWrite
-            ? ["items.read", "items.write", "prices.read", "status.read"]
-            : ["items.read", "prices.read", "status.read"]);
+            ? ["items.read", "items.write", "prices.read", "status.read", "knowledge.manage"]
+            : ["items.read", "prices.read", "status.read", "knowledge.manage"]);
         var client = factory.CreateClient();
         await Csrf(client);
         Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync("/api/auth/login", new { email = "admin@example.test", password = "PasswordExample123!" })).StatusCode);
@@ -83,6 +85,47 @@ public sealed class ItemCutoutHttpTests
         using var process = Process.Start(info)!;
         var output = await process.StandardOutput.ReadToEndAsync(); var error = await process.StandardError.ReadToEndAsync(); await process.WaitForExitAsync();
         Assert.True(process.ExitCode == 0, error); Assert.Contains("RGBA (0, 255)", output);
+    }
+
+    [Fact]
+    public async Task PublicationRequiresCurrentReviewedCutoutAndPersistsWithoutSql()
+    {
+        var storage = Storage();
+        await using (var factory = Factory(storage))
+        {
+            using var client = await Admin(factory);
+            var item = (await client.GetFromJsonAsync<JsonObject>("/api/items/7"))!;
+            item["storefront"] = new JsonObject { ["description"] = "Assumed sample necklace", ["collection"] = "Sample", ["isSample"] = true };
+            Assert.Equal(HttpStatusCode.OK, (await client.PutAsJsonAsync("/api/items/7", item)).StatusCode);
+            Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync("/api/ai/knowledge/products/7/publish", new { confirm = true })).StatusCode);
+            using var upload = await Upload(client, 7, Photo);
+            var asset = await upload.Content.ReadFromJsonAsync<JsonElement>();
+            var revision = asset.GetProperty("revisionId").GetString();
+            Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync("/api/ai/knowledge/products/7/publish", new { confirm = true, assetRevisionId = revision })).StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/items/7/image/review", new { confirm = false, revisionId = revision, approve = true })).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync("/api/items/7/image/review", new { confirm = true, revisionId = revision, approve = true })).StatusCode);
+            Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/ai/knowledge/products/7/publish", new { confirm = true, assetRevisionId = revision })).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/storefront/products/7/preview")).StatusCode);
+            using var replacement = await Upload(client, 7, Photo);
+            var next = (await replacement.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("revisionId").GetString();
+            Assert.NotEqual(revision, next);
+            Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/api/storefront/products/7")).StatusCode);
+            Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync("/api/items/7/image/review", new { confirm = true, revisionId = revision, approve = true })).StatusCode);
+            Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync("/api/ai/knowledge/products/7/publish", new { confirm = true, assetRevisionId = revision })).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync("/api/items/7/image/review", new { confirm = true, revisionId = next, approve = true })).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/items/7/image/preview?revisionId={revision}")).StatusCode);
+            Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/ai/knowledge/products/7/publish", new { confirm = true, assetRevisionId = next })).StatusCode);
+        }
+        await using (var restarted = Factory(storage))
+        {
+            using var anonymous = restarted.CreateClient();
+            Assert.Equal(HttpStatusCode.OK, (await anonymous.GetAsync("/api/storefront/products/7")).StatusCode);
+            using var client = await Admin(restarted);
+            var state = await client.GetFromJsonAsync<JsonElement>("/api/ai/knowledge/products/7");
+            Assert.True(state.GetProperty("published").GetBoolean());
+            Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsJsonAsync("/api/ai/knowledge/products/7/revoke", new { confirm = true })).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, (await anonymous.GetAsync("/api/storefront/products/7")).StatusCode);
+        }
     }
 
     [Fact]

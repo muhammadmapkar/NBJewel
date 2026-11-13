@@ -5,13 +5,14 @@ using Microsoft.EntityFrameworkCore;
 using NbJewel.Api.Identity;
 using NbJewel.Api.Knowledge;
 using NbJewel.Api.Repositories;
+using NbJewel.Api.Models;
 namespace NbJewel.Api.Controllers;
 
 [ApiController]
 [Route("api/ai/knowledge")]
 public sealed class KnowledgeController(KnowledgeDatabase db, KnowledgeService service, IPermissionAdapter permissions, IItemRepository items) : ControllerBase
 {
-    public sealed record Confirmation(bool Confirm, string? VersionId = null);
+    public sealed record Confirmation(bool Confirm, string? VersionId = null, string? AssetRevisionId = null);
     private async Task<bool> Authorized(CancellationToken ct)
     {
         if (User.Identity?.IsAuthenticated != true) return false;
@@ -39,6 +40,33 @@ public sealed class KnowledgeController(KnowledgeDatabase db, KnowledgeService s
     public Task<IActionResult> PublishProduct(int itemId, Confirmation confirmation, CancellationToken ct) => ProductState(itemId, confirmation, true, ct);
     [HttpPost("products/{itemId:int}/revoke")]
     public Task<IActionResult> RevokeProduct(int itemId, Confirmation confirmation, CancellationToken ct) => ProductState(itemId, confirmation, false, ct);
+    [HttpGet("products/{itemId:int}")]
+    public async Task<IActionResult> ProductStatus(int itemId, CancellationToken ct)
+    {
+        if (!await Authorized(ct)) return User.Identity?.IsAuthenticated == true ? Forbid() : Unauthorized();
+        try { var decision = await service.ProductDecisionAsync(itemId, ct); return Ok(new { itemId, published = (await service.PublishedItemIdsAsync(ct)).Contains(itemId), assetRevisionId = decision?.AssetRevisionId }); }
+        catch (Exception e) when (e is not OperationCanceledException) { return StatusCode(503); }
+    }
     private async Task<IActionResult> ProductState(int id, Confirmation confirmation, bool published, CancellationToken ct)
-    { if (!await Authorized(ct)) return User.Identity?.IsAuthenticated == true ? Forbid() : Unauthorized(); if (confirmation?.Confirm != true) return BadRequest(); try { if (published && await items.GetItemAsync(id, ct) is null) return NotFound(); await service.SetProductAsync(id, published, ct, User.FindFirstValue(ClaimTypes.NameIdentifier)); return NoContent(); } catch (ArgumentException) { return BadRequest(); } catch (Exception e) when (e is not OperationCanceledException) { return StatusCode(503); } }
+    {
+        if (!await Authorized(ct)) return User.Identity?.IsAuthenticated == true ? Forbid() : Unauthorized();
+        if (confirmation?.Confirm != true) return BadRequest();
+        try
+        {
+            if (published)
+            {
+                var item = await items.GetItemAsync(id, ct);
+                if (item is null) return NotFound();
+                var category = (await items.GetCategoriesAsync(ct)).FirstOrDefault(x => x.Id == item.CategoryId)?.Name;
+                if (item.Status != ItemStatusRules.Complete || category is not ("Necklaces" or "Earrings") ||
+                    item.Storefront is null || await items.GetPriceAsync(id, ct) is null || string.IsNullOrWhiteSpace(confirmation.AssetRevisionId))
+                    return Conflict(new { message = "Complete the item, storefront description and current preview review before publishing." });
+            }
+            await service.SetProductAsync(id, published, ct, User.FindFirstValue(ClaimTypes.NameIdentifier), confirmation.AssetRevisionId);
+            return NoContent();
+        }
+        catch (ProductNotReadyException) { return Conflict(new { message = "Review and approve the current ready preview before publishing." }); }
+        catch (ArgumentException) { return BadRequest(); }
+        catch (Exception e) when (e is not OperationCanceledException) { return StatusCode(503); }
+    }
 }

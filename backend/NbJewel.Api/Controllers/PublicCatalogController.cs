@@ -3,6 +3,7 @@
 
 using Microsoft.AspNetCore.Mvc;
 using NbJewel.Api.Models;
+using NbJewel.Api.Jewelry;
 using NbJewel.Api.Platform;
 using NbJewel.Api.Repositories;
 
@@ -11,7 +12,7 @@ namespace NbJewel.Api.Controllers;
 [ApiController]
 [Route("api/storefront")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public sealed class PublicCatalogController(IItemRepository items, IPublicationReader publications) : ControllerBase
+public sealed class PublicCatalogController(IItemRepository items, IPublicationReader publications, IItemImageAssetRepository assets, ItemCutoutPipeline previews) : ControllerBase
 {
     // Assumed demo policy, shared with the customer storefront's supported try-on kinds.
     private static readonly Dictionary<string, string> Categories = new(StringComparer.OrdinalIgnoreCase)
@@ -23,7 +24,7 @@ public sealed class PublicCatalogController(IItemRepository items, IPublicationR
     // Explicit DTO prevents ERP status, hallmark IDs, design links, stock and store fields leaking.
     public sealed record PublicProduct(int Id, string Code, string Name, string Category,
         string MetalType, string Purity, decimal GrossWeight, decimal NetWeight,
-        string? ImageUrl, StorefrontMetadata? Storefront, ItemPrice? Price);
+        string? ImageUrl, StorefrontMetadata? Storefront, ItemPrice? Price, string? PreviewUrl, decimal? PreviewAspect);
 
     [HttpGet("products")]
     public async Task<ActionResult<PagedResult<PublicProduct>>> GetProducts(string? search, string? metal,
@@ -86,6 +87,19 @@ public sealed class PublicCatalogController(IItemRepository items, IPublicationR
         catch (Exception error) when (error is not OperationCanceledException) { return StatusCode(503); }
     }
 
+    [HttpGet("products/{id:int}/preview")]
+    public async Task<IActionResult> GetPreview(int id, CancellationToken ct)
+    {
+        try
+        {
+            if (!(await publications.PublishedItemIdsAsync(ct)).Contains(id)) return NotFound();
+            var item = await items.GetItemAsync(id, ct);
+            if (item is null || !Allowed(item, await AllowedCategories(ct))) return NotFound();
+            return await previews.PreviewAsync(id, ct) is { } bytes ? File(bytes, "image/png") : NotFound();
+        }
+        catch (Exception e) when (e is not OperationCanceledException) { return StatusCode(503); }
+    }
+
     private async Task<Dictionary<int, string>> AllowedCategories(CancellationToken ct) =>
         (await items.GetCategoriesAsync(ct)).Where(x => Categories.ContainsKey(x.Name))
             .ToDictionary(x => x.Id, x => Categories[x.Name]);
@@ -99,7 +113,12 @@ public sealed class PublicCatalogController(IItemRepository items, IPublicationR
         item.Status.Equals(ItemStatusRules.Complete, StringComparison.OrdinalIgnoreCase) &&
         categories.ContainsKey(item.CategoryId) && AllowedMetal(item.MetalType);
 
-    private async Task<PublicProduct> PublicItem(Item item, string category, CancellationToken ct) =>
-        new(item.Id, item.Code, item.Name, category, item.MetalType, item.Purity,
-            item.GrossWt, item.NetWt, item.ImageUrl, item.Storefront, await items.GetPriceAsync(item.Id, ct));
+    private async Task<PublicProduct> PublicItem(Item item, string category, CancellationToken ct)
+    {
+        var asset = await assets.GetAsync(item.Id, ct);
+        return new(item.Id, item.Code, item.Name, category, item.MetalType, item.Purity,
+            item.GrossWt, item.NetWt, item.ImageUrl, item.Storefront, await items.GetPriceAsync(item.Id, ct),
+            asset is null ? null : $"/api/storefront/products/{item.Id}/preview?v={asset.RevisionId}",
+            asset is { Width: > 0 } ? (decimal)asset.Height / asset.Width : null);
+    }
 }

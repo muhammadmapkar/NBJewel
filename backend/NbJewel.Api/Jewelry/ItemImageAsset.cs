@@ -11,3 +11,5 @@ public sealed record ItemCutoutOptions(string StoragePath, string PythonPath, st
     public TimeSpan Timeout { get; init; } = TimeSpan.FromSeconds(30);
     public string RevisionFolder(string revision) => Path.Combine(StoragePath, "revisions", revision);
 }
+
+public sealed class ItemAssetConflictException : Exception;

@@ -35,7 +35,17 @@ public sealed class ItemImagesController(IItemRepository items, IItemImageAssetR
         catch (DomainValidationException error) { return BadRequest(new ErrorMessage(error.Message)); }
     }
 
+    public sealed record ReviewRequest(string RevisionId, bool Approve, bool Confirm);
+    [HttpPost("review")]
+    public async Task<ActionResult<ItemImageAsset>> Review(int itemId, ReviewRequest request, CancellationToken ct)
+    {
+        if (!request.Confirm || string.IsNullOrWhiteSpace(request.RevisionId)) return BadRequest();
+        if (await pipeline.PreviewAsync(itemId, ct) is null) return Conflict(new ErrorMessage("Generate a ready preview before reviewing it."));
+        try { return await assets.ReviewAsync(itemId, request.RevisionId, request.Approve, ct) is { } asset ? Ok(asset) : NotFound(); }
+        catch (ItemAssetConflictException) { return Conflict(new ErrorMessage("The image changed. Review the current preview.")); }
+    }
+
     [HttpGet("preview")]
-    public async Task<IActionResult> GetPreview(int itemId, CancellationToken ct) =>
-        await pipeline.PreviewAsync(itemId, ct) is { } bytes ? File(bytes, "image/png") : NotFound();
+    public async Task<IActionResult> GetPreview(int itemId, string? revisionId, CancellationToken ct) =>
+        await pipeline.PreviewAsync(itemId, ct, revisionId) is { } bytes ? File(bytes, "image/png") : NotFound();
 }
