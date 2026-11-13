@@ -1,0 +1,42 @@
+/* Role: The customer app look: warm ivory, deep maroon and antique gold, an elegant serif for
+   names and headings, and a clean sans for everything else. Phone first. */
+:root {
+  --ivory: #faf6ef;
+  --cream: #f3ebdd;
+  --card: #fffdf9;
+  --ink: #2b1a14;
+  --muted: #7a6a5c;
+  --line: #e8dcc8;
+  --maroon: #6b1d2a;
+  --maroon-deep: #4a121c;
+  --gold: #b88a2e;
+  --gold-soft: #e9d6a8;
+  --night: #120c0a;
+  --radius: 16px;
+  --shadow: 0 10px 30px rgba(43, 26, 20, 0.08);
+  --serif: 'Cormorant Garamond', Georgia, serif;
+  --sans: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body { font-family: var(--sans); color: var(--ink); background: var(--ivory); font-size: 15px; -webkit-font-smoothing: antialiased; }
+button, a { font: inherit; -webkit-tap-highlight-color: transparent; }
+button { cursor: pointer; }
+img { display: block; max-width: 100%; }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 22px; border: 0; border-radius: 999px; background: var(--maroon); color: #fff; font-weight: 600; letter-spacing: 0.02em; text-decoration: none; }
+.btn:active { background: var(--maroon-deep); }
+.btn.ghost { background: transparent; color: var(--maroon); border: 1.5px solid var(--maroon); }
+.btn.gold { background: var(--gold); color: #fff; }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.btn:focus-visible, a:focus-visible, button:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+
+.chip { min-height: 38px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--ink); font-weight: 500; white-space: nowrap; }
+.chip.on { background: var(--ink); border-color: var(--ink); color: var(--ivory); }
+
+.brand { font-family: var(--serif); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+.serif { font-family: var(--serif); }
+.muted { color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
