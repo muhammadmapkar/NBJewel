@@ -14,6 +14,8 @@ public sealed class ErpBoundaryFilter(IPermissionAdapter permissions) : IAsyncAu
         action.TryGetValue("action", out var name);
         string[] required = (controller, name) switch
         {
+            ("ItemImages", "Upload") => ["items.read", "items.write", "prices.read", "status.read"],
+            ("ItemImages", _) => ["items.read", "prices.read", "status.read"],
             ("Items", "GetStock") => ["items.read", "stock.read"],
             ("Items", "AddStock") => ["items.read", "stock.write", "stock.read"],
             ("Items", "GetPrice" or "GetVariants") => ["items.read", "prices.read"],
@@ -44,7 +46,7 @@ public sealed class ErpBoundaryFilter(IPermissionAdapter permissions) : IAsyncAu
         }
         var id = principal.FindFirstValue(ClaimTypes.NameIdentifier);
         var access = id is null ? null : await permissions.ResolveAsync(id, context.HttpContext.RequestAborted);
-        var requiresAllStores = controller == "Jewelry" || (controller == "Items" &&
+        var requiresAllStores = controller is "Jewelry" or "ItemImages" || (controller == "Items" &&
             !HttpMethods.IsGet(context.HttpContext.Request.Method) && name != "AddStock");
         if (access is null || access.AccountType != "erp" || (requiresAllStores && !access.AllStores) || !required.All(access.Permissions.Contains))
             context.Result = new ForbidResult();

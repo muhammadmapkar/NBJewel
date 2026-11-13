@@ -8,6 +8,9 @@
 # Usage: python3 scripts/cutout-jewelry.py <photo.png> <out.png> [--report]
 
 import sys
+import argparse
+import json
+from pathlib import Path
 import numpy as np
 from PIL import Image
 from scipy import ndimage
@@ -70,11 +73,29 @@ def pieces(alpha: np.ndarray, min_share=0.004):
 
 
 def main():
-    src, dst = sys.argv[1], sys.argv[2]
-    rgb = np.asarray(Image.open(src).convert("RGB"))
-    alpha = cutout(rgb)
-    Image.fromarray(np.dstack([rgb, alpha]), "RGBA").save(dst)
-    if "--report" in sys.argv:
+    parser = argparse.ArgumentParser(description="Generate a sample jewelry preview using the existing neutral-background algorithm.")
+    parser.add_argument("source")
+    parser.add_argument("destination")
+    parser.add_argument("--report", action="store_true")
+    parser.add_argument("--metadata", help="Write dimensions and alpha evidence for the API pipeline")
+    args = parser.parse_args()
+    # Bound decoded memory before numpy/scipy allocation, including highly compressed uploads.
+    Image.MAX_IMAGE_PIXELS = 16_000_000
+    with Image.open(args.source) as source:
+        if source.width * source.height > Image.MAX_IMAGE_PIXELS:
+            raise ValueError("Image exceeds the 16 million pixel preview limit")
+        rgba = np.asarray(source.convert("RGBA"))
+    rgb = rgba[:, :, :3]
+    # Retain existing transparency rather than filling it when an uploaded cutout is reused.
+    alpha = np.minimum(cutout(rgb), rgba[:, :, 3])
+    Image.fromarray(np.dstack([rgb, alpha])).save(args.destination, format="PNG")
+    if args.metadata:
+        Path(args.metadata).write_text(json.dumps({
+            "width": int(alpha.shape[1]), "height": int(alpha.shape[0]),
+            "hasTransparency": bool((alpha < 255).any()),
+            "hasForeground": bool((alpha > 0).any()),
+        }))
+    if args.report:
         for box in pieces(alpha):
             print("piece", box)
 

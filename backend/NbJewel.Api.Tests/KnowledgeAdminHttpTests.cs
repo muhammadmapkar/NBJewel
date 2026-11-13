@@ -95,10 +95,11 @@ public sealed class KnowledgeHttpFactory : WebApplicationFactory<Program>
 {
     private readonly string name = Guid.NewGuid().ToString();
     public bool DisableKnowledgeProvider { get; init; }
+    public Dictionary<string, string?> TestConfiguration { get; init; } = [];
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
-        builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?> { ["NBJEWEL_IDENTITY_CONNECTION"] = "", ["AI_PLATFORM_CONNECTION"] = "", ["Repository:Provider"] = "Sample" }));
+        builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?> { ["NBJEWEL_IDENTITY_CONNECTION"] = "", ["AI_PLATFORM_CONNECTION"] = "", ["Repository:Provider"] = "Sample" }.Concat(TestConfiguration)));
         builder.ConfigureTestServices(services => {
             services.RemoveAll<DbContextOptions<IdentityDatabase>>(); services.RemoveAll<IDbContextOptionsConfiguration<IdentityDatabase>>();
             services.AddDbContext<IdentityDatabase>(o => o.UseInMemoryDatabase(name + "identity"));

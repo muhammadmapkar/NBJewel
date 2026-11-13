@@ -94,6 +94,20 @@ else
 {
     throw new InvalidOperationException($"Unknown Repository:Provider '{provider}'. Use Sample or Sql.");
 }
+// Durable ERP item preview revisions use the existing Python cutout script, never a new removal engine.
+builder.Services.AddSingleton(services =>
+{
+    var configuration = services.GetRequiredService<IConfiguration>();
+    var environment = services.GetRequiredService<IWebHostEnvironment>();
+    var path = configuration["ITEM_ASSET_STORAGE_PATH"];
+    return new ItemCutoutOptions(
+        Path.GetFullPath(string.IsNullOrWhiteSpace(path) ? Path.Combine(environment.ContentRootPath, "App_Data", "item-assets") : path),
+        configuration["CUTOUT_PYTHON_PATH"] ?? "python3",
+        Path.Combine(AppContext.BaseDirectory, "scripts", "cutout-jewelry.py"));
+});
+builder.Services.AddSingleton<IItemImageAssetRepository, FileItemImageAssetRepository>();
+builder.Services.AddSingleton<ItemCutoutPipeline>();
+
 // The chatbot runs inside this API. The Gemini key and model come only from environment variables
 // (GEMINI_API_KEY, GEMINI_MODEL, GEMINI_THINKING_LEVEL). If they are missing, /api/chat answers 503.
 builder.Services.AddSingleton<IChatDataReader, ChatDataReader>();

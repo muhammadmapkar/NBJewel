@@ -2,25 +2,26 @@
 # AI memory handoff
 
 ## Lock
-- Agent: codex-storefront
-- Since: 2026-11-14T01:41:07+04:00
-- Status: held for tasks 3 and 4, explicitly requested by Muhammad.
+- Agent: none
+- Since: 2026-11-14T01:58:32+04:00
+- Status: released by codex-storefront in this pushed task 4 checkpoint.
 
 ## Branch and last commit
 - Branch: `feature/customer-storefront`.
 - Remote: `origin/feature/customer-storefront`; upstream exists; fetch and fast-forward pull succeeded.
 - Verified Phase 1 baseline: `a4f8ef3acb049daaea9016dc18dfbf2886e708f0` (Phase 1).
 - Setup commit: `d44c748` (pushed).
-- Task 1 commit and verified predecessor for this checkpoint: `f7d78e3` (pushed).
-- Task 2 is in the snapshot commit resolved below.
+- Task 1 commit: `f7d78e3` (pushed).
+- Task 2 commit: `bab3127` (pushed).
+- Task 3 commit and verified predecessor for this checkpoint: `0bfeefd` (pushed).
+- Task 4 is in the snapshot commit resolved below.
 - Snapshot commit: the commit containing this handoff; resolve with `git log -1 --format=%H -- AI-MEMORY-HANDOFF.md`. Compare it with HEAD on the next start. A literal self-referencing commit hash cannot be recorded inside the same commit.
 
 ## Current goal
-Complete tasks 3 and 4 this turn, then push the final checkpoint and release the lock.
-
-Setup and tasks 1-2 complete and checkpointed. Next agent: acquire the Lock, verify HEAD against this snapshot, then start the first unchecked step, phase 2 task 3 (complete pricing and change evidence). API first, then storefront. No SQL execution.
+Muhammad's requested tasks 3 and 4 are complete and checkpointed. Tasks 1-4 are done. Next agent: follow startup checks, acquire the released Lock, verify this snapshot against HEAD, then start task 5 (ERP upload/publication controls and sample publication storage). No SQL execution.
 
 ## Done
+- Phase 2 task 4: ERP-authorized item image uploads reuse cutout-jewelry.py; persistent source/transparent preview revisions, hashes and atomic item-id metadata survive a fresh API host. Private preview reads verify the hash. Processing/failed states cannot serve a preview. Ready outputs remain qualityReview=pending and licenseStatus=open; no automatic publication. Full sample backend suite passed 346 tests, 6 SQL skips.
 - Phase 2 task 3: explicit validated stone value/VAT percentage retained through both adapters and older updates; prices reconcile rounded line amounts and include dated recorded-rate evidence with previous total/delta. Full backend sample suite passed 339 tests, 6 SQL skips. SQL schema/adapter changes are prepared only, not applied.
 - Phase 2 task 2: anonymous read-only `/api/storefront/products`, `/api/storefront/products/{id}`, `/api/storefront/metal-rates`; explicit named GET boundary exceptions; fresh publication checks, Complete status and category/metal allowlists, narrow DTOs, no-store responses, bounded paging and 503 on unavailable publication storage. Full backend sample suite: 330 passed, 6 SQL skips.
 - Phase 2 task 1: optional validated storefront metadata survives create/read/search/explicit update and legacy ERP edits; labelled Draft sample platinum necklace and historical Pt950 rate added; Sample and SQL mappings prepared; full backend sample suite passed 315 tests, 6 SQL checks skipped.
@@ -33,7 +34,7 @@ Setup and tasks 1-2 complete and checkpointed. Next agent: acquire the Lock, ver
 - [x] 1. Storefront metadata and sample platinum support. Size L. Files: backend models, repositories, sample-data, docs/item_catalog_schema.sql. Done when a labelled sample platinum product keeps metal, purity, and storefront metadata. Test: `dotnet test backend/NbJewel.Api.Tests`.
 - [x] 2. Public read-only endpoints for products and metal rates. Size M. Files: controllers, Knowledge/KnowledgeService.cs, Identity/ErpBoundaryFilter.cs, backend tests. Anonymous reads return published allowed products only; unpublished and excluded categories stay hidden. Test: backend suite.
 - [x] 3. Complete pricing and change evidence. Size L. Files: ItemPricing.cs, ItemModels.cs, repositories, backend tests. A sample rate change gives metal, making, stones, VAT, total, effective date, and change explanation. Test: backend suite.
-- [ ] 4. Durable cutout pipeline link. Size L. Files: Jewelry/, controllers, repositories, existing cutout/catalog scripts. Upload stores a linked transparent preview asset that survives restart. Use existing scripts only; no new removal tooling. Licensing open, quality manual. Test: backend suite.
+- [x] 4. Durable cutout pipeline link. Size L. Files: Jewelry/, controllers, repositories, existing cutout/catalog scripts. Upload stores a linked transparent preview asset that survives restart. Use existing scripts only; no new removal tooling. Licensing open, quality manual. Test: backend suite.
 - [ ] 5. ERP upload and explicit publication controls. Size M. Files: ERP catalog/core data and KnowledgeController.cs. Ready sample item publishes; unfinished cutout cannot publish. Test: ERP npm test/build and backend suite.
 - [ ] 6. Storefront loads from configurable API address. Size M. Files: storefront catalog service/models, app.config.ts, config/service tests. Configured address uses API; unset address uses static catalog. Test: storefront npm test/build.
 - [ ] 7. Dated rates, metal filters, price explanations. Size M. Files: storefront header, catalog, shop/product pages. Gold, silver, platinum use matching rate, breakdown, real effective date, no invented freshness. Test: storefront npm test/build.
@@ -42,6 +43,10 @@ Setup and tasks 1-2 complete and checkpointed. Next agent: acquire the Lock, ver
 - [ ] After task 9: run the lead review, stop, wait for Muhammad.
 
 ## Blockers and decisions
+- Task 4 runtime: configure nonsecret backend `ITEM_ASSET_STORAGE_PATH` to a persistent local directory and `CUTOUT_PYTHON_PATH` to an interpreter with the existing Pillow/numpy/scipy dependencies. Defaults are API `App_Data/item-assets` and `python3`. This turn installed only those existing dependencies into `/tmp/nbjewel-cutout-runtime-venv` (Pillow 13.0.0, numpy 2.5.4, scipy 1.18.1). No global Python changes. Verification uses `CUTOUT_PYTHON_PATH=/tmp/nbjewel-cutout-runtime-venv/bin/python`; normal test runs need the same environment setting or dependencies on their selected Python. The temp environment is a verification dependency, not a deployed runtime.
+- Task 4 API: POST/GET `/api/items/{itemId}/image`, GET `/api/items/{itemId}/image/preview`. All require ERP identity, all-store scope and item read/prices/status permissions; upload also requires items.write and CSRF. Assets are not mounted as public static files. Generated source/preview folders and atomic item-id JSON links are persisted separately from the memory-only sample item edits, so links for seeded items survive API restart. IItemImageAssetRepository is the swappable boundary for a future SQL/blob adapter.
+- Task 4 readiness: technically generated previews are state=ready, qualityReview=pending, licenseStatus=open. Task 5 must require manual quality approval before publication and reject processing/failed assets. No publication or legacy jewelry activation is performed by this pipeline. Existing cutout heuristic quality and source-photo licensing remain manual/open, not approved by tests.
+- Durability means restart on the same persistent filesystem. Ephemeral host disks still need an explicitly configured persistent volume. Interrupted jobs remain processing, not ready; a later upload creates a new revision. Revision files are retained rather than deleted.
 - Task 3 ruling: missing legacy stone/VAT inputs default to zero; no tax rate is invented. Explicit configured demo values are used when supplied. Component-level rounding makes the existing 18K fixture total AED 298.65 rather than 298.64; this is intentional reconciliation. Rate-change totals hold current item inputs constant and are not claimed historical sale prices. A currency change does not report a monetary delta.
 - Task 3 plan: add explicit StoneValue and VatPercent inputs (legacy missing values remain zero, not inferred tax advice); validate and preserve them on older ERP edits in both adapters; round line amounts to two decimals and VAT on their sum so the displayed breakdown reconciles; select current and immediately prior recorded rate by date then id; return effective date, rate IDs, prior total, delta and deterministic explanation. Compare the same item inputs at both rates, not an invented historical invoice. Prepare SQL columns/seed mappings only. Test RED then full backend suite, checkpoint/push before task 4.
 - Task 4 plan: reuse the existing cutout-jewelry.py algorithm, add bounded decoding/report support, invoke it without a shell and with a timeout, persist item-linked source/preview/manifest under configured local asset storage using generated file names and atomic metadata writes; expose ERP-authorized upload/preview/metadata endpoints. Generated previews require manual quality review and do not publish an item. No new removal engine, SQL, Docker or source-photo scans. Licensing remains open.
@@ -58,11 +63,12 @@ Setup and tasks 1-2 complete and checkpointed. Next agent: acquire the Lock, ver
 - The prior handoff described another branch and old SQL authorization. Replaced from Muhammad's current seed and protocol; current instructions prohibit all Docker/SQL data steps.
 - Ruling: use this existing feature checkout and this handoff as the only ledger; no worktree, extra handoff, or AI-memory service mutation. Agents are sequential and the owner's forbidden worktree stays untouched.
 - Ruling: snapshot commit is resolved from git history because a commit cannot embed its own hash. Record verified predecessor and task implementation hashes as work advances.
-- Known gaps: storefront still uses static gold rates; cutouts remain separate until task 4; sample publication storage remains task 5.
+- Known gaps: storefront still uses static gold rates; ERP UI/public storefront wiring and publication controls remain tasks 5-7; sample publication storage remains task 5. Cutout assets are now linked durably to ERP item IDs.
 - Known warnings: unused RouterLink in ShopPage; Vitest config loading.
 - No questions to owner. Choose conservative sample-only behavior and log assumptions. Accounts, chatbot, locator are later phases.
 
 ## Files touched
+- Task 4: Program.cs, NbJewel.Api.csproj, Identity/ErpBoundaryFilter.cs, Controllers/ItemImagesController.cs, Jewelry/ItemImageAsset.cs, Jewelry/ItemCutoutPipeline.cs, Repositories/IItemImageAssetRepository.cs, Repositories/FileItemImageAssetRepository.cs, tests/Jewelry/ItemCutoutHttpTests.cs, tests/KnowledgeAdminHttpTests.cs, scripts/cutout-jewelry.py, this handoff. No frontend or owner file changes.
 - Task 3: ItemModels.cs, ItemPricing.cs, ItemWriteRules.cs, SampleItemRepository.cs, SqlItemRepository.cs, SqlDatabaseSetup.cs, CompletePricingTests.cs, PriceCalculationTests.cs, docs/item_catalog_schema.sql, this handoff.
 - Task 2: `backend/NbJewel.Api/Controllers/PublicCatalogController.cs`, `backend/NbJewel.Api/Identity/ErpBoundaryFilter.cs`, `backend/NbJewel.Api.Tests/PublicCatalogHttpTests.cs`, `AI-MEMORY-HANDOFF.md`.
 - Task 1: ItemModels.cs, ItemWriteRules.cs, SampleItemRepository.cs, SqlItemRepository.cs, SqlDatabaseSetup.cs, sample-data/items.json and metal-rates.json, docs/item_catalog_schema.sql, StorefrontMetadataTests.cs, ItemWriteTests.cs, ParityTests.cs, Chat/ChatToolsTests.cs.
@@ -70,6 +76,9 @@ Setup and tasks 1-2 complete and checkpointed. Next agent: acquire the Lock, ver
 - Pre-existing owner changes preserved, excluded from staging: PROGRESS.md, docs/run-guide.md, customer-tryon/package-lock.json; untracked browser security plan, old proof image, pasted jewelry image.
 
 ## Test commands and last results
+- Latest, task 4 final: `dotnet test backend/NbJewel.Api.Tests` in forced Sample mode, all SQL/connection env vars removed, and `CUTOUT_PYTHON_PATH=/tmp/nbjewel-cutout-runtime-venv/bin/python`: 346 passed, 6 SQL skips, 0 failed; build succeeded with no compiler/analyzer warnings. Log `/tmp/nbjewel-task4-green.log`.
+- Task 4 RED: 4 expected missing-route failures (`/tmp/nbjewel-task4-red.log`). The initial implementation exposed a storage-configuration timing issue; the host-restart/independent-alpha test failed, options loading was deferred to DI, and the full suite then passed. Final suite also covers customer, limited-store, read-only ERP, anonymous and missing-CSRF denials. Tests use synthetic gold-on-white pixels, not owner/client photos.
+- Task 4 static self-review: generated paths, no shell invocation, 30-second processing timeout, 16-million-pixel decode bound, retained source revisions, atomic link writes, pending quality/open licensing, no static public asset mount, explicit ERP permission boundary and no auto-publication checked. `git diff --check` on all task paths passed. Independent lead review remains after task 9.
 - Latest, task 3: `dotnet test backend/NbJewel.Api.Tests` in forced Sample mode with all SQL/connection env vars removed: 339 passed, 6 skipped, 0 failed. Log `/tmp/nbjewel-task3-green.log`. RED: 9 expected failures before implementation (`/tmp/nbjewel-task3-red.log`). Diff whitespace check passed.
 - Latest, task 2: `dotnet test backend/NbJewel.Api.Tests` with SQL/connection environment variables removed and `Repository__Provider=Sample`: 330 passed, 6 skipped, 0 failed. Build succeeded within this test command, no compiler/analyzer warnings. Log `/tmp/nbjewel-task2-green.log`.
 - Task 2 RED before implementation: 10 expected failures for absent routes, 5 hidden-item 404 cases passed. Final 15 HTTP cases all pass, including narrow fields, publication/category/draft filtering, paging, platinum rates/sample label, unavailable storage, immediate revocation, write-route absence and protected ERP routes. Log `/tmp/nbjewel-task2-red.log`.
@@ -83,12 +92,18 @@ Setup and tasks 1-2 complete and checkpointed. Next agent: acquire the Lock, ver
 - Task 1 baseline: `dotnet test backend/NbJewel.Api.Tests` with all SQL/connection environment variables removed and `Repository__Provider=Sample`: 309 passed, 6 skipped, 0 failed. Initial sandbox run aborted at VSTest socket binding; same command outside sandbox passed. No SQL executed. Logs: `/tmp/nbjewel-task1-baseline.log`.
 
 ## Manual checks for Muhammad
+- Review new cutout quality against representative permitted sample photos before approving publication. Synthetic alpha/restart tests do not approve visual product quality or licensing.
 - Phone and desktop alignment.
 - Camera capture, Retake, native share.
 - Cutout quality (manual review required).
 - Real browser CORS and cookies.
 
 ## Agent log (newest first)
+- 2026-11-14T01:58:32+04:00 codex-storefront: task 4 final suite passed 346 tests with 6 SQL skips. Tasks 3-4 finished; updated handoff/checklist and released Lock in the explicit-path checkpoint. Next is task 5. Owner files and forbidden worktree untouched; no SQL/Docker/deploy/merge/force push/data deletion.
+- 2026-11-14 codex-storefront: finalized-config fix passed 343 backend tests, 6 SQL skips. Verified the three earlier default-location uploads contained only this test gold square/signature fixture, then moved their complete generated storage directory to /tmp/nbjewel-task4-early-config-artifacts-72cac20669d44709ba3977629d2c99e2 without deletion. Default API storage no longer contains the test links. Later runs use per-test temp paths.
+- 2026-11-14 codex-storefront: task 4 full run had 342 passed, 6 SQL skips and one failure in independent PNG decoding. Focused diagnostics showed storage options captured before test configuration overrides; new DI options factory reads finalized configuration. No production data involved; only synthetic sample test uploads. Rechecking isolation and restart durability.
+- 2026-11-14 codex-storefront: task 4 RED confirmed, four expected HTTP failures on absent item image endpoints. Implementing durable item-id manifests, protected previews and existing-script processing. Quality stays pending; licensing open.
+- 2026-11-14 codex-storefront: task 3 pushed as 0bfeefd; task 4 HTTP contracts written for real script processing, restart durability, PNG alpha, failed processing, ring rejection, ERP/CSRF boundaries and no automatic publication.
 - 2026-11-14T01:47:02+04:00 codex-storefront: task 3 passed 339 tests with 6 SQL skips; static review of parameter/column/reader positions and legacy preservation passed; checkpoint/push before task 4.
 - 2026-11-14 codex-storefront: task 3 RED verified, 9 assertion failures for omitted stones/VAT, absent persisted inputs, invalid input acceptance and non-reconciling totals. Existing script dependencies installed only into /tmp/nbjewel-cutout-runtime-venv for task 4; no new removal engine.
 - 2026-11-14T01:41:07+04:00 codex-storefront: fetched, confirmed branch, ff-only pull succeeded, read handoff fully, verified HEAD and snapshot are bab3127, reacquired released lock for tasks 3-4. Owner files preserved.
