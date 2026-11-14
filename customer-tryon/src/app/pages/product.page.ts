@@ -1,13 +1,13 @@
 // Role: One design (/p/:id): swipeable pictures (the set and each piece) with tap to zoom, name,
 // item code and price, Try on (full set or one piece), Add to bag, wishlist, Enquire on WhatsApp,
-// specifications, the price breakdown from the sample gold rate, the description, store
+// specifications, the price breakdown from the sample metal rate, the description, store
 // information, and similar designs. A sticky bar keeps the price and Try on in reach on phones.
 
 import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
-import { KIND_LABELS, PieceKind, Product, similarProducts } from '../catalog/catalog.models';
+import { effectiveDateLabel, PriceBreakdown, KIND_LABELS, PieceKind, Product, similarProducts } from '../catalog/catalog.models';
 import { CatalogService } from '../catalog/catalog.service';
 import { StoreService } from '../catalog/store.service';
 import { IconComponent } from '../ui/icon.component';
@@ -44,7 +44,7 @@ import { SiteHeaderComponent } from '../ui/site-header.component';
               <h1 class="serif">{{ p.name }}</h1>
               <p class="code">Item code {{ p.code }}</p>
               <p class="price">{{ catalog.money(price().total) }} <span>incl. VAT</span></p>
-              <p class="rate">Price based on the {{ p.metal.toLowerCase() }} rate of {{ catalog.money(price().rate) }} per gram ({{ p.purity }}, sample)</p>
+              <p class="rate">Price based on the {{ p.metal.toLowerCase() }} rate of {{ catalog.money(price().rate) }} per gram ({{ p.purity }}, sample). {{ dateLabel(price().effectiveDate) }}.</p>
 
               <div class="actions">
                 <a class="btn try" [routerLink]="['/try', p.id]"><ct-icon name="camera" /> {{ p.kinds.length > 1 ? 'Try the full set' : 'Try it on' }}</a>
@@ -70,11 +70,11 @@ import { SiteHeaderComponent } from '../ui/site-header.component';
                 <div><dt>Metal</dt><dd>{{ p.metal }}</dd></div>
                 <div><dt>Purity</dt><dd>{{ p.purity }}</dd></div>
                 <div><dt>Gross weight</dt><dd>{{ p.grossWeight }} g</dd></div>
-                <div><dt>Net gold weight</dt><dd>{{ p.netWeight }} g</dd></div>
-                <div><dt>Stones</dt><dd>{{ p.stones.length ? p.stones.join(', ') : 'None (plain gold)' }}</dd></div>
+                <div><dt>Net metal weight</dt><dd>{{ p.netWeight }} g</dd></div>
+                <div><dt>Stones</dt><dd>{{ p.stones.length ? p.stones.join(', ') : 'None (plain metal)' }}</dd></div>
                 <div><dt>Size</dt><dd>{{ p.size }}</dd></div>
                 <div><dt>Hallmark</dt><dd>{{ p.hallmark }}</dd></div>
-                <div><dt>Making charge</dt><dd>{{ p.makingLabel || (p.makingPercent + '% of gold value') }}</dd></div>
+                <div><dt>Making charge</dt><dd>{{ p.makingLabel || (p.makingPercent + '% of metal value') }}</dd></div>
                 <div><dt>Occasion</dt><dd>{{ p.occasions.join(', ') }}</dd></div>
               </dl>
 
@@ -87,12 +87,14 @@ import { SiteHeaderComponent } from '../ui/site-header.component';
                 <div class="total"><dt>Total</dt><dd>{{ catalog.money(price().total) }}</dd></div>
               </dl>
 
+              <p class="rate">{{ price().changeExplanation || 'No recorded comparison with an earlier rate is available for this price.' }}</p>
+
               <h2 class="serif">About this design</h2>
               <p class="desc">{{ p.description }}</p>
               <ul class="perks">
                 <li>Reserve online, see it in store before you buy</li>
-                <li>Certified purity with every piece</li>
-                <li>Exchange on the gold value at our stores (sample policy)</li>
+                <li>Sample specifications require in-store verification</li>
+                <li>Exchange on the metal value at our stores (sample policy)</li>
               </ul>
             </section>
           </div>
@@ -103,7 +105,7 @@ import { SiteHeaderComponent } from '../ui/site-header.component';
               <div class="row">@for (s of similar(); track s.id) { <ct-product-card [product]="s" /> }</div>
             </section>
           }
-          <p class="foot">Sample data: designs, prices, specifications and gold rate are for the demo.</p>
+          <p class="foot">Sample data: designs, prices, specifications and metal rates are for the demo.</p>
 
           <div class="sticky">
             <div class="sp"><b>{{ catalog.money(price().total) }}</b><span>incl. VAT</span></div>
@@ -200,7 +202,8 @@ export class ProductPage {
   readonly store = inject(StoreService);
   private readonly id = toSignal(inject(ActivatedRoute).paramMap.pipe(map(p => p.get('id') ?? '')), { initialValue: '' });
   readonly product = computed(() => this.catalog.find(this.id()));
-  readonly price = computed(() => { const p = this.product(); return p ? this.catalog.price(p) : { gold: 0, making: 0, stones: 0, vat: 0, total: 0, rate: 0, vatPercent: undefined }; });
+  readonly dateLabel = effectiveDateLabel;
+  readonly price = computed<PriceBreakdown>(() => { const p = this.product(); return p ? this.catalog.price(p) : { gold: 0, making: 0, stones: 0, vat: 0, total: 0, rate: 0, vatPercent: undefined }; });
   readonly similar = computed(() => { const p = this.product(); return p ? similarProducts(p, this.catalog.products()) : []; });
   // The whole design first, then each piece on its own.
   readonly images = computed(() => {

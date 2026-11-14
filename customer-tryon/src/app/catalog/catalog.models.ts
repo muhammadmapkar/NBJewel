@@ -1,5 +1,5 @@
 // Role: Types and pure rules for the customer shop: the catalog file shape
-// (public/catalog/catalog.json, made by scripts/build-tryon-catalog.py), price from the gold rate,
+// (public/catalog/catalog.json, made by scripts/build-tryon-catalog.py), price from recorded metal rates,
 // catalog filters and sorting, and the try-on "parts" query. All values in the catalog are SAMPLE
 // data for the demo (assumed). Unit tested in catalog.models.spec.ts.
 
@@ -31,10 +31,10 @@ export interface Product {
   purity: string; // "22K"
   hallmark: string;
   grossWeight: number; // grams
-  netWeight: number; // grams of gold
+  netWeight: number; // grams of metal
   apiPrice?: PriceBreakdown; // Authoritative API calculation, including flat/per-gram making.
   makingLabel?: string;
-  makingPercent: number; // of the gold value
+  makingPercent: number; // of the metal value
   stones: string[];
   stoneValue: number;
   size: string;
@@ -46,7 +46,7 @@ export interface Product {
 
 export interface Catalog {
   currency: string;
-  rates: Record<string, number>; // per gram, by purity
+  rates: Record<string, number>; // Legacy bundled Gold rates per gram, by purity
   ratesNote: string;
   vatPercent: number;
   branches: string[];
@@ -60,23 +60,31 @@ export const KIND_LABELS: Record<PieceKind, string> = { necklace: 'Necklace', ea
 // ---------- Price ----------
 
 export interface PublicMetalRate { id: number; metalType: string; purity: string; ratePerGram: number; currency: string; effectiveDate: string; }
-export interface PriceBreakdown { gold: number; making: number; stones: number; vat: number; total: number; rate: number; vatPercent?: number; effectiveDate?: string; changeExplanation?: string; }
+export interface PriceBreakdown { gold: number; making: number; stones: number; vat: number; total: number; rate: number; vatPercent?: number; effectiveDate?: string; changeExplanation?: string; available?: boolean; }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
-// Gold value = net weight x rate; making charge = a percent of the gold value; VAT on the sum.
-export function priceOf(product: Product, catalog: Pick<Catalog, 'rates' | 'vatPercent'>): PriceBreakdown {
+// Dates come only from the data. Legacy bundled Gold rates have no recorded effective date.
+export function effectiveDateLabel(date?: string): string {
+  return date ? `Effective ${date}` : 'Effective date not recorded';
+}
+export function recordedRates(catalog: Catalog): { metalType: string; purity: string; ratePerGram: number; currency: string; effectiveDate?: string }[] {
+  return catalog.metalRates ?? Object.entries(catalog.rates).map(([purity, ratePerGram]) => ({ metalType: 'Gold', purity, ratePerGram, currency: catalog.currency }));
+}
+// Metal value = net weight x matching metal/purity rate; VAT applies to the rounded components.
+export function priceOf(product: Product, catalog: Pick<Catalog, 'rates' | 'vatPercent' | 'metalRates'>): PriceBreakdown {
   if (product.apiPrice) return product.apiPrice;
-  const rate = catalog.rates[product.purity] ?? 0;
+  const recorded = catalog.metalRates?.find(r => r.metalType === product.metal && r.purity === product.purity);
+  const rate = catalog.metalRates ? recorded?.ratePerGram ?? 0 : product.metal === 'Gold' ? catalog.rates[product.purity] ?? 0 : 0;
   const gold = round2(product.netWeight * rate);
   const making = round2(gold * product.makingPercent / 100);
   const stones = round2(product.stoneValue);
   const vat = round2((gold + making + stones) * catalog.vatPercent / 100);
-  return { gold, making, stones, vat, total: round2(gold + making + stones + vat), rate };
+  return { gold, making, stones, vat, total: round2(gold + making + stones + vat), rate, vatPercent: catalog.vatPercent, effectiveDate: recorded?.effectiveDate, available: rate > 0 };
 }
 
 export function formatMoney(amount: number, currency: string): string {
-  return `${currency} ${amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+  return `${currency} ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 // ---------- Filters and sorting ----------
@@ -112,19 +120,20 @@ export const SORT_OPTIONS: readonly { value: SortKey; label: string }[] = [
 
 export interface Filters {
   types: Category[];
+  metals: string[];
   purities: string[];
   prices: string[]; // range labels
   weights: string[];
-  stones: string[]; // "Plain gold" means no stones
+  stones: string[]; // "No stones" means a plain metal piece
   occasions: string[];
   collections: string[]; // set from the home page collection tiles
 }
 
-export const EMPTY_FILTERS: Filters = { types: [], purities: [], prices: [], weights: [], stones: [], occasions: [], collections: [] };
-export const PLAIN_GOLD = 'Plain gold';
+export const EMPTY_FILTERS: Filters = { types: [], metals: [], purities: [], prices: [], weights: [], stones: [], occasions: [], collections: [] };
+export const PLAIN_GOLD = 'No stones';
 
 export function activeFilterCount(f: Filters): number {
-  return f.types.length + f.purities.length + f.prices.length + f.weights.length + f.stones.length + f.occasions.length + f.collections.length;
+  return f.types.length + f.metals.length + f.purities.length + f.prices.length + f.weights.length + f.stones.length + f.occasions.length + f.collections.length;
 }
 
 // A set counts as each kind it contains, so its earrings show under Earrings too.
@@ -138,6 +147,7 @@ const inRange = (value: number, ranges: readonly Range[], labels: string[]) =>
 // Within one group any choice may match (OR); across groups all must match (AND).
 export function matchesFilters(product: Product, f: Filters, price: number): boolean {
   if (f.types.length && !f.types.some(t => matchesType(product, t))) return false;
+  if (f.metals.length && !f.metals.includes(product.metal)) return false;
   if (f.purities.length && !f.purities.includes(product.purity)) return false;
   if (f.prices.length && !inRange(price, PRICE_RANGES, f.prices)) return false;
   if (f.weights.length && !inRange(product.grossWeight, WEIGHT_RANGES, f.weights)) return false;
@@ -161,10 +171,11 @@ export function sortProducts(list: readonly Product[], key: SortKey, priceOfId: 
 }
 
 // Values offered in the filter panel, taken from the catalog itself.
-export function filterValues(products: readonly Product[]): { purities: string[]; stones: string[]; occasions: string[] } {
+export function filterValues(products: readonly Product[]): { metals: string[]; purities: string[]; stones: string[]; occasions: string[] } {
   const uniq = (xs: string[]) => [...new Set(xs)].sort();
   const stones = uniq(products.flatMap(p => p.stones));
   return {
+    metals: uniq(products.map(p => p.metal)),
     purities: uniq(products.map(p => p.purity)),
     stones: products.some(p => !p.stones.length) ? [PLAIN_GOLD, ...stones] : stones,
     occasions: uniq(products.flatMap(p => p.occasions))

@@ -1,9 +1,11 @@
 // Role: The shop header on every page except the camera: back button (optional), the NB Jewel
 // mark, a Shop link, and the wishlist and bag icons with counts.
 
-import { Component, inject, input } from '@angular/core';
+import { Component, computed, inject, input } from '@angular/core';
 import { Location } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { CatalogService } from '../catalog/catalog.service';
+import { effectiveDateLabel, recordedRates } from '../catalog/catalog.models';
 import { StoreService } from '../catalog/store.service';
 import { IconComponent } from './icon.component';
 
@@ -24,8 +26,19 @@ import { IconComponent } from './icon.component';
         <ct-icon name="bag" />@if (store.bagCount()) { <span class="count">{{ store.bagCount() }}</span> }
       </a>
     </header>
+    @if (rates().length) {
+      <details class="rates">
+        <summary>Recorded sample metal rates</summary>
+        @for (rate of rates(); track rate.metalType + rate.purity) {
+          <p>{{ rate.metalType }} {{ rate.purity }}: {{ rate.currency }} {{ rate.ratePerGram }} / g. {{ dateLabel(rate.effectiveDate) }}.</p>
+        }
+      </details>
+    }
   `,
   styles: [`
+    .rates { padding: 10px 18px; background: var(--cream); color: var(--muted); font-size: 12px; border-bottom: 1px solid var(--line); }
+    .rates summary { cursor: pointer; }
+    .rates p { margin: 8px 0 0; }
     .bar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 6px; height: calc(58px + env(safe-area-inset-top)); padding: env(safe-area-inset-top) 10px 0 14px; background: rgba(250, 246, 239, 0.94); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); color: var(--ink); }
     .bar.dark { background: rgba(42, 13, 18, 0.92); border-color: transparent; color: var(--ivory); }
     .logo { font-size: 17px; color: inherit; text-decoration: none; }
@@ -37,6 +50,9 @@ import { IconComponent } from './icon.component';
   `]
 })
 export class SiteHeaderComponent {
+  private readonly catalog = inject(CatalogService);
+  readonly rates = computed(() => { const c = this.catalog.catalog(); return c ? recordedRates(c) : []; });
+  readonly dateLabel = effectiveDateLabel;
   readonly store = inject(StoreService);
   private readonly location = inject(Location);
   readonly back = input(false);

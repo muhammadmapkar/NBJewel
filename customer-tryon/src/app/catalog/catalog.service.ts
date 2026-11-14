@@ -24,7 +24,10 @@ export class CatalogService {
       const base = resolveApiBase(this.config.apiBaseUrl, document.baseURI);
       const source = base ? forkJoin({ products: this.apiPage(base), rates: this.http.get<PublicMetalRate[]>(`${base}/api/storefront/metal-rates`) })
         .pipe(map(({ products, rates }) => catalogFromApi(products, rates, base)))
-        : this.http.get<Catalog>(this.url('catalog/catalog.json'));
+        : this.http.get<Catalog>(this.url('catalog/catalog.json')).pipe(map(catalog => {
+          if (catalog.products.some(product => !priceOf(product, catalog).available)) throw new Error('Missing matching metal rate.');
+          return catalog;
+        }));
       this.active = source.subscribe({ next: catalog => this.state.set({ status: 'ready', catalog }), error: () => this.state.set({ status: 'error' }) });
     } catch { this.state.set({ status: 'error' }); }
   }

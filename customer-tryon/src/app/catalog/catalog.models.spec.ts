@@ -2,7 +2,7 @@
 // AND across groups), sorting, similar designs and the try-on "parts" query.
 
 import { describe, expect, it } from 'vitest';
-import { EMPTY_FILTERS, Filters, Product, activeFilterCount, filterValues, matchesFilters, parseParts, priceOf, similarProducts, sortProducts } from './catalog.models';
+import { EMPTY_FILTERS, Filters, Product, activeFilterCount, formatMoney, effectiveDateLabel, recordedRates, filterValues, matchesFilters, parseParts, priceOf, similarProducts, sortProducts } from './catalog.models';
 
 function product(over: Partial<Product>): Product {
   return {
@@ -52,9 +52,9 @@ describe('matchesFilters', () => {
     expect(matchesFilters(set, f({ weights: ['Under 20 g', '60 g and above'] }), 1)).toBe(true);
   });
 
-  it('plain gold matches pieces without stones', () => {
-    expect(matchesFilters(earrings, f({ stones: ['Plain gold'] }), 1)).toBe(true);
-    expect(matchesFilters(set, f({ stones: ['Plain gold'] }), 1)).toBe(false);
+  it('no stones matches pieces without stones', () => {
+    expect(matchesFilters(earrings, f({ stones: ['No stones'] }), 1)).toBe(true);
+    expect(matchesFilters(set, f({ stones: ['No stones'] }), 1)).toBe(false);
     expect(matchesFilters(set, f({ stones: ['Emerald'] }), 1)).toBe(true);
   });
 
@@ -67,8 +67,8 @@ describe('matchesFilters', () => {
     expect(matchesFilters(set, f({ stones: ['Emerald'], occasions: ['Daily'] }), 1)).toBe(false);
   });
 
-  it('filterValues lists what the catalog has, with Plain gold first', () => {
-    expect(filterValues([set, earrings])).toEqual({ purities: ['22K'], stones: ['Plain gold', 'Emerald', 'Kundan'], occasions: ['Bridal', 'Daily'] });
+  it('filterValues lists what the catalog has, with No stones first', () => {
+    expect(filterValues([set, earrings])).toEqual({ metals: ['Gold'], purities: ['22K'], stones: ['No stones', 'Emerald', 'Kundan'], occasions: ['Bridal', 'Daily'] });
   });
 });
 
@@ -97,3 +97,39 @@ describe('parseParts', () => {
     expect(parseParts(null, { kinds: ['necklace', 'earrings'] })).toEqual(['necklace', 'earrings']);
   });
 });
+
+
+describe('metal rates and dated explanations', () => {
+  const rates = [
+    { id: 1, metalType: 'Gold', purity: '950', ratePerGram: 90, currency: 'AED', effectiveDate: '2026-09-28' },
+    { id: 2, metalType: 'Silver', purity: '950', ratePerGram: 2, currency: 'AED', effectiveDate: '2026-09-29' },
+    { id: 3, metalType: 'Platinum', purity: '950', ratePerGram: 110, currency: 'AED', effectiveDate: '2026-09-30' }
+  ];
+  it('filters metals independently of purity and counts active choices', () => {
+    const silver = product({ metal: 'Silver', purity: '950' });
+    expect(matchesFilters(silver, f({ metals: ['Gold'] }), 1)).toBe(false);
+    expect(matchesFilters(silver, f({ metals: ['Gold', 'Silver'] }), 1)).toBe(true);
+    expect(activeFilterCount(f({ metals: ['Silver'] }))).toBe(1);
+    expect(filterValues([silver, product({ metal: 'Platinum' }), product({ metal: 'Gold' })]).metals).toEqual(['Gold', 'Platinum', 'Silver']);
+  });
+  it('matches both metal and purity for gold, silver and platinum with their recorded dates', () => {
+    const catalog = { rates: { '950': 999 }, metalRates: rates, vatPercent: 5 };
+    for (const [metal, rate, total, date] of [['Gold', 90, 1039.5, '2026-09-28'], ['Silver', 2, 23.1, '2026-09-29'], ['Platinum', 110, 1270.5, '2026-09-30']] as const) {
+      const value = priceOf(product({ metal, purity: '950', netWeight: 10, makingPercent: 10 }), catalog);
+      expect(value.rate).toBe(rate); expect(value.total).toBe(total); expect(value.effectiveDate).toBe(date);
+    }
+  });
+  it('never applies an undated legacy gold rate to a silver product with the same purity', () => {
+    const result = priceOf(product({ metal: 'Silver', purity: '22K' }), shop);
+    expect(result.available).toBe(false); expect(result.rate).toBe(0);
+  });
+});
+
+it('labels only recorded dates and keeps unknown bundled dates explicit', () => {
+  expect(effectiveDateLabel('2026-09-30')).toBe('Effective 2026-09-30');
+  const legacy = recordedRates({ ...shop, currency: 'AED', ratesNote: '', branches: [], sample: true, products: [] });
+  expect(legacy[0].metalType).toBe('Gold');
+  expect(effectiveDateLabel(legacy[0].effectiveDate)).toBe('Effective date not recorded');
+});
+
+it('keeps cents visible so price components reconcile', () => { expect(formatMoney(814.8, 'AED')).toBe('AED 814.80'); });

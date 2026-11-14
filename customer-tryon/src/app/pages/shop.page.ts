@@ -53,7 +53,7 @@ type Group = Exclude<keyof Filters, 'collections'>;
           <div class="grid">@for (p of shown(); track p.id) { <ct-product-card [product]="p" /> }</div>
         }
       }
-      <footer class="foot">Prices use a sample gold rate and include VAT. All data is sample data.</footer>
+      <footer class="foot">Prices use sample metal rates and the configured VAT. All data is sample data.</footer>
     </main>
 
     @if (panelOpen()) {
@@ -131,7 +131,8 @@ export class ShopPage {
     const opts = (xs: readonly string[]) => xs.map(x => ({ value: x, label: x }));
     return [
       { key: 'types' as Group, label: 'Type', options: this.types.map(t => ({ value: t.value as string, label: t.label })) },
-      { key: 'purities' as Group, label: 'Gold purity', options: opts(v.purities) },
+      { key: 'metals' as Group, label: 'Metal', options: opts(v.metals) },
+      { key: 'purities' as Group, label: 'Purity', options: opts(v.purities) },
       { key: 'prices' as Group, label: `Price (${this.catalog.catalog()?.currency ?? 'AED'})`, options: opts(PRICE_RANGES.map(r => r.label)) },
       { key: 'weights' as Group, label: 'Weight', options: opts(WEIGHT_RANGES.map(r => r.label)) },
       { key: 'stones' as Group, label: 'Stone', options: opts(v.stones) },
