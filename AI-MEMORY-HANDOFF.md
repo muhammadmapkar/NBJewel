@@ -2,9 +2,9 @@
 # AI memory handoff
 
 ## Lock
-- Agent: codex-portal.
-- Since: 2026-11-14T16:57:24+04:00
-- Status: released in the final portal-upgrade checkpoint; implementation and sample verification complete.
+- Agent: codex-qa-doc.
+- Since: 2026-11-14T18:27:23+04:00
+- Status: released in the QA-document checkpoint.
 
 ## Branch and last commit
 - Portal upgrade predecessor: `7720b2a64bd36ba5b0d79ab8e2f1f8be70d50b2e`. Final portal snapshot is the commit containing this handoff, resolved with `git log -1 --format=%H -- AI-MEMORY-HANDOFF.md`; push target remains origin/feature/customer-storefront.
@@ -39,6 +39,7 @@ Origin reconciliation, forensic audit and reproduced assistant visibility repair
 
 
 ## Done
+- QA guide: docs/QA_TEST.md documents exact startup/login retrieval, a new-item fixture, source=erp catalog links, manual publication/edit/revoke checks, separate browser sessions, inventory limitations and troubleshooting. No real credential recorded; proposed customer credentials are explicitly test-only and require signup.
 - Portal upgrade: secure exact-revision Gemini Vision suggestions with dedicated/shared key fallback and editable ERP auto-fill/regenerate; no automatic save/approval/publication. Customer cookie/CSRF auth gates and resumed intents, owned profile/bag/request persistence, device/account wishlist, public map/store catalogs, mobile/desktop navigation, separate live market reference provider and honest sample/freshness states. Prepared SQL file only.
 - Final read-only review: fixed explicit reservation selection, persistent stale quote status, late-401 auth race, public product store counts, and shared/reloaded source/store context including try-on piece/design changes and profile. All material findings addressed. Root alone wrote implementation; subagents inspected/reviewed only.
 - Browser sample checks passed: guest signup resumes original try-on, authenticated add/reserve/profile/sign-out, guest login resumes original add, shared store product reload, rendered OSM map and desktop/mobile nav at 1280/390px. Camera capture/real geolocation/provider/SQL checks remain manual. Browser ended signed out and viewport override reset.
@@ -150,6 +151,7 @@ Historical phase-2 checklist:
 - No questions to owner. Choose conservative sample-only behavior and log assumptions. Accounts, chatbot, locator are later phases.
 
 ## Files touched
+- QA documentation task: docs/QA_TEST.md and AI-MEMORY-HANDOFF.md only.
 - Current portal task: exact created/updated paths are listed in docs/portal-upgrades.md. Includes new backend JewelryVision/CustomerPortal/StoreDirectory/SpotRates and tests; ERP storefront-panel/service; customer auth/map/profile/navigation/catalog; env example/launcher/docs/README. No protected owner path or lockfile changed.
 - Reconciliation changes: .env.example; RECONCILIATION_REPORT.md; AI-MEMORY-HANDOFF.md; backend/NbJewel.Api/Models/PublicCatalogPolicy.cs; backend/NbJewel.Api/Controllers/PublicCatalogController.cs; backend/NbJewel.Api/Platform/AssistantTools.cs; backend/NbJewel.Api/Platform/AssistantEvidence.cs; backend/NbJewel.Api.Tests/ScopedAssistantToolsTests.cs; backend/NbJewel.Api.Tests/ScanCostTests.cs.
 - Empty storefront fix: customer-tryon/public/storefront-config.json; customer-tryon/src/app/pages/home.page.ts and shop.page.ts; README.md; this handoff. Owner screenshot no_items.png read only, not staged.
@@ -169,6 +171,7 @@ Historical phase-2 checklist:
 - Pre-existing owner changes preserved, excluded from staging: PROGRESS.md, docs/run-guide.md, customer-tryon/package-lock.json; untracked browser security plan, old proof image, pasted jewelry image.
 
 ## Test commands and last results
+- QA document only: verified launcher flags/staff email, Angular catalog/source routes, status/publication control labels and local Python path against repository files; Markdown/content assertions and git diff --check passed. Application suites not rerun because no application code changed.
 - Portal final backend: `dotnet test backend/NbJewel.Api.Tests --no-restore`, Sample forced and SQL/connection/secrets removed, existing CUTOUT_PYTHON_PATH: 394 passed, 6 SQL skipped, zero failed. `dotnet build backend/NbJewel.Api --no-restore`: zero warnings/errors. Logs /tmp/nbjewel-portal-final-backend.log and /tmp/nbjewel-final-backend-build.log.
 - Portal final ERP: `npm test` 73 passed; `npx tsc --noEmit -p tsconfig.app.json` passed; `NG_BUILD_MAX_WORKERS=2 npm run build` passed. Logs /tmp/nbjewel-portal-final-erp.log, /tmp/nbjewel-erp-typecheck.log, /tmp/nbjewel-portal-final-erp-build.log.
 - Portal final customer: `npm test` 72 passed; strict typecheck and bounded-worker production build passed. Logs /tmp/nbjewel-portal-final-tests.log, /tmp/nbjewel-portal-typecheck.log, /tmp/nbjewel-portal-final-build.log. Try-on context regression failed before fix (/tmp/nbjewel-context-review-red.log), then passed. Two accidental root npm test invocations found no root manifest; no tests ran there; corrected app-directory commands above passed.
@@ -220,6 +223,7 @@ Historical phase-2 checklist:
 - Real browser CORS and cookies.
 
 ## Agent log (newest first)
+- 2026-11-14T18:28:57+04:00 codex-qa-doc: fetch/ff-only pull and clean baseline 5bb3835 verified, acquired released Lock, created requested QA guide and validated documented routes/controls. Explicit-path docs checkpoint/push releases Lock. No running app, credential, source config or owner file changed.
 - 2026-11-14T16:57:24+04:00 codex-portal: completed both requested upgrades, read-only review corrections and sample gates; documented service inventory and manual limits. Final explicit-path checkpoint/push releases Lock. No protected owner files, actual .env, SQL data, Docker, deploy, forbidden worktree or force push touched.
 - 2026-11-14T11:44:43+04:00 codex-reconciliation: final reviewed backend 380/6 skipped and both frontend gates passed. Env/report/eligibility fix ready for explicit-path checkpoint and push; releasing Lock in that checkpoint. Unimplemented requested product domains remain unchecked, not claimed complete.
 - 2026-11-14 codex-reconciliation: backup verified, fetch/reset/ff-only pull passed; clean exact origin baseline. No semantic merge, remote branch deletion, SQL execution, Docker or forbidden worktree access. Two initial backup approvals rejected; explicit owner override then approved. Current audit will distinguish absent implementation from manual configuration.
