@@ -64,7 +64,7 @@ Using a legitimate staff session, open the catalog item's Images tab. Upload a p
 
 The existing Python script needs Pillow, numpy and scipy on the interpreter selected by backend `CUTOUT_PYTHON_PATH` (default `python3`). No new background-removal engine was added. For this session, tests used an isolated temporary interpreter at `/tmp/nbjewel-cutout-runtime-venv/bin/python`; this is not a deployed runtime. Generated preview quality remains manual review and source-photo licensing remains open.
 
-Set nonsecret backend `ITEM_ASSET_STORAGE_PATH` to persistent storage for a running demo. The default is the API's `App_Data/item-assets`. Source/preview revisions and publication decisions persist on that filesystem. Sample ERP item edits themselves are in memory and reset on API restart, including new item records and changed copy/status. Persistent asset links do not make the whole sample ERP durable. Ephemeral host disks require a separately configured persistent volume.
+Set nonsecret backend `ITEM_ASSET_STORAGE_PATH` to persistent storage for a running demo. The default is the API's `App_Data/item-assets`. Source/preview revisions and publication decisions persist on that filesystem. Sample ERP item edits themselves are in memory and reset on API restart, including new item records and changed copy/status. New sample item IDs are reserved on the same filesystem and never reused after restart, including IDs found in legacy asset/publication files. Keep that reservation storage together with the assets. Persistent asset links do not make the whole sample ERP durable. Ephemeral host disks require a separately configured persistent volume.
 
 ## Verification
 

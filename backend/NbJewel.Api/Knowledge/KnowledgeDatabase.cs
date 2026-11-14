@@ -15,6 +15,7 @@ public sealed class KnowledgeDatabase(DbContextOptions<KnowledgeDatabase> option
         b.Entity<KnowledgeVersion>().ToTable("AiKnowledgeVersions").HasKey(x => x.Id);
         b.Entity<KnowledgeChunk>().ToTable("AiKnowledgeChunks").HasKey(x => x.Id);
         b.Entity<KnowledgeAudit>().ToTable("AiKnowledgeAudit").HasKey(x => x.Id);
+        b.Entity<ProductPublication>().Property(x => x.ItemId).ValueGeneratedNever();
         b.Entity<ProductPublication>().Property(x => x.AssetRevisionId).HasMaxLength(32);
         b.Entity<ProductPublication>().ToTable("AiPublicationProducts").HasKey(x => x.ItemId);
         b.Entity<KnowledgeDocument>().Property(x => x.LatestVersionId).IsConcurrencyToken();

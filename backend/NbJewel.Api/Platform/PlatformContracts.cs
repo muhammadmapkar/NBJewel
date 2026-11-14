@@ -27,6 +27,8 @@ public interface IKnowledgeRetriever
 public interface IPublicationReader
 {
     Task<IReadOnlySet<int>> PublishedItemIdsAsync(CancellationToken ct);
+    // Public images require the exact authorized revision, not just a product ID.
+    Task<IReadOnlyDictionary<int, string?>> PublishedItemRevisionsAsync(CancellationToken ct) => throw new AssistantUnavailableException();
 }
 
 public interface IKnowledgeEvidenceValidator

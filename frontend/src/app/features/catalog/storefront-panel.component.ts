@@ -1,6 +1,6 @@
 // Role: Uses the existing ERP widget/theme for real upload, manual preview review and explicit
 // publication. It never approves a cutout or publishes an item automatically.
-import { Component, OnDestroy, computed, effect, inject, input, signal, untracked } from '@angular/core';
+import { Component, OnDestroy, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Observable, forkJoin, of } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
@@ -51,6 +51,7 @@ import { errorMessage } from './item-options';
 })
 export class StorefrontPanelComponent implements OnDestroy {
   readonly item = input.required<Item>();
+  readonly itemSaved = output<Item>();
   private readonly api = inject(StorefrontAdminService);
   private readonly auth = inject(AuthService);
   readonly asset = signal<StorefrontAsset | null>(null);
@@ -83,7 +84,7 @@ export class StorefrontPanelComponent implements OnDestroy {
   }
   saveCopy(): void {
     const item = this.saved() ?? this.item();
-    this.run(this.api.saveCopy(item, { ...item.storefront, description: this.description, collection: this.collection, isSample: item.storefront?.isSample ?? true }), 'Storefront details saved.', value => this.saved.set(value as Item));
+    this.run(this.api.saveCopy(item, { ...item.storefront, description: this.description, collection: this.collection, isSample: item.storefront?.isSample ?? true }), 'Storefront details saved.', value => { this.saved.set(value as Item); this.itemSaved.emit(value as Item); });
   }
   approve(): void { if (this.reviewChecked && this.asset()) this.run(this.api.review(this.item().id, this.asset()!.revisionId), 'Preview quality approval saved.'); }
   publish(): void { if (this.ready() && this.asset()) this.run(this.api.publish(this.item().id, this.asset()!.revisionId), 'Item published.'); }

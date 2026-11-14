@@ -6,6 +6,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using NbJewel.Api.Knowledge;
+using NbJewel.Api.Jewelry;
 using NbJewel.Api.Repositories;
 
 namespace NbJewel.Api.Tests;
@@ -136,6 +137,46 @@ public sealed class PublicCatalogHttpTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.True(response.Headers.TryGetValues("Access-Control-Allow-Origin", out var origins));
         Assert.Equal("http://localhost:4300", Assert.Single(origins!));
+    }
+
+    [Theory]
+    [InlineData("Sets")]
+    [InlineData("Maang tikka")]
+    public async Task PublicCategoriesStayWithinTheRuntimeUploadAndStorefrontContract(string name)
+    {
+        await using var factory = new KnowledgeHttpFactory(); await Publish(factory, 7);
+        using (var scope = factory.Services.CreateScope())
+        {
+            var categories = await scope.ServiceProvider.GetRequiredService<IItemRepository>().GetCategoriesAsync(default);
+            categories.Single(x => x.Id == 3).Name = name;
+        }
+        using var client = factory.CreateClient();
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/api/storefront/products/7")).StatusCode);
+        Assert.Equal(0, (await client.GetFromJsonAsync<JsonElement>("/api/storefront/products")).GetProperty("totalCount").GetInt32());
+    }
+
+    [Theory]
+    [InlineData("/api/storefront/products/7/preview")]
+    [InlineData("/api/storefront/products/7")]
+    [InlineData("/api/storefront/products")]
+    public async Task ReplacementBetweenPublicationAndResponseNeverExposesPendingRevision(string route)
+    {
+        string? pendingRevision = null;
+        await using var factory = new KnowledgeHttpFactory { AfterPublicationRead = async sp => {
+            var repository = sp.GetRequiredService<IItemImageAssetRepository>();
+            var approved = (await repository.GetAsync(7, default))!;
+            pendingRevision = Guid.NewGuid().ToString("N");
+            var folder = sp.GetRequiredService<ItemCutoutOptions>().RevisionFolder(pendingRevision);
+            Directory.CreateDirectory(folder);
+            var source = Path.Combine(sp.GetRequiredService<ItemCutoutOptions>().RevisionFolder(approved.RevisionId), "preview.png");
+            File.Copy(source, Path.Combine(folder, "preview.png"));
+            await repository.SaveAsync(approved with { RevisionId = pendingRevision, QualityReview = "pending" }, default);
+        } };
+        await Publish(factory, 7);
+        using var client = factory.CreateClient(); using var response = await client.GetAsync(route);
+        Assert.NotNull(pendingRevision);
+        // Fail closed is acceptable. A successful response must never resolve the replacement.
+        Assert.NotEqual(HttpStatusCode.OK, response.StatusCode);
     }
 
     [Fact]

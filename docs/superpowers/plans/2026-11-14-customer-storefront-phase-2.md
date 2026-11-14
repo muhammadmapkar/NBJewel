@@ -32,7 +32,17 @@ All six checks passed on 2026-11-14:
 
 SQL integration checks are intentionally skipped with all SQL/connection variables removed and Sample forced. Test image data is synthetic, not client photos. Backend logs: `/tmp/nbjewel-task9-backend-build.log` and `/tmp/nbjewel-task9-backend-test.log`.
 
-Lead review is the next gate; no verdict is claimed yet.
+## Lead review and corrections
+
+A fresh sequential read-only reviewer assessed `a4f8ef3..87c5c19` as ready with fixes. No critical findings; three important findings were accepted and corrected:
+
+- Public preview/detail/list could authorize approved revision A and resolve pending replacement B. Authorization now returns the exact revision through metadata/preview delivery; stale requested revision URLs fail closed. All three deterministic interleaving regressions failed before the fix and pass after it.
+- ERP Images saved copy stayed only in the child and reverted after tab teardown. The child now emits the returned Item; the parent retains it. A real component-class lifecycle regression saves, destroys/recreates Images and verifies the next Save keeps the new copy.
+- New memory-only samples could reuse IDs whose old approved assets/publications persisted. An exclusive filesystem reservation keeps IDs monotonic across restart and scans legacy asset/publication IDs. HTTP restart and legacy/corrupt-reservation tests cover the boundary. Full item persistence remains excluded.
+
+Both minor findings were also addressed: the prepared publication ItemId is externally assigned in EF and schema (model-only test, no SQL connection), and the public category allowlist now matches the implemented necklace/earring upload and API storefront contract. Unsupported future categories remain hidden by regression tests.
+
+Final affected checks passed: backend build zero warnings/errors; backend 357 passed, 6 SQL skipped, zero failed; ERP 72 passed and production build passed. Storefront 64 tests/build passed at the six-check gate and its source is unchanged by the review corrections. Logs: `/tmp/nbjewel-review-final-backend-build.log` and `/tmp/nbjewel-review-final-backend-test.log`. All lead-review findings are addressed for the sample-demo gate; manual checks remain open. The reviewer did not independently run tests; execution evidence comes from the implementing agent. No second reviewer or merge was requested.
 
 ## Manual gate for Muhammad
 
@@ -44,6 +54,6 @@ Lead review is the next gate; no verdict is claimed yet.
 
 ## Persistence and readiness limits
 
-Assets and sample publication decisions survive restart on the same persistent filesystem. Sample item edits remain memory-only. SQL adapter/schema changes are prepared files and have not been applied or validated against a server. Backend tests use isolated test identities rather than inventing a demo account. API earring preview placement assumes a reviewed single earring can be used on both sides; visual fit remains manual.
+Assets, sample publication decisions and new sample item ID reservations survive restart on the same persistent filesystem. Reservation metadata must stay with the assets to prevent ID reuse. Sample item edits remain memory-only. SQL adapter/schema changes are prepared files and have not been applied or validated against a server. Backend tests use isolated test identities rather than inventing a demo account. API earring preview placement assumes a reviewed single earring can be used on both sides; visual fit remains manual.
 
 This gate is for reviewing a sample demo. It is not approval for production, a tax rule, source-photo rights, cutout visual quality, merge or deployment. Accounts, chatbot enhancements and locator remain later phases. Stop after the lead review and wait for Muhammad.

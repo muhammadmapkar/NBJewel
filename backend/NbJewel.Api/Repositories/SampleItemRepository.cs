@@ -6,6 +6,7 @@
 
 using System.Text.Json;
 using NbJewel.Api.Models;
+using NbJewel.Api.Jewelry;
 
 namespace NbJewel.Api.Repositories;
 
@@ -21,9 +22,11 @@ public sealed class SampleItemRepository : IItemRepository
     // Valid (metal, purity) pairs, taken from the rates and the items. The SQL schema keeps these in its Purity table.
     private readonly List<(string Metal, string Purity)> purities;
     private readonly object sync = new();
+    private readonly SampleItemIdAllocator? ids;
 
-    public SampleItemRepository(IWebHostEnvironment environment)
+    public SampleItemRepository(IWebHostEnvironment environment, ItemCutoutOptions? storage = null)
     {
+        ids = storage is null ? null : new SampleItemIdAllocator(storage);
         var contentRootDirectory = Path.Combine(environment.ContentRootPath, "sample-data");
         var directory = Directory.Exists(contentRootDirectory)
             ? contentRootDirectory
@@ -91,7 +94,8 @@ public sealed class SampleItemRepository : IItemRepository
         {
             var valid = ItemWriteRules.Validate(request.Code, request.Name, request.GrossWt, request.StoneWt, request.MakingType, request.MakingValue, request.Huid, request.ImageUrl, request.Storefront, request.StoneValue ?? 0, request.VatPercent ?? 0);
             EnsureLinks(request.DesignId, request.CategoryId, request.MetalType, request.Purity, valid.Code, null);
-            var item = Build(valid, items.Count == 0 ? 1 : items.Max(x => x.Id) + 1, request.CategoryId, request.DesignId, request.MetalType, request.Purity, ItemStatusRules.Draft);
+            var last = items.Count == 0 ? 0 : items.Max(x => x.Id);
+            var item = Build(valid, ids?.ReserveAfter(last) ?? checked(last + 1), request.CategoryId, request.DesignId, request.MetalType, request.Purity, ItemStatusRules.Draft);
             items.Add(item);
             return Task.FromResult(item);
         }

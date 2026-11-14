@@ -98,12 +98,17 @@ public sealed class KnowledgeHttpFactory : WebApplicationFactory<Program>
     private readonly string name = Guid.NewGuid().ToString();
     public bool DisableKnowledgeProvider { get; init; }
     public bool UseFilePublications { get; init; }
+    public Func<IServiceProvider, Task>? AfterPublicationRead { get; init; }
     public Dictionary<string, string?> TestConfiguration { get; init; } = [];
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
         builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?> { ["NBJEWEL_IDENTITY_CONNECTION"] = "", ["AI_PLATFORM_CONNECTION"] = "", ["Repository:Provider"] = "Sample", ["ITEM_ASSET_STORAGE_PATH"] = Path.Combine(Path.GetTempPath(), "nbjewel-http-assets-" + name) }).AddInMemoryCollection(TestConfiguration));
         builder.ConfigureTestServices(services => {
+            if (AfterPublicationRead is not null) {
+                services.RemoveAll<IPublicationReader>();
+                services.AddScoped<IPublicationReader>(sp => new PublicationInterleaving(sp.GetRequiredService<KnowledgeService>(), () => AfterPublicationRead(sp)));
+            }
             if (!UseFilePublications) services.RemoveAll<IProductPublicationStore>();
             services.RemoveAll<DbContextOptions<IdentityDatabase>>(); services.RemoveAll<IDbContextOptionsConfiguration<IdentityDatabase>>();
             services.AddDbContext<IdentityDatabase>(o => o.UseInMemoryDatabase(name + "identity"));
@@ -113,6 +118,13 @@ public sealed class KnowledgeHttpFactory : WebApplicationFactory<Program>
             services.AddDbContext<PlatformDatabase>(o => o.UseInMemoryDatabase(name + "platform"));
             services.RemoveAll<IdentityAvailability>(); services.AddSingleton(new IdentityAvailability(true));
         });
+    }
+    private sealed class PublicationInterleaving(KnowledgeService inner, Func<Task> afterRead) : IPublicationReader
+    {
+        public async Task<IReadOnlySet<int>> PublishedItemIdsAsync(CancellationToken ct) => (await PublishedItemRevisionsAsync(ct)).Keys.ToHashSet();
+        public async Task<IReadOnlyDictionary<int, string?>> PublishedItemRevisionsAsync(CancellationToken ct) {
+            var result = await inner.PublishedItemRevisionsAsync(ct); await afterRead(); return result;
+        }
     }
     public async Task Seed(string type, bool allStores, string[] permissions)
     {

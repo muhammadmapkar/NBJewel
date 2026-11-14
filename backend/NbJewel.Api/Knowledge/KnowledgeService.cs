@@ -66,7 +66,7 @@ public sealed class KnowledgeService(KnowledgeDatabase db, IProductPublicationSt
             var asset = await assets.GetAsync(id, ct);
             if (asset is not { State: "ready", QualityReview: "approved" } ||
                 (assetRevisionId is not null && asset.RevisionId != assetRevisionId) ||
-                (previews is not null && await previews.PreviewAsync(id, ct) is null)) throw new ProductNotReadyException();
+                (previews is not null && await previews.PreviewAsync(id, ct, asset.RevisionId) is null)) throw new ProductNotReadyException();
             assetRevisionId = asset.RevisionId;
         }
         if (productStore is not null)
@@ -84,20 +84,22 @@ public sealed class KnowledgeService(KnowledgeDatabase db, IProductPublicationSt
         (await ProductRows(ct)).FirstOrDefault(x => x.ItemId == id);
     private async Task<IReadOnlyList<ProductPublication>> ProductRows(CancellationToken ct) => productStore is not null
         ? await productStore.ListAsync(ct) : await db.Products.AsNoTracking().ToListAsync(ct);
-    public async Task<IReadOnlySet<int>> PublishedItemIdsAsync(CancellationToken ct)
+    public async Task<IReadOnlySet<int>> PublishedItemIdsAsync(CancellationToken ct) =>
+        (await PublishedItemRevisionsAsync(ct)).Keys.ToHashSet();
+    public async Task<IReadOnlyDictionary<int, string?>> PublishedItemRevisionsAsync(CancellationToken ct)
     {
         try
         {
-            var result = new HashSet<int>();
+            var result = new Dictionary<int, string?>();
             foreach (var row in (await ProductRows(ct)).Where(x => x.Published))
             {
                 if (assets is not null)
                 {
                     var asset = await assets.GetAsync(row.ItemId, ct);
                     if (asset is not { State: "ready", QualityReview: "approved" } || asset.RevisionId != row.AssetRevisionId ||
-                        (previews is not null && await previews.PreviewAsync(row.ItemId, ct) is null)) continue;
+                        (previews is not null && await previews.PreviewAsync(row.ItemId, ct, row.AssetRevisionId) is null)) continue;
                 }
-                result.Add(row.ItemId);
+                result.Add(row.ItemId, row.AssetRevisionId);
             }
             return result;
         }

@@ -172,7 +172,7 @@ GO
 
 
 CREATE TABLE [AiPublicationProducts] (
-    [ItemId] int NOT NULL IDENTITY,
+    [ItemId] int NOT NULL, -- Externally assigned ERP item ID, never a generated publication identity.
     [Published] bit NOT NULL,
     [AssetRevisionId] nvarchar(32) NULL, -- ASSUMED: approved current cutout revision. Migration not applied.
     CONSTRAINT [PK_AiPublicationProducts] PRIMARY KEY ([ItemId])

@@ -23,7 +23,7 @@ public sealed class ItemCutoutHttpTests
     private static async Task<HttpClient> Admin(KnowledgeHttpFactory factory, string accountType = "erp", bool allStores = true, bool canWrite = true)
     {
         await factory.Seed(accountType, allStores, canWrite
-            ? ["items.read", "items.write", "prices.read", "status.read", "knowledge.manage"]
+            ? ["items.read", "items.write", "prices.read", "status.read", "status.write", "knowledge.manage"]
             : ["items.read", "prices.read", "status.read", "knowledge.manage"]);
         var client = factory.CreateClient();
         await Csrf(client);
@@ -166,6 +166,42 @@ public sealed class ItemCutoutHttpTests
         Assert.Equal(HttpStatusCode.NotFound, (await customer.GetAsync("/api/storefront/products/7")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await customer.GetAsync("/api/storefront/products/7/preview")).StatusCode);
         Assert.Equal(0, (await customer.GetFromJsonAsync<JsonElement>("/api/storefront/products")).GetProperty("totalCount").GetInt32());
+    }
+
+    [Fact]
+    public async Task NewSampleAfterRestartCannotInheritAnotherItemsApprovedAssetOrPublication()
+    {
+        var storage = Storage(); int firstId;
+        async Task<int> CreateComplete(HttpClient client, string code)
+        {
+            var seed = (await client.GetFromJsonAsync<JsonObject>("/api/items/7"))!;
+            seed["code"] = code; seed["name"] = "Assumed temporary sample";
+            seed["storefront"] = new JsonObject { ["description"] = "Assumed temporary copy", ["isSample"] = true };
+            using var created = await client.PostAsJsonAsync("/api/items", seed);
+            Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+            var id = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+            Assert.Equal(HttpStatusCode.OK, (await client.PatchAsJsonAsync($"/api/items/{id}/status", new { status = "Complete" })).StatusCode);
+            return id;
+        }
+        await using (var first = Factory(storage))
+        {
+            using var staff = await Admin(first); firstId = await CreateComplete(staff, "SAMPLE-NEW-A");
+            using var upload = await Upload(staff, firstId, Photo);
+            Assert.Equal(HttpStatusCode.Created, upload.StatusCode);
+            var revision = (await upload.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("revisionId").GetString();
+            Assert.Equal(HttpStatusCode.OK, (await staff.PostAsJsonAsync($"/api/items/{firstId}/image/review", new { confirm = true, revisionId = revision, approve = true })).StatusCode);
+            Assert.Equal(HttpStatusCode.NoContent, (await staff.PostAsJsonAsync($"/api/ai/knowledge/products/{firstId}/publish", new { confirm = true, assetRevisionId = revision })).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await staff.GetAsync($"/api/storefront/products/{firstId}")).StatusCode);
+        }
+        await using (var restarted = Factory(storage))
+        {
+            using var staff = await Admin(restarted); var secondId = await CreateComplete(staff, "SAMPLE-NEW-B");
+            Assert.Equal(HttpStatusCode.NotFound, (await staff.GetAsync($"/api/items/{secondId}/image")).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, (await staff.GetAsync($"/api/items/{secondId}/image/preview")).StatusCode);
+            Assert.False((await staff.GetFromJsonAsync<JsonElement>($"/api/ai/knowledge/products/{secondId}")).GetProperty("published").GetBoolean());
+            Assert.Equal(HttpStatusCode.NotFound, (await staff.GetAsync($"/api/storefront/products/{secondId}")).StatusCode);
+            Assert.NotEqual(firstId, secondId);
+        }
     }
 
     [Fact]

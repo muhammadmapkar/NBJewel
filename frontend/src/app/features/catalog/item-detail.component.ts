@@ -63,7 +63,7 @@ type TabId = 'overview' | 'images' | 'variants' | 'stock';
 
           <div role="tabpanel" [attr.aria-labelledby]="'tab-' + tab()">
             @switch (tab()) {
-              @case ('images') { <nb-storefront-panel [item]="it" /> }
+              @case ('images') { <nb-storefront-panel [item]="it" (itemSaved)="storefrontSaved($event)" /> }
               @case ('variants') { <nb-variants-table [itemId]="it.id" /> }
               @case ('stock') { <nb-stock-panel [itemId]="it.id" /> }
               @default {
@@ -200,6 +200,10 @@ export class ItemDetailComponent {
         this.state.set('error');
       }
     });
+  }
+
+  storefrontSaved(item: Item): void {
+    if (item.id === this.item()?.id) this.item.set(item);
   }
 
   loadPrice(id: number): void {

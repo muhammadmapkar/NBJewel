@@ -2,9 +2,9 @@
 # AI memory handoff
 
 ## Lock
-- Agent: codex-storefront
-- Since: 2026-11-14T05:27:25+04:00
-- Status: held for tasks 7-9 and sequential lead review.
+- Agent: none (released by codex-storefront).
+- Since: 2026-11-14T05:50:06+04:00
+- Status: released after tasks 7-9, all six checks and lead-review corrections; stop and wait for Muhammad.
 
 ## Branch and last commit
 - Branch: `feature/customer-storefront`.
@@ -19,17 +19,19 @@
 - Task 6 commit: `2f79a37` (pushed).
 - Task 7 commit: `f9b9130` (pushed).
 - Task 8 commit: `dec6fc1` (pushed).
-- Task 9 is in the snapshot commit resolved below.
+- Task 9 commit: `87c5c19` (pushed).
+- Lead-review corrections and lock release are in the snapshot commit resolved below.
 - Snapshot commit: the commit containing this handoff; resolve with `git log -1 --format=%H -- AI-MEMORY-HANDOFF.md`. Compare it with HEAD on the next start. A literal self-referencing commit hash cannot be recorded inside the same commit.
 
 ## Current goal
-Complete tasks 7, 8, 9; run all six checks and the lead review, then stop for Muhammad.
+Tasks 7, 8, 9 and lead review are complete. Stop and wait for Muhammad. Manual browser/device/quality/licensing checks remain separate; no later-phase work is authorized.
 
 ## Done
-- Task 9: removed unused ShopPage RouterLink and aligned Vitest config with CommonJS package; README now describes actual sample/auth/runtime/persistence limits, and phase 2 gate record separates automated evidence from manual checks. All six checks passed without the known warnings. Lead review pending.
+- Lead review: three important issues reproduced then fixed (exact authorized public revision, ERP saved-copy parent propagation, no sample ID reuse across persisted asset/publication lifetimes). Prepared SQL publication key and public necklace/earring category contracts aligned. Final backend 357 passed, 6 SQL skipped, build zero warnings/errors; ERP 72 tests/build passed. Storefront unchanged since 64 tests/build gate. All reviewer exclusions accepted as documented manual/later-phase limits.
+- Task 9: removed unused ShopPage RouterLink and aligned Vitest config with CommonJS package; README now describes actual sample/auth/runtime/persistence limits, and phase 2 gate record separates automated evidence from manual checks. All six checks passed without the known warnings. Lead review completed; all important and minor findings corrected and verified.
 - Task 8: sample HTTP scenario publishes a reviewed item, updates copy/stones/VAT, observes fresh anonymous list/detail prices, then revokes product and preview; one unchanged runtime storefront service reads publish/update/revoke responses through refresh without static fallback. Backend 349 passed (6 SQL skips); storefront 64 passed. Existing behavior already passed the new proof, so no production changes were needed.
 - Task 7: metal filters and metal/purity rate matching for Gold, Silver, Platinum; themed header shows recorded sample rates/dates; product breakdown shows actual date/change explanation and reconciled cents. Bundled Gold rate dates explicitly unknown; missing matching static rates fail closed. Storefront 63 tests/build passed.
-- Task 6: nonsecret public runtime config chooses API or bundled static catalog. API mode loads every published page and recorded rates, uses server price breakdowns and approved preview URLs, rejects invalid data, exposes refresh and never falls back to static products on API failure. Public API preview canvas loading uses anonymous CORS. Minimal price labels show correct metal/making/VAT; full task 7 UI remains pending. Storefront 58 tests/build passed; backend CORS regression and full suite passed 348 (6 SQL skips).
+- Task 6: nonsecret public runtime config chooses API or bundled static catalog. API mode loads every published page and recorded rates, uses server price breakdowns and approved preview URLs, rejects invalid data, exposes refresh and never falls back to static products on API failure. Public API preview canvas loading uses anonymous CORS. Minimal price labels show correct metal/making/VAT; full task 7 UI completed in f9b9130. Storefront 58 tests/build passed; backend CORS regression and full suite passed 348 (6 SQL skips).
 - Task 5: real ERP Images-tab upload/copy/review/publish/revoke controls reuse shared widget/theme; publication requires a Complete supported item, description, matching price, ready approved current cutout and explicit confirmation. Sample decisions persist on disk, bind to approved revisions, and survive fresh API hosts. Replacements/revocations hide published products/previews. No staff account or authentication bypass added.
 - Phase 2 task 4: ERP-authorized item image uploads reuse cutout-jewelry.py; persistent source/transparent preview revisions, hashes and atomic item-id metadata survive a fresh API host. Private preview reads verify the hash. Processing/failed states cannot serve a preview. Ready outputs remain qualityReview=pending and licenseStatus=open; no automatic publication. Full sample backend suite passed 346 tests, 6 SQL skips.
 - Phase 2 task 3: explicit validated stone value/VAT percentage retained through both adapters and older updates; prices reconcile rounded line amounts and include dated recorded-rate evidence with previous total/delta. Full backend sample suite passed 339 tests, 6 SQL skips. SQL schema/adapter changes are prepared only, not applied.
@@ -50,15 +52,16 @@ Complete tasks 7, 8, 9; run all six checks and the lead review, then stop for Mu
 - [x] 7. Dated rates, metal filters, price explanations. Size M. Files: storefront header, catalog, shop/product pages. Gold, silver, platinum use matching rate, breakdown, real effective date, no invented freshness. Test: storefront npm test/build.
 - [x] 8. Prove updates appear without rebuilding. Size M. Files: backend and storefront service tests. Publish, update, revoke a sample product; storefront reads reflect each change. Test: backend/storefront suites.
 - [x] 9. Warnings, docs, phase gate. Size S. Files: shop page, vitest.config.ts, README.md, docs/superpowers/plans/, this handoff. All six baseline checks pass; completed work and manual checks stay separate. Test: backend build/test, ERP npm test/build, storefront npm test/build.
-- [ ] After task 9: run the lead review, stop, wait for Muhammad.
+- [x] After task 9: sequential read-only lead review completed; all findings corrected with regressions and affected suites/builds passing. Stop and wait for Muhammad.
 
 ## Blockers and decisions
+- Lead review 87c5c19: fix public preview/metadata revision interleaving, ERP child-to-parent saved copy propagation, and restarted sample ID reuse. Add deterministic regressions first. Preserve ID reservations on the configured asset filesystem so new memory-only samples cannot inherit old assets/publication. Also align prepared SQL externally assigned publication key and restrict public categories to implemented necklace/earring contract. Reviewer exclusions accepted: full item persistence/accounts/SQL execution/cutout quality/licensing/browser devices/polling/production/merge/deploy/later phases remain outside this sample gate.
 - Task 7 plan: test metal filters and Gold/Silver/Platinum rate matching; add recorded-rate/date helpers, themed header rate details, metal filter options and product effective date/change explanation. Bundled rates have no recorded date, so label unknown rather than invent freshness. Keep API price snapshots authoritative even when the latest rate list differs.
 - Task 8 plan: one backend sample HTTP scenario publishes, changes item pricing/copy, reads updated values, revokes and checks product/preview removal; matching storefront refresh tests verify changed price/copy and absence after revoke without a rebuild.
 - Task 9 plan: fix existing unused RouterLink/Vitest config warnings, update README and a phase 2 review record, run backend build/test plus both Angular test/build commands, then delegate one read-only lead review sequentially (no implementation work while the reviewer runs). Resolve material findings, repeat affected checks, checkpoint and release Lock. No merge, deploy or SQL execution.
 - Task 6 runtime: public `customer-tryon/public/storefront-config.json` defaults apiBaseUrl=null, preserving the bundled catalog. Set its nonsecret apiBaseUrl (for local use, `http://localhost:5155`) to select API mode; deployed config can be changed without rebuilding JavaScript. Missing config (404) is static mode; invalid config or API failure gives the existing catalog error UI. No API keys, cookies or ERP auth services are added to the customer app.
 - Task 6 maps server prices verbatim, all pages up to the existing 10,000-item cap, recorded rate dates and approved revision preview URLs. A refresh cancels older in-flight loads. API mode has no invented branch list, hallmark or current-date freshness. New API earring assets are assumed to be one reviewed earring used in both placements; visual fit/quality remains manual. Static multi-piece catalog behavior is retained.
-- Scope ruling: API preview canvases need anonymous cross-origin image loading. Added anonymous image crossOrigin and a regression-tested default CORS allowance for the repository's existing localhost:4300 storefront port alongside localhost:4200. Nonlocal origins still require explicit CORS_ORIGINS; no wildcard or auth bypass. Minimal product price labels name actual metal/making/VAT to avoid mislabeling API values. Full task 7 filters/dated header remain pending.
+- Scope ruling: API preview canvases need anonymous cross-origin image loading. Added anonymous image crossOrigin and a regression-tested default CORS allowance for the repository's existing localhost:4300 storefront port alongside localhost:4200. Nonlocal origins still require explicit CORS_ORIGINS; no wildcard or auth bypass. Minimal product price labels name actual metal/making/VAT to avoid mislabeling API values. Task 7 subsequently completed filters/dated header.
 - Task 5 completed decisions: optional IProductPublicationStore uses atomic JSON only in Sample mode without a platform SQL connection; knowledge documents still use the existing provider. Publication records include reviewed AssetRevisionId; both SQL model/schema changes are files only, not applied. Samples keep identity protected and do not create accounts. Default public product reads can now return an empty catalog without SQL; ERP mutations still require a valid existing staff session.
 - Review POST `/api/items/{id}/image/review` names the revision, approve=true and confirm=true. Protected preview GET supports revisionId and refuses stale revisions. Public preview GET `/api/storefront/products/{id}/preview` rechecks publication, readiness, category and hash. Client preview loads use the exact revision and guard stale responses; approval is disabled before the preview loads.
 - Sample item edits remain memory-only by existing repository contract. Asset revisions and publication decisions persist; non-seeded newly created items and copy/status edits reset on restart. No claim of full ERP persistence is made. SQL provisioning/migrations remain unexecuted.
@@ -85,11 +88,12 @@ Complete tasks 7, 8, 9; run all six checks and the lead review, then stop for Mu
 - The prior handoff described another branch and old SQL authorization. Replaced from Muhammad's current seed and protocol; current instructions prohibit all Docker/SQL data steps.
 - Ruling: use this existing feature checkout and this handoff as the only ledger; no worktree, extra handoff, or AI-memory service mutation. Agents are sequential and the owner's forbidden worktree stays untouched.
 - Ruling: snapshot commit is resolved from git history because a commit cannot embed its own hash. Record verified predecessor and task implementation hashes as work advances.
-- Remaining work: sequential read-only lead review, resolve material findings, final checkpoint and release Lock. API mode now uses recorded server prices/rates; default unset configuration intentionally retains the bundled demo.
+- No automated phase 2 implementation steps remain. Manual checks below remain open; stop and wait for Muhammad. API mode now uses recorded server prices/rates; default unset configuration intentionally retains the bundled demo.
 - Known RouterLink/Vitest config warnings resolved in task 9.
 - No questions to owner. Choose conservative sample-only behavior and log assumptions. Accounts, chatbot, locator are later phases.
 
 ## Files touched
+- Lead-review fixes: backend PublicCatalogController, PlatformContracts, KnowledgeService/KnowledgeDatabase, SampleItemRepository/new SampleItemIdAllocator; PublicCatalogHttpTests/KnowledgeAdminHttpTests/ItemCutoutHttpTests/new PublicationSchemaContractTests/new SampleItemIdReservationTests; ERP item-detail/storefront-panel and new lifecycle test; docs/platform-schema.sql, README, phase 2 gate record, this handoff.
 - Task 9: README.md, storefront shop.page.ts and vitest.config.ts, docs/superpowers/plans/2026-11-14-customer-storefront-phase-2.md, this handoff.
 - Task 8: backend Jewelry/ItemCutoutHttpTests.cs, storefront catalog.service.spec.ts, this handoff.
 - Task 7: storefront catalog models/tests/service, site header, shop and product pages, this handoff.
@@ -103,6 +107,8 @@ Complete tasks 7, 8, 9; run all six checks and the lead review, then stop for Mu
 - Pre-existing owner changes preserved, excluded from staging: PROGRESS.md, docs/run-guide.md, customer-tryon/package-lock.json; untracked browser security plan, old proof image, pasted jewelry image.
 
 ## Test commands and last results
+- Final review corrections: backend build 0 warnings/errors; full backend tests 357 passed, 6 SQL skipped, 0 failed. Sample forced, SQL/connection env vars removed, existing Python interpreter. Logs /tmp/nbjewel-review-final-backend-build.log and /tmp/nbjewel-review-final-backend-test.log. ERP npm test 72 passed; bounded-worker production build passed. Storefront code unchanged since task 9 gate: 64 tests/build passed. Diff whitespace check passed.
+- Review regressions: 3 revision interleavings failed before fix; restart ID reuse returned another item asset before fix; missing saved-item output failed lifecycle test before fix; prepared SQL model returned OnAdd before ValueGeneratedNever. All now green. Legacy ID metadata and corrupt reservation tests also pass. No SQL connection opened by model/schema tests.
 - Task 9 six-check gate (2026-11-14): backend build zero warnings/errors; backend test 349 passed, 6 SQL skipped, zero failed; ERP test 71 passed and production build passed; storefront test 64 passed and production build passed. Both known warnings absent. Backend forced Sample, all SQL/connection env vars removed, existing temp Python interpreter. Backend logs /tmp/nbjewel-task9-backend-build.log and /tmp/nbjewel-task9-backend-test.log.
 - Task 8: backend sample suite (SQL/connection env variables removed, existing Python interpreter): 349 passed, 6 SQL skipped, 0 failed. Log /tmp/nbjewel-task8-backend.log. Storefront npm test: 64 passed. Test-only changes; no rebuild needed for the new proof.
 - Task 7: storefront npm test: 63 passed; npm run build with NG_BUILD_MAX_WORKERS=2 passed. Three metal contract failures and one cents-format failure observed before implementation. Known RouterLink/Vitest warnings remain for task 9.
@@ -136,6 +142,10 @@ Complete tasks 7, 8, 9; run all six checks and the lead review, then stop for Mu
 - Real browser CORS and cookies.
 
 ## Agent log (newest first)
+- 2026-11-14T05:50:06+04:00 codex-storefront: all review findings addressed. Final backend 357/6 SQL skips and build passed; ERP 72/build passed; storefront gate 64/build remains applicable. Updated gate/README and released Lock in final explicit-path checkpoint. Tasks 7-9 and lead review complete; stop for Muhammad. No owner files, secrets, forbidden worktree, merge, deploy, Docker or SQL data steps touched.
+- 2026-11-14 codex-storefront: review finding 3 now passes: creation reserves monotonic IDs on the asset filesystem, scans legacy link/publication IDs and fails closed on corrupt reservations. Restart regression no longer inherits asset/approval/public visibility. Prepared SQL identity contract test reproduced OnAdd versus Never without a SQL connection; corrected EF/schema files only.
+- 2026-11-14 codex-storefront: review finding 2 regression failed for missing saved-item event, then passed after emitting the returned Item to the parent and updating its signal. Lifecycle test destroys/recreates Images and verifies subsequent Save preserves changed copy. ID-restart regression initially lacked status.write in its test identity; corrected fixture grant only, no auth boundary change.
+- 2026-11-14 codex-storefront: review finding 1 reproduced in three deterministic preview/detail/list interleavings (all returned 200 for a pending replacement before fix). Public reads now carry authorized revision maps through metadata/preview and reject stale v. Public catalog suite 19 passed. Full affected suites pending remaining review fixes.
 - 2026-11-14T05:36:51+04:00 codex-storefront: task 8 pushed as dec6fc1. Task 9 warning fixes/docs and all six baseline checks passed. Preparing explicit-path checkpoint before sequential lead review; owner files untouched.
 - 2026-11-14 codex-storefront: task 7 pushed as f9b9130. Task 8 publish/update/revoke proof passed in backend and storefront suites. Checkpoint/push before task 9 warning cleanup, documentation and six-check phase gate.
 - 2026-11-14 codex-storefront: task 7 matching/filter/date tests verified RED then implemented; full storefront tests and production build passed. Header uses recorded sample dates, no invented freshness; bundled missing dates labelled. Checkpoint/push before task 8.
