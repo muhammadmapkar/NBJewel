@@ -6,22 +6,33 @@ using NbJewel.Api.Models;
 using NbJewel.Api.Jewelry;
 using NbJewel.Api.Platform;
 using NbJewel.Api.Repositories;
+using NbJewel.Api.Storefront;
 
 namespace NbJewel.Api.Controllers;
 
 [ApiController]
 [Route("api/storefront")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public sealed class PublicCatalogController(IItemRepository items, IPublicationReader publications, IItemImageAssetRepository assets, ItemCutoutPipeline previews) : ControllerBase
+public sealed class PublicCatalogController(IItemRepository items, IPublicationReader publications, IItemImageAssetRepository assets, ItemCutoutPipeline previews, StoreDirectory stores) : ControllerBase
 {
     // Explicit DTO prevents ERP status, hallmark IDs, design links, stock and store fields leaking.
     public sealed record PublicProduct(int Id, string Code, string Name, string Category,
         string MetalType, string Purity, decimal GrossWeight, decimal NetWeight,
         string? ImageUrl, StorefrontMetadata? Storefront, ItemPrice? Price, string? PreviewUrl, decimal? PreviewAspect);
 
+    [HttpGet("spot-rates")]
+    public async Task<IActionResult> GetSpotRates([FromServices] SpotRates spot, CancellationToken ct) => Ok(await spot.ReadAsync(ct));
+
+    [HttpGet("stores")]
+    public async Task<IActionResult> GetStores(CancellationToken ct)
+    {
+        try { return Ok(await stores.ReadAsync(ct)); }
+        catch (Exception e) when (e is not OperationCanceledException) { return StatusCode(503); }
+    }
+
     [HttpGet("products")]
     public async Task<ActionResult<PagedResult<PublicProduct>>> GetProducts(string? search, string? metal,
-        int page = 1, int pageSize = 50, CancellationToken cancellationToken = default)
+        int page = 1, int pageSize = 50, CancellationToken cancellationToken = default, int? storeId = null)
     {
         if (page < 1 || pageSize is < 1 or > 100 || search?.Length > 100 || metal?.Length > 50)
             return BadRequest("Invalid catalog query or paging.");
@@ -30,13 +41,18 @@ public sealed class PublicCatalogController(IItemRepository items, IPublicationR
             var published = await publications.PublishedItemRevisionsAsync(cancellationToken);
             if (published.Count > 10000) return StatusCode(503);
             var categories = await PublicCatalogPolicy.AllowedCategoriesAsync(items, cancellationToken);
+            IReadOnlySet<int>? storeItems = null;
+            if (storeId.HasValue) {
+                if (!(await stores.ReadAsync(cancellationToken)).Any(x => x.Location.Source == "erp" && x.Location.Id == storeId.Value.ToString())) return BadRequest("Unknown store.");
+                storeItems = await stores.AvailableItemIdsAsync(storeId.Value, cancellationToken);
+            }
             var matches = new List<Item>();
             for (var current = 1; ; current++)
             {
                 var batch = await items.SearchItemsAsync(search, null, metal, null, ItemStatusRules.Complete,
                     current, 100, cancellationToken);
                 if (batch.TotalCount > 10000) return StatusCode(503);
-                matches.AddRange(batch.Items.Where(item => published.ContainsKey(item.Id) && PublicCatalogPolicy.Allows(item, categories) &&
+                matches.AddRange(batch.Items.Where(item => (storeItems is null || storeItems.Contains(item.Id)) && published.ContainsKey(item.Id) && PublicCatalogPolicy.Allows(item, categories) &&
                     (string.IsNullOrWhiteSpace(search) || item.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
                         item.Code.Contains(search, StringComparison.OrdinalIgnoreCase))));
                 if ((long)current * 100 >= batch.TotalCount) break;

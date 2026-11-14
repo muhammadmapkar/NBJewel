@@ -64,6 +64,15 @@ import { SiteHeaderComponent } from '../ui/site-header.component';
           </section>
         }
       }
+      <section class="portal-card">
+        <p class="eyebrow">Discover our stores</p><h2 class="serif">Find Nearest NB JEWEL Store</h2>
+        <p>Explore the map, see store sync status and browse available designs before planning your visit.</p>
+        <a class="btn" routerLink="/stores">Explore stores map</a>
+      </section>
+      <section class="portal-card"><p class="eyebrow">The NB JEWEL showcase</p><h2 class="serif">A design for every chapter</h2>
+        <p>From bridal statements and temple motifs to antique-inspired details and everyday favourites, explore our sample collection at your own pace.</p>
+        <div class="trust"><p><b>Transparent pricing</b><br />See metal, making, stones and VAT.</p><p><b>Thoughtful previews</b><br />Compare designs before a visit.</p><p><b>Your choice, your pace</b><br />Browse freely. Sign in when you are ready.</p></div>
+      </section>
       <footer class="foot">Demo shop. Designs, prices, specifications and gold rates are sample data.</footer>
     </main>
   `,
@@ -96,6 +105,7 @@ import { SiteHeaderComponent } from '../ui/site-header.component';
     @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
     .empty { padding: 40px 0; text-align: center; color: var(--muted); }
     .link { border: 0; background: none; color: var(--maroon); font-weight: 600; text-decoration: underline; padding: 0; }
+    .trust { display:flex; gap:24px; flex-wrap:wrap; }
     .foot { margin-top: 30px; text-align: center; color: var(--muted); font-size: 12px; }
     @media (min-width: 760px) { .hero { padding: 56px 48px 52px; } h1 { font-size: 58px; } .row { grid-auto-columns: minmax(220px, 24%); } }
   `]
@@ -112,5 +122,5 @@ export class HomePage {
     return [...byName].map(([name, image]) => ({ name, image }));
   });
 
-  constructor() { this.catalog.load(); }
+  constructor() { this.catalog.selectStore(null); }
 }

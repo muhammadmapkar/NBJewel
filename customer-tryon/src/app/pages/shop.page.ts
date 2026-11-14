@@ -9,6 +9,7 @@ import { Category, EMPTY_FILTERS, Filters, PRICE_RANGES, SORT_OPTIONS, SortKey, 
 import { CatalogService } from '../catalog/catalog.service';
 import { IconComponent } from '../ui/icon.component';
 import { ProductCardComponent } from '../ui/product-card.component';
+import { StoreDirectoryService } from '../customer/store-directory.service';
 import { SiteHeaderComponent } from '../ui/site-header.component';
 
 type Group = Exclude<keyof Filters, 'collections'>;
@@ -18,6 +19,7 @@ type Group = Exclude<keyof Filters, 'collections'>;
   template: `
     <ct-site-header />
     <main class="page">
+      @if (selectedStore(); as store) { <p class="eyebrow">{{ store.location.name }}</p> }
       <h1 class="serif">{{ filters().collections.length ? filters().collections[0] + ' collection' : 'All jewellery' }}</h1>
 
       <nav class="quick" aria-label="Type">
@@ -115,6 +117,8 @@ type Group = Exclude<keyof Filters, 'collections'>;
 })
 export class ShopPage {
   readonly catalog = inject(CatalogService);
+  readonly directory = inject(StoreDirectoryService);
+  readonly selectedStore = computed(() => this.directory.stores().find(s => s.location.id === this.catalog.storeId() && s.location.source === this.catalog.source()));
   private readonly route = inject(ActivatedRoute);
   readonly types = TYPE_OPTIONS;
   readonly sorts = SORT_OPTIONS;
@@ -145,8 +149,11 @@ export class ShopPage {
   });
 
   constructor() {
+    void this.directory.load();
     this.catalog.load();
     this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe(q => {
+      const requestedSource = q.get('source');
+      this.catalog.selectStore(q.get('store'), requestedSource === 'erp' || requestedSource === 'demo' ? requestedSource : undefined);
       const collection = q.get('collection');
       this.filters.update(f => ({ ...f, collections: collection ? [collection] : [] }));
       const sort = q.get('sort') as SortKey | null;

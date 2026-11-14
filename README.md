@@ -3,6 +3,11 @@
 
 An internship demo for Cetas (jewelry retail ERP, NB Jewel). The ERP Angular app, customer try-on Angular app and .NET API use synthetic sample data. Unconfirmed business rules are assumed demo policy, not NB Jewel internals. No real client data is permitted.
 
+## ERP Vision and customer portal upgrades
+
+See [portal upgrades and local testing](docs/portal-upgrades.md) for the new editable Gemini image suggestions, customer signup/login and resumed actions, store map, profile/reservations, exact provider-key inventory and local commands. Run the sample API with `--customers --with-services` to enable temporary customer signup and explicitly load whitelisted backend provider settings. Earlier phase notes below describe historical limitations; the new guide records current behavior and remaining manual configuration.
+
+
 ## Project map
 
 - `frontend/`: staff ERP app with the existing theme, catalog, Images tab and chat panel.

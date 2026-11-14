@@ -7,10 +7,12 @@ import { RouterLink } from '@angular/router';
 import { CatalogService } from '../catalog/catalog.service';
 import { effectiveDateLabel, recordedRates } from '../catalog/catalog.models';
 import { StoreService } from '../catalog/store.service';
+import { CustomerSession } from '../customer/customer-session';
+import { MarketRatesComponent } from './market-rates.component';
 import { IconComponent } from './icon.component';
 
 @Component({
-  selector: 'ct-site-header', standalone: true, imports: [RouterLink, IconComponent],
+  selector: 'ct-site-header', standalone: true, imports: [RouterLink, IconComponent, MarketRatesComponent],
   template: `
     <header class="bar" [class.dark]="dark()">
       @if (back()) {
@@ -18,14 +20,18 @@ import { IconComponent } from './icon.component';
       }
       <a class="brand logo" routerLink="/">NB Jewel</a>
       <span class="spacer"></span>
-      <a class="link" routerLink="/shop">Shop</a>
-      <a class="icon-btn" routerLink="/wishlist" aria-label="Wishlist">
+      <a class="link desktop" routerLink="/shop" [queryParams]="catalog.linkParams()">Shop</a>
+      <a class="link desktop" routerLink="/stores">Stores Map</a>
+      <a class="icon-btn" routerLink="/wishlist" [queryParams]="catalog.linkParams()" aria-label="Wishlist">
         <ct-icon name="heart" />@if (store.wishlist().length) { <span class="count">{{ store.wishlist().length }}</span> }
       </a>
-      <a class="icon-btn" routerLink="/bag" aria-label="Bag">
+      <a class="icon-btn" routerLink="/bag" [queryParams]="catalog.linkParams()" aria-label="Bag">
         <ct-icon name="bag" />@if (store.bagCount()) { <span class="count">{{ store.bagCount() }}</span> }
       </a>
+      @if (session.identity()) { <a class="link desktop" routerLink="/profile" [queryParams]="catalog.linkParams()">Customer Profile</a> }
+      @else { <button class="link signin" type="button" (click)="session.require()">Sign In</button> }
     </header>
+    <ct-market-rates />
     @if (rates().length) {
       <details class="rates">
         <summary>Recorded sample metal rates</summary>
@@ -36,6 +42,8 @@ import { IconComponent } from './icon.component';
     }
   `,
   styles: [`
+    .signin { border:0; background:none; cursor:pointer; }
+    @media(max-width:767px) { .desktop { display:none; } }
     .rates { padding: 10px 18px; background: var(--cream); color: var(--muted); font-size: 12px; border-bottom: 1px solid var(--line); }
     .rates summary { cursor: pointer; }
     .rates p { margin: 8px 0 0; }
@@ -50,7 +58,8 @@ import { IconComponent } from './icon.component';
   `]
 })
 export class SiteHeaderComponent {
-  private readonly catalog = inject(CatalogService);
+  readonly session = inject(CustomerSession);
+  readonly catalog = inject(CatalogService);
   readonly rates = computed(() => { const c = this.catalog.catalog(); return c ? recordedRates(c) : []; });
   readonly dateLabel = effectiveDateLabel;
   readonly store = inject(StoreService);

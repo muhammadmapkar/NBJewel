@@ -6,6 +6,7 @@ import { Observable, catchError, of, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Item, StorefrontMetadata } from '../models';
 export interface StorefrontAsset { itemId: number; revisionId: string; state: string; qualityReview: string; licenseStatus: string; width: number; height: number; }
+export interface StorefrontSuggestion { revisionId: string; description: string; collection: string; }
 export interface PublicationState { itemId: number; published: boolean; assetRevisionId: string | null; }
 // Category IDs 3 and 6 are the assumed sample necklace/earring categories. The API rechecks names.
 export function publicationReady(item: Item, asset: StorefrontAsset | null): boolean {
@@ -25,6 +26,7 @@ export class StorefrontAdminService {
     return this.http.post<StorefrontAsset>(`${this.base}/api/items/${id}/image`, form);
   }
   preview(id: number, revisionId: string): Observable<Blob> { return this.http.get(`${this.base}/api/items/${id}/image/preview`, { params: { revisionId }, responseType: 'blob' }); }
+  analyze(id: number, revisionId: string): Observable<StorefrontSuggestion> { return this.http.post<StorefrontSuggestion>(`${this.base}/api/items/${id}/image/analyze`, { revisionId }); }
   review(id: number, revisionId: string): Observable<StorefrontAsset> { return this.http.post<StorefrontAsset>(`${this.base}/api/items/${id}/image/review`, { revisionId, approve: true, confirm: true }); }
   state(id: number): Observable<PublicationState> { return this.http.get<PublicationState>(`${this.base}/api/ai/knowledge/products/${id}`); }
   publish(id: number, assetRevisionId: string): Observable<void> { return this.http.post<void>(`${this.base}/api/ai/knowledge/products/${id}/publish`, { assetRevisionId, confirm: true }); }

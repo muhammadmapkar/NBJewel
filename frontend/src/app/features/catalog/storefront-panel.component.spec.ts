@@ -38,3 +38,25 @@ it('keeps saved copy in the parent when Images is destroyed and recreated', () =
     reopened.saveCopy(); expect(saveCopy.mock.calls[1][1]?.description).toBe('Saved sample copy'); reopened.ngOnDestroy();
   } finally { injector.destroy(); vi.unstubAllGlobals(); }
 });
+
+it('preserves manual edits while AI responds and rejects stale image replies', async () => {
+  const { Subject } = await import('rxjs');
+  const response = new Subject<{ revisionId: string; description: string; collection: string }>();
+  const injector = createEnvironmentInjector([
+    provideZonelessChangeDetection(), { provide: ɵINJECTOR_SCOPE, useValue: 'root' },
+    { provide: AuthService, useValue: { identity: signal({ accountType: 'erp', allStores: true, permissions: ['items.read','items.write','prices.read','status.read'] }) } },
+    { provide: StorefrontAdminService, useValue: { analyze: () => response, asset: () => of(null), state: () => of({ published: false }) } }
+  ], null as unknown as EnvironmentInjector);
+  try {
+    const panel = runInInjectionContext(injector, () => new StorefrontPanelComponent());
+    Object.defineProperty(panel, 'item', { value: signal({ id: 7 } as Item) });
+    panel.asset.set({ itemId: 7, revisionId: 'one', state: 'ready', qualityReview: 'pending', licenseStatus: 'open', width: 1, height: 1 });
+    panel.preview.set('blob:test'); panel.analyze(); panel.description = 'Retailer edit';
+    response.next({ revisionId: 'one', description: 'AI copy', collection: 'Temple' });
+    expect(panel.description).toBe('Retailer edit'); expect(panel.collection).toBe('Temple');
+    panel.analyze(); panel.asset.update(x => ({ ...x!, revisionId: 'two' }));
+    response.next({ revisionId: 'one', description: 'Old copy', collection: 'Bridal' });
+    expect(panel.description).toBe('Retailer edit'); expect(panel.collection).toBe('Temple');
+    panel.ngOnDestroy();
+  } finally { injector.destroy(); }
+});

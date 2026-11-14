@@ -19,8 +19,13 @@ import { errorMessage } from './item-options';
       </div>
       @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
       @if (notice()) { <p role="status">{{ notice() }}</p> }
-      @if (preview(); as image) { <div class="frame"><img [src]="image" alt="Current item cutout for manual quality review" /></div> }
+      @if (preview(); as image) { <div class="frame"><img [src]="image" alt="Current item cutout for manual quality review" (load)="previewRendered()" /></div> }
       <p class="hint">Preview: {{ asset()?.state || 'not uploaded' }}. Quality: {{ asset()?.qualityReview || 'not reviewed' }}. Image licensing remains open for this sample demo.</p>
+      <div class="toolbar">
+        <button type="button" [disabled]="analyzing() || busy() || !canUpload() || !preview()" (click)="analyze()">Re-generate with AI</button>
+        @if (analyzing()) { <span class="hint" role="status">Analyzing jewelry image with Gemini...</span> }
+      </div>
+      @if (aiNotice()) { <p class="hint" role="status">{{ aiNotice() }}</p> }
       <label>Description <textarea [(ngModel)]="description" maxlength="4000" [disabled]="busy() || !canUpload()"></textarea></label>
       <label>Collection <input [(ngModel)]="collection" maxlength="100" [disabled]="busy() || !canUpload()" /></label>
       <div class="toolbar">
@@ -60,15 +65,18 @@ export class StorefrontPanelComponent implements OnDestroy {
   readonly busy = signal(false); readonly published = signal(false);
   readonly error = signal(''); readonly notice = signal('');
   private generation = 0;
+  private analysis = 0;
+  private autoAnalyzeRevision: string | null = null;
+  readonly analyzing = signal(false); readonly aiNotice = signal('');
   description = ''; collection = ''; reviewChecked = false;
   readonly canUpload = computed(() => { const u = this.auth.identity(); return u?.accountType === 'erp' && u.allStores && ['items.read', 'items.write', 'prices.read', 'status.read'].every(p => u.permissions.includes(p)); });
   readonly canManage = computed(() => this.canUpload() && this.auth.identity()!.permissions.includes('knowledge.manage'));
   readonly ready = computed(() => publicationReady(this.saved() ?? this.item(), this.asset()));
   constructor() { effect(() => { this.item(); untracked(() => { this.saved.set(null); this.load(); }); }); }
-  ngOnDestroy(): void { this.generation++; this.clearPreview(); }
+  ngOnDestroy(): void { this.analysis++; this.generation++; this.clearPreview(); }
   private clearPreview(): void { const value = this.preview(); if (value) URL.revokeObjectURL(value); this.preview.set(null); }
   load(): void {
-    const generation = ++this.generation;
+    const generation = ++this.generation; this.analysis++; this.analyzing.set(false);
     const item = this.saved() ?? this.item(); this.description = item.storefront?.description ?? ''; this.collection = item.storefront?.collection ?? '';
     this.error.set(''); this.reviewChecked = false; this.clearPreview();
     forkJoin({ asset: this.api.asset(item.id), publication: this.canManage() ? this.api.state(item.id) : of({ published: false }) }).subscribe({
@@ -80,7 +88,27 @@ export class StorefrontPanelComponent implements OnDestroy {
     const input = event.target as HTMLInputElement; const file = input.files?.[0]; input.value = '';
     if (!file) return;
     if (!['image/png', 'image/jpeg'].includes(file.type) || file.size > 5 * 1024 * 1024) { this.error.set('Choose PNG or JPG, up to 5 MB.'); return; }
-    this.run(this.api.upload(this.item().id, file), 'Preview generated. Check its visual quality before approval.');
+    this.run(this.api.upload(this.item().id, file), 'Preview generated. Check its visual quality before approval.', value => { this.autoAnalyzeRevision = (value as StorefrontAsset).revisionId; this.aiNotice.set(''); });
+  }
+  previewRendered(): void {
+    if (this.autoAnalyzeRevision && this.autoAnalyzeRevision === this.asset()?.revisionId) {
+      this.autoAnalyzeRevision = null; this.analyze();
+    }
+  }
+  analyze(): void {
+    const asset = this.asset(); if (!asset || !this.preview() || !this.canUpload() || this.analyzing()) return;
+    const token = ++this.analysis; const itemId = this.item().id;
+    const before = { description: this.description, collection: this.collection };
+    this.analyzing.set(true); this.aiNotice.set('');
+    this.api.analyze(itemId, asset.revisionId).subscribe({
+      next: value => {
+        if (token !== this.analysis || itemId !== this.item().id || value.revisionId !== this.asset()?.revisionId) return;
+        if (this.description === before.description) this.description = value.description;
+        if (this.collection === before.collection) this.collection = value.collection;
+        this.analyzing.set(false); this.aiNotice.set('AI draft ready. Review and edit before saving. Your edits made during analysis were kept.');
+      },
+      error: () => { if (token === this.analysis) { this.analyzing.set(false); this.aiNotice.set('AI suggestions are unavailable or busy. You can enter the details manually or try again.'); } }
+    });
   }
   saveCopy(): void {
     const item = this.saved() ?? this.item();

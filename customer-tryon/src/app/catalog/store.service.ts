@@ -1,69 +1,51 @@
-// Role: The customer's bag and wishlist, and the last store reservation. Kept in this browser
-// only (localStorage), as a convenience: nothing is sent anywhere. Storage can be blocked (private
-// mode), so every access is guarded and the app still works for the visit.
-
-import { Injectable, computed, signal } from '@angular/core';
-
-const KEY = 'nbjewel.customer.v1';
-
-export interface Reservation {
-  reference: string;
-  name: string;
-  phone: string;
-  branch: string;
-  date: string;
-  items: string[]; // product ids
-  createdAt: string;
-}
-
-interface Saved { bag: string[]; wishlist: string[]; reservation: Reservation | null }
-
-function read(): Saved {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (raw) {
-      const s = JSON.parse(raw) as Partial<Saved>;
-      return { bag: Array.isArray(s.bag) ? s.bag : [], wishlist: Array.isArray(s.wishlist) ? s.wishlist : [], reservation: s.reservation ?? null };
-    }
-  } catch { /* storage blocked or bad data: start empty */ }
-  return { bag: [], wishlist: [], reservation: null };
-}
-
-// A short reference like "NBJ-7K3Q9P" (no look-alike letters).
-export function makeReference(random: () => number = Math.random): string {
-  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-  let out = '';
-  for (let i = 0; i < 6; i++) out += chars[Math.floor(random() * chars.length)];
-  return `NBJ-${out}`;
-}
-
+// Role: Keeps authenticated customer data on the backend and partitions optional local wishlists by customer identity.
+import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
+import { CustomerSession, customerError } from '../customer/customer-session';
+import { CatalogService } from './catalog.service';
+export interface Reservation { reference: string; name: string; phone: string; branch: string; date: string; items: string[]; createdAt: string; source: string; status: string; }
+export interface CustomerState { name: string; phone: string; bag: { id: string; source: string }[]; reservations: Reservation[]; }
+const empty = (): CustomerState => ({ name: '', phone: '', bag: [], reservations: [] });
+// Retained for existing reference-format consumers; server generates actual reservation IDs.
+export function makeReference(random: () => number = Math.random): string { const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; return 'NBJ-' + Array.from({ length: 6 }, () => chars[Math.floor(random() * chars.length)]).join(''); }
 @Injectable({ providedIn: 'root' })
 export class StoreService {
-  private readonly saved = signal<Saved>(read());
-  readonly bag = computed(() => this.saved().bag);
-  readonly wishlist = computed(() => this.saved().wishlist);
-  readonly reservation = computed(() => this.saved().reservation);
+  readonly session = inject(CustomerSession); private readonly catalog = inject(CatalogService); private ownerKey = '';
+  readonly profile = signal<CustomerState>(empty()); readonly error = signal(''); readonly working = signal(false);
+  readonly wishlist = signal<string[]>([]); private sequence = 0; private wishlistKey = '';
+  get source(): string { return this.catalog.source(); }
+  readonly bag = computed(() => this.profile().bag.filter(x => x.source === this.source).map(x => x.id));
   readonly bagCount = computed(() => this.bag().length);
-
+  readonly reservations = computed(() => this.profile().reservations);
+  readonly reservation = computed(() => this.reservations().find(x => x.source === this.source) ?? null);
+  constructor() { effect(() => { this.session.identity(); this.catalog.source(); untracked(() => this.synchronize()); }); }
+  private synchronize(): void {
+    const user = this.session.identity(); const key = `${this.source}.${user?.id ?? 'guest'}`;
+    if (key === this.ownerKey) return; this.ownerKey = key;
+    this.sequence++; this.profile.set(empty()); this.error.set(''); this.wishlistKey = `nbjewel.wishlist.v2.${key}`;
+    try { const value: unknown = JSON.parse(localStorage.getItem(this.wishlistKey) ?? '[]'); this.wishlist.set(Array.isArray(value) ? value.filter(x => typeof x === 'string').slice(0,100) : []); } catch { this.wishlist.set([]); }
+    if (user) void this.refresh();
+  }
   inBag(id: string): boolean { return this.bag().includes(id); }
   inWishlist(id: string): boolean { return this.wishlist().includes(id); }
-
-  addToBag(id: string): void { if (!this.inBag(id)) this.update(s => ({ ...s, bag: [...s.bag, id] })); }
-  removeFromBag(id: string): void { this.update(s => ({ ...s, bag: s.bag.filter(x => x !== id) })); }
-  toggleWishlist(id: string): void {
-    this.update(s => ({ ...s, wishlist: s.wishlist.includes(id) ? s.wishlist.filter(x => x !== id) : [...s.wishlist, id] }));
+  toggleWishlist(id: string): void { const next = this.inWishlist(id) ? this.wishlist().filter(x => x !== id) : [...this.wishlist(), id].slice(0, 100); this.wishlist.set(next); try { localStorage.setItem(this.wishlistKey, JSON.stringify(next)); } catch { /* Optional local preference. */ } }
+  async refresh(): Promise<void> {
+    const user = this.session.identity()?.id; const sequence = ++this.sequence;
+    try { const state = await this.session.read<CustomerState>('/api/customer/profile'); if (user === this.session.identity()?.id && sequence === this.sequence) this.profile.set(state); }
+    catch (error) { if (sequence === this.sequence) this.error.set(customerError(error)); }
   }
-
-  // Demo only: the reservation stays on this phone; it is not sent to the shop.
-  reserve(details: Omit<Reservation, 'reference' | 'createdAt' | 'items'>): Reservation {
-    const reservation: Reservation = { ...details, items: [...this.bag()], reference: makeReference(), createdAt: new Date().toISOString() };
-    this.update(s => ({ ...s, bag: [], reservation }));
-    return reservation;
+  private async update(method: 'POST' | 'PUT' | 'DELETE', path: string, body: unknown): Promise<boolean> {
+    if (this.working()) { this.error.set('Please wait for your current request to finish.'); return false; }
+    this.synchronize();
+    const user = this.session.identity()?.id; const sequence = ++this.sequence; this.working.set(true); this.error.set('');
+    try { const state = await this.session.mutate<CustomerState>(method, path, body); if (user !== this.session.identity()?.id || sequence !== this.sequence) return false; this.profile.set(state); return true; }
+    catch (error) { if (sequence === this.sequence) this.error.set(customerError(error)); return false; }
+    finally { this.working.set(false); }
   }
-
-  private update(change: (s: Saved) => Saved): void {
-    const next = change(this.saved());
-    this.saved.set(next);
-    try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* remembering is optional */ }
+  async addToBag(id: string): Promise<boolean> { const source = this.source; if (!await this.session.require('Sign in to add this design to your bag')) return false; return this.update('POST', '/api/customer/bag', { id, source }); }
+  async removeFromBag(id: string): Promise<void> { if (await this.session.require()) await this.update('DELETE', `/api/customer/bag/${this.source}/${encodeURIComponent(id)}`, {}); }
+  async saveProfile(name: string, phone: string): Promise<boolean> { if (!await this.session.require()) return false; return this.update('PUT', '/api/customer/profile', { name, phone }); }
+  async reserve(details: { name: string; phone: string; storeId: string; date: string; requestId: string; items: string[] }): Promise<boolean> {
+    if (!await this.session.require('Sign in to reserve your selected designs')) return false;
+    return this.update('POST', '/api/customer/reservations', { ...details, source: this.source });
   }
 }

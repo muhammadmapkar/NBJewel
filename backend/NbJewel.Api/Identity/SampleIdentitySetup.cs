@@ -7,6 +7,7 @@ namespace NbJewel.Api.Identity;
 
 public sealed record SampleIdentityOptions(bool Enabled, string Password, string DatabaseName)
 {
+    public bool AllowCustomers { get; init; }
     public override string ToString() => $"SampleIdentityOptions {{ Enabled = {Enabled}, Password = [redacted] }}";
     public const string Email = "sample.staff@nbjewel.invalid";
     public static bool LocalHost(string host) => host.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
@@ -27,7 +28,7 @@ public sealed record SampleIdentityOptions(bool Enabled, string Password, string
                 throw new InvalidOperationException("Sample identity cannot bind a nonloopback address.");
         var password = configuration["SampleIdentity:StaffPassword"] ?? "";
         if (password.Length is < 16 or > 128) throw new InvalidOperationException("Supply a strong runtime-only sample staff password of 16 to 128 characters.");
-        return new(true, password, "sample-identity-" + Guid.NewGuid().ToString("N"));
+        return new(true, password, "sample-identity-" + Guid.NewGuid().ToString("N")) { AllowCustomers = configuration.GetValue<bool>("SampleIdentity:AllowCustomers") };
     }
 }
 

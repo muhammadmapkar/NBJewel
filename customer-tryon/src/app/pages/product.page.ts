@@ -47,17 +47,18 @@ import { SiteHeaderComponent } from '../ui/site-header.component';
               <p class="rate">Price based on the {{ p.metal.toLowerCase() }} rate of {{ catalog.money(price().rate) }} per gram ({{ p.purity }}, sample). {{ dateLabel(price().effectiveDate) }}.</p>
 
               <div class="actions">
-                <a class="btn try" [routerLink]="['/try', p.id]"><ct-icon name="camera" /> {{ p.kinds.length > 1 ? 'Try the full set' : 'Try it on' }}</a>
+                <a class="btn try" [routerLink]="['/try', p.id]" [queryParams]="catalog.linkParams()"><ct-icon name="camera" /> {{ p.kinds.length > 1 ? 'Try the full set' : 'Try it on' }}</a>
                 <button type="button" class="btn ghost" (click)="addToBag(p)">{{ store.inBag(p.id) ? 'In your bag' : 'Add to bag' }}</button>
               </div>
-              @if (added()) { <p class="toast" role="status">Added to your bag. <a routerLink="/bag">View bag</a></p> }
+              @if (store.error()) { <p role="alert">{{ store.error() }}</p> }
+              @if (added()) { <p class="toast" role="status">Added to your bag. <a routerLink="/bag" [queryParams]="catalog.linkParams()">View bag</a></p> }
 
               @if (p.kinds.length > 1) {
                 <div class="pieces">
                   <b>In this set</b>
                   <div class="piece-row">
                     @for (k of p.kinds; track k) {
-                      <a class="piece" [routerLink]="['/try', p.id]" [queryParams]="{ parts: k }">{{ label(k) }} <span>Try alone</span></a>
+                      <a class="piece" [routerLink]="['/try', p.id]" [queryParams]="{ source: catalog.source(), store: catalog.storeId(), parts: k }">{{ label(k) }} <span>Try alone</span></a>
                     }
                   </div>
                 </div>
@@ -109,7 +110,7 @@ import { SiteHeaderComponent } from '../ui/site-header.component';
 
           <div class="sticky">
             <div class="sp"><b>{{ catalog.money(price().total) }}</b><span>incl. VAT</span></div>
-            <a class="btn" [routerLink]="['/try', p.id]"><ct-icon name="camera" /> Try on</a>
+            <a class="btn" [routerLink]="['/try', p.id]" [queryParams]="catalog.linkParams()"><ct-icon name="camera" /> Try on</a>
             <button type="button" class="btn ghost" (click)="addToBag(p)" [attr.aria-label]="'Add ' + p.name + ' to bag'"><ct-icon name="bag" /></button>
           </div>
 
@@ -121,7 +122,7 @@ import { SiteHeaderComponent } from '../ui/site-header.component';
             </div>
           }
         } @else {
-          <p class="empty">This design is not available. <a class="link" routerLink="/shop">See all designs</a></p>
+          <p class="empty">This design is not available. <a class="link" routerLink="/shop" [queryParams]="catalog.linkParams()">See all designs</a></p>
         }
       }
     }
@@ -186,6 +187,7 @@ import { SiteHeaderComponent } from '../ui/site-header.component';
     .link { border: 0; background: none; color: var(--maroon); font-weight: 600; text-decoration: underline; padding: 0; }
     .skeleton { height: 50vh; background: linear-gradient(90deg, #efe6d6 25%, #f7f1e6 50%, #efe6d6 75%); background-size: 200% 100%; animation: shimmer 1.2s infinite; }
     @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+    @media(max-width:767px) { .sticky { bottom:calc(64px + env(safe-area-inset-bottom)); } :host { padding-bottom:160px; } }
     @media (min-width: 900px) {
       :host { padding-bottom: 0; }
       .layout { display: grid; grid-template-columns: 1.1fr 1fr; gap: 28px; max-width: 1160px; margin: 0 auto; padding: 24px; }
@@ -225,9 +227,8 @@ export class ProductPage {
     this.slide.set(Math.round(el.scrollLeft / Math.max(el.clientWidth, 1)));
   }
 
-  addToBag(p: Product): void {
-    this.store.addToBag(p.id);
-    this.added.set(true);
+  async addToBag(p: Product): Promise<void> {
+    this.added.set(await this.store.addToBag(p.id));
   }
 
   // Opens WhatsApp with the design already written in; the customer picks the chat (assumed:

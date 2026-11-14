@@ -15,6 +15,18 @@ namespace NbJewel.Api.Tests;
 
 public sealed class SampleIdentityRuntimeTests
 {
+    [Fact]
+    public async Task ExplicitCustomerOptInCreatesCustomerWithoutErpGrants()
+    {
+        await using var factory = new SampleRuntimeFactory { AllowCustomers = true };
+        using var client = factory.CreateClient(); await Token(client);
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync("/api/auth/register", new { email = "customer@sample.invalid", password = Password })).StatusCode);
+        var access = await client.GetFromJsonAsync<AccountAccess>("/api/auth/me");
+        Assert.Equal("customer", access!.AccountType); Assert.Empty(access.Permissions);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/items/7")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/customer/profile")).StatusCode);
+    }
+
     private const string Email = "sample.staff@nbjewel.invalid";
     private const string Password = "OnlySyntheticTest!12345";
     private static async Task Token(HttpClient client)
@@ -133,6 +145,7 @@ public sealed class SampleIdentityRuntimeTests
     private sealed class SampleRuntimeFactory : WebApplicationFactory<Program>
     {
         public string PasswordOverride { get; init; } = Password;
+        public bool AllowCustomers { get; init; }
         public bool Enabled { get; init; } = true;
         public string Peer { get; init; } = "127.0.0.1";
         protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -140,7 +153,7 @@ public sealed class SampleIdentityRuntimeTests
             var path = Path.Combine(Path.GetTempPath(), "nbjewel-sample-runtime-" + Guid.NewGuid().ToString("N"));
             builder.UseEnvironment("Development");
             builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?> {
-                ["SampleIdentity:Enabled"] = Enabled.ToString(), ["SampleIdentity:StaffPassword"] = PasswordOverride,
+                ["SampleIdentity:AllowCustomers"] = AllowCustomers.ToString(), ["SampleIdentity:Enabled"] = Enabled.ToString(), ["SampleIdentity:StaffPassword"] = PasswordOverride,
                 ["NBJEWEL_IDENTITY_CONNECTION"] = "", ["AI_PLATFORM_CONNECTION"] = "", ["NBJEWEL_SQL_CONNECTION"] = "",
                 ["Repository:Provider"] = "Sample", ["ITEM_ASSET_STORAGE_PATH"] = path, ["JEWELRY_STORAGE_PATH"] = Path.Combine(path, "legacy")
             }));

@@ -45,6 +45,24 @@ public sealed class ItemCutoutHttpTests
     }
 
     [Fact]
+    public async Task VisionRequiresStaffCsrfAndTheCurrentReadyRevision()
+    {
+        await using var factory = Factory(Storage());
+        using var guest = factory.CreateClient();
+        Assert.Equal(HttpStatusCode.Unauthorized, (await guest.PostAsJsonAsync("/api/items/7/image/analyze", new { revisionId = new string('0', 32) })).StatusCode);
+        using var client = await Admin(factory);
+        using var upload = await Upload(client, 7, Photo);
+        var revision = (await upload.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("revisionId").GetString();
+        client.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/items/7/image/analyze", new { revisionId = revision })).StatusCode);
+        await Csrf(client);
+        Assert.Equal(HttpStatusCode.Conflict, (await client.PostAsJsonAsync("/api/items/7/image/analyze", new { revisionId = new string('0', 32) })).StatusCode);
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, (await client.PostAsJsonAsync("/api/items/7/image/analyze", new { revisionId = revision })).StatusCode);
+        var asset = await client.GetFromJsonAsync<JsonElement>("/api/items/7/image");
+        Assert.Equal("pending", asset.GetProperty("qualityReview").GetString());
+    }
+
+    [Fact]
     public async Task ItemUploadCreatesLinkedTransparentPreviewThatSurvivesNewApiHost()
     {
         var storage = Storage(); byte[] preview; string revision;

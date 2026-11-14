@@ -16,8 +16,8 @@ import { SiteHeaderComponent } from '../ui/site-header.component';
       @if (store.reservation(); as r) {
         <div class="card">
           <div class="tick" aria-hidden="true">✓</div>
-          <h1 class="serif">Reserved for you</h1>
-          <p class="muted">Show this reference at the store.</p>
+          <h1 class="serif">Reservation requested</h1>
+          <p class="muted">Your request is saved. Store confirmation is still required.</p>
           <p class="ref">{{ r.reference }}</p>
           <dl>
             <div><dt>Name</dt><dd>{{ r.name }}</dd></div>
@@ -28,10 +28,10 @@ import { SiteHeaderComponent } from '../ui/site-header.component';
             @for (p of items(); track p.id) { <li><img [src]="catalog.url(p.card)" alt="" /><span>{{ p.name }}</span></li> }
           </ul>
           <p class="muted small">Bring your try-on photos to compare in store. Demo: this reservation was not sent to a real store.</p>
-          <a class="btn" routerLink="/shop">Continue browsing</a>
+          <a class="btn" routerLink="/shop" [queryParams]="catalog.linkParams()">Continue browsing</a>
         </div>
       } @else {
-        <div class="card"><p>No reservation yet.</p><a class="btn" routerLink="/shop">Browse the collection</a></div>
+        <div class="card"><p>No reservation yet.</p><a class="btn" routerLink="/shop" [queryParams]="catalog.linkParams()">Browse the collection</a></div>
       }
     </main>
   `,

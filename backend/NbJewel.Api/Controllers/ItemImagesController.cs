@@ -9,7 +9,7 @@ namespace NbJewel.Api.Controllers;
 [ApiController]
 [Route("api/items/{itemId:int}/image")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public sealed class ItemImagesController(IItemRepository items, IItemImageAssetRepository assets, ItemCutoutPipeline pipeline) : ControllerBase
+public sealed class ItemImagesController(IItemRepository items, IItemImageAssetRepository assets, ItemCutoutPipeline pipeline, IJewelryVision vision) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<ItemImageAsset>> GetAsset(int itemId, CancellationToken ct)
@@ -33,6 +33,23 @@ public sealed class ItemImagesController(IItemRepository items, IItemImageAssetR
             return asset.State == "ready" ? Created($"/api/items/{itemId}/image", asset) : UnprocessableEntity(asset);
         }
         catch (DomainValidationException error) { return BadRequest(new ErrorMessage(error.Message)); }
+    }
+
+    public sealed record AnalyzeRequest(string RevisionId);
+    [HttpPost("analyze")]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("auth")]
+    public async Task<IActionResult> Analyze(int itemId, AnalyzeRequest request, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(request.RevisionId) || request.RevisionId.Length != 32) return BadRequest();
+        if (await items.GetItemAsync(itemId, ct) is null) return NotFound();
+        var bytes = await pipeline.PreviewAsync(itemId, ct, request.RevisionId);
+        if (bytes is null) return Conflict(new ErrorMessage("The preview changed. Refresh before generating copy."));
+        try {
+            var result = await vision.AnalyzeAsync(bytes, ct);
+            if ((await assets.GetAsync(itemId, ct))?.RevisionId != request.RevisionId) return Conflict(new ErrorMessage("The preview changed. Generate copy for the current image."));
+            return Ok(new { revisionId = request.RevisionId, result.Description, result.Collection });
+        }
+        catch (VisionUnavailableException e) { return StatusCode(e.Status, new ErrorMessage(e.Message)); }
     }
 
     public sealed record ReviewRequest(string RevisionId, bool Approve, bool Confirm);

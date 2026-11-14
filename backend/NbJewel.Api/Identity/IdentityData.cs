@@ -11,6 +11,13 @@ public sealed class ApplicationUser : IdentityUser
     public bool AllStores { get; set; }
 }
 
+public sealed class CustomerPortalRecord
+{
+    public string Id { get; set; } = "";
+    public string Json { get; set; } = "{}";
+    public long Revision { get; set; }
+}
+
 public sealed class PermissionGrant
 {
     public string UserId { get; set; } = "";
@@ -26,12 +33,16 @@ public sealed class StoreGrant
 public sealed class IdentityDatabase(DbContextOptions<IdentityDatabase> options)
     : IdentityDbContext<ApplicationUser>(options)
 {
+    public DbSet<CustomerPortalRecord> CustomerPortals => Set<CustomerPortalRecord>();
     public DbSet<PermissionGrant> PermissionGrants => Set<PermissionGrant>();
     public DbSet<StoreGrant> StoreGrants => Set<StoreGrant>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+        builder.Entity<CustomerPortalRecord>().HasKey(x => x.Id);
+        builder.Entity<CustomerPortalRecord>().Property(x => x.Revision).IsConcurrencyToken();
+        builder.Entity<CustomerPortalRecord>().HasOne<ApplicationUser>().WithOne().HasForeignKey<CustomerPortalRecord>(x => x.Id);
         builder.Entity<PermissionGrant>().HasKey(x => new { x.UserId, x.Permission });
         builder.Entity<PermissionGrant>().Property(x => x.Permission).HasMaxLength(100);
         builder.Entity<PermissionGrant>().HasOne<ApplicationUser>().WithMany().HasForeignKey(x => x.UserId);

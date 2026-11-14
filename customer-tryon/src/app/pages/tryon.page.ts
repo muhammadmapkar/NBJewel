@@ -200,12 +200,12 @@ export class TryonPage implements OnDestroy {
     const next = now.includes(kind) ? now.filter(k => k !== kind) : [...now, kind];
     if (!next.length) return; // keep at least one piece on
     this.parts.set(next);
-    void this.router.navigate([], { relativeTo: this.route, queryParams: { parts: next.join(',') }, replaceUrl: true });
+    void this.router.navigate([], { relativeTo: this.route, queryParams: { ...this.catalog.linkParams(), parts: next.join(',') }, replaceUrl: true });
   }
 
   switchTo(product: Product): void {
     if (product.id === this.productId()) return;
-    void this.router.navigate(['/try', product.id], { replaceUrl: true });
+    void this.router.navigate(['/try', product.id], { queryParams: this.catalog.linkParams(), replaceUrl: true });
   }
 
   restart(): void { void this.startCamera(); }

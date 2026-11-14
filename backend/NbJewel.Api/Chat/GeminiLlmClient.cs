@@ -1,7 +1,7 @@
 // Role: Talks to Google Gemini over its REST API (generateContent) with a plain HttpClient.
 // The request has the same shape the old Python provider sent: system instruction, the
 // conversation as contents, function declarations, temperature and a thinking level.
-// The API key comes only from the GEMINI_API_KEY environment variable and goes only in a
+// The API key comes only from GEMINI_CHATBOT_API_KEY (fallback GEMINI_API_KEY) and goes only in a
 // request header. This class never logs the key, prompts, replies or tool results.
 // It retries once at most: when the model rejects the thinking setting, or on 429/500/503.
 
@@ -18,7 +18,7 @@ public sealed record GeminiOptions(string ApiKey, string Model, string ThinkingL
 
     // Unset GEMINI_THINKING_LEVEL means "low". An empty value means the model default.
     public static GeminiOptions FromConfiguration(IConfiguration configuration) =>
-        new(configuration["GEMINI_API_KEY"] ?? "", configuration["GEMINI_MODEL"] ?? "", (configuration["GEMINI_THINKING_LEVEL"] ?? "low").Trim().ToLowerInvariant());
+        new(string.IsNullOrWhiteSpace(configuration["GEMINI_CHATBOT_API_KEY"]) ? configuration["GEMINI_API_KEY"] ?? "" : configuration["GEMINI_CHATBOT_API_KEY"]!, configuration["GEMINI_MODEL"] ?? "", (configuration["GEMINI_THINKING_LEVEL"] ?? "low").Trim().ToLowerInvariant());
 
     public string? ThinkingLevelOrNull => Levels.Contains(ThinkingLevel) ? ThinkingLevel.ToUpperInvariant() : null;
     public bool IsConfigured => !string.IsNullOrWhiteSpace(ApiKey) && !string.IsNullOrWhiteSpace(Model);
@@ -36,7 +36,7 @@ public sealed class GeminiLlmClient(HttpClient http, GeminiOptions options, ILog
     public async Task<LlmResponse> GenerateAsync(IReadOnlyList<LlmMessage> messages, IReadOnlyList<ToolDeclaration> tools,
         double temperature, LlmRequestSettings settings, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(options.ApiKey) || string.IsNullOrWhiteSpace(settings.Model)) throw new LlmException("GEMINI_API_KEY or GEMINI_MODEL is not set.");
+        if (string.IsNullOrWhiteSpace(options.ApiKey) || string.IsNullOrWhiteSpace(settings.Model)) throw new LlmException("A chatbot Gemini key or GEMINI_MODEL is not set.");
         if (!options.ThinkingLevelIsValid) throw new LlmException("GEMINI_THINKING_LEVEL must be minimal, low, medium, high or empty.");
 
         if (settings.MaxOutputTokens is < 128 or > 8192) throw new LlmException("Invalid model output token limit.");

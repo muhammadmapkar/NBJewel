@@ -301,5 +301,38 @@
       "addedOn": "2026-09-05",
       "description": "Filigree teardrop earrings with a floral stud and a polished gold drop."
     }
+  ],
+  "metalRates": [
+    {
+      "id": 1000,
+      "metalType": "Gold",
+      "purity": "22K",
+      "ratePerGram": 385.0,
+      "currency": "AED",
+      "effectiveDate": ""
+    },
+    {
+      "id": 1001,
+      "metalType": "Gold",
+      "purity": "18K",
+      "ratePerGram": 315.0,
+      "currency": "AED",
+      "effectiveDate": ""
+    },
+    {
+      "id": 4,
+      "metalType": "Silver",
+      "purity": "925",
+      "ratePerGram": 0.9,
+      "effectiveDate": "2026-09-30"
+    },
+    {
+      "id": 5,
+      "metalType": "Platinum",
+      "purity": "950",
+      "ratePerGram": 110.0,
+      "currency": "AED",
+      "effectiveDate": "2026-09-30"
+    }
   ]
 }

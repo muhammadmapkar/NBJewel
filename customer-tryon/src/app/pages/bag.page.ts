@@ -5,6 +5,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { StoreDirectoryService } from '../customer/store-directory.service';
 import { Product } from '../catalog/catalog.models';
 import { CatalogService } from '../catalog/catalog.service';
 import { StoreService } from '../catalog/store.service';
@@ -17,22 +18,28 @@ import { SiteHeaderComponent } from '../ui/site-header.component';
     <ct-site-header [back]="true" />
     <main class="page">
       <h1 class="serif">Your bag</h1>
+      @if (store.error()) { <p role="alert">{{ store.error() }}</p> }
+      @if (!store.session.identity()) { <button class="btn ghost" (click)="store.session.require('Sign in to view your bag')">Sign in to your bag</button> }
+      @if (unavailable().length && catalog.state().status === 'ready') {
+        <p>Some saved designs are no longer available:</p>
+        @for (id of unavailable(); track id) { <p>{{ id }} <button class="chip" (click)="store.removeFromBag(id)">Remove</button></p> }
+      }
       @if (!items().length) {
         <div class="empty">
           <p>Your bag is empty.</p>
-          <a class="btn" routerLink="/shop">Browse the collection</a>
+          <a class="btn" routerLink="/shop" [queryParams]="catalog.linkParams()">Browse the collection</a>
         </div>
       } @else {
         <ul class="items">
           @for (p of items(); track p.id) {
             <li>
-              <a class="thumb" [routerLink]="['/p', p.id]"><img [src]="catalog.url(p.card)" [alt]="p.name" /></a>
+              <a class="thumb" [routerLink]="['/p', p.id]" [queryParams]="catalog.linkParams()"><img [src]="catalog.url(p.card)" [alt]="p.name" /></a>
               <div class="info">
-                <a class="name serif" [routerLink]="['/p', p.id]">{{ p.name }}</a>
+                <a class="name serif" [routerLink]="['/p', p.id]" [queryParams]="catalog.linkParams()">{{ p.name }}</a>
                 <span class="meta">{{ p.code }} · {{ p.purity }} · {{ p.grossWeight }} g</span>
                 <b>{{ catalog.money(catalog.price(p).total) }}</b>
                 <div class="links">
-                  <a [routerLink]="['/try', p.id]">Try on</a>
+                  <a [routerLink]="['/try', p.id]" [queryParams]="catalog.linkParams()">Try on</a>
                   <button type="button" (click)="moveToWishlist(p)">Move to wishlist</button>
                   <button type="button" (click)="store.removeFromBag(p.id)">Remove</button>
                 </div>
@@ -50,18 +57,18 @@ import { SiteHeaderComponent } from '../ui/site-header.component';
 
         <form class="reserve" (ngSubmit)="reserve()" #f="ngForm">
           <h2 class="serif">Reserve in store</h2>
-          <p class="muted">We hold these designs for you to see and buy in store. No payment now.</p>
+          <p class="muted">Request a store visit for these designs. The store must confirm availability; no payment or stock hold is made.</p>
           <label>Full name<input name="name" [(ngModel)]="name" required autocomplete="name" /></label>
           <label>Mobile number<input name="phone" [(ngModel)]="phone" required type="tel" inputmode="tel" autocomplete="tel" /></label>
           <label>Store
             <select name="branch" [(ngModel)]="branch" required>
               <option value="" disabled>Choose a store</option>
-              @for (b of branches(); track b) { <option [value]="b">{{ b }}</option> }
+              @for (b of branches(); track b.location.id) { <option [value]="b.location.id">{{ b.location.name }}</option> }
             </select>
           </label>
           <label>Visit date<input name="date" [(ngModel)]="date" required type="date" [min]="today" /></label>
           @if (error()) { <p class="error">{{ error() }}</p> }
-          <button type="submit" class="btn">Reserve {{ items().length }} {{ items().length === 1 ? 'design' : 'designs' }}</button>
+          <button type="submit" class="btn" [disabled]="store.working()">Reserve {{ items().length }} {{ items().length === 1 ? 'design' : 'designs' }}</button>
           <a class="btn wa" [href]="whatsapp()" target="_blank" rel="noopener"><ct-icon name="chat" /> Enquire on WhatsApp</a>
           <p class="muted small">Demo: the reservation is not sent to a real store.</p>
         </form>
@@ -104,9 +111,12 @@ export class BagPage {
   readonly store = inject(StoreService);
   private readonly router = inject(Router);
   readonly items = computed(() => this.store.bag().map(id => this.catalog.find(id)).filter((p): p is Product => !!p));
+  readonly unavailable = computed(() => this.store.bag().filter(id => !this.catalog.find(id)));
   readonly total = computed(() => this.items().reduce((sum, p) => sum + this.catalog.price(p).total, 0));
   readonly vat = computed(() => this.items().reduce((sum, p) => sum + this.catalog.price(p).vat, 0));
-  readonly branches = computed(() => this.catalog.catalog()?.branches ?? []);
+  readonly directory = inject(StoreDirectoryService);
+  readonly branches = computed(() => this.directory.stores().filter(x => x.location.source === this.store.source));
+  private requestId = crypto.randomUUID();
   readonly error = signal<string | null>(null);
   readonly today = new Date().toISOString().slice(0, 10);
 
@@ -115,14 +125,14 @@ export class BagPage {
   branch = '';
   date = '';
 
-  constructor() { this.catalog.load(); }
+  constructor() { this.catalog.selectStore(null, this.catalog.source()); void this.directory.load(); }
 
   moveToWishlist(p: Product): void {
     if (!this.store.inWishlist(p.id)) this.store.toggleWishlist(p.id);
     this.store.removeFromBag(p.id);
   }
 
-  reserve(): void {
+  async reserve(): Promise<void> {
     const name = this.name.trim();
     const phone = this.phone.replace(/[^\d+]/g, '');
     const branch = this.branch;
@@ -131,8 +141,7 @@ export class BagPage {
     if (!branch) { this.error.set('Please choose a store.'); return; }
     if (!this.date || this.date < this.today) { this.error.set('Please choose a visit date from today on.'); return; }
     this.error.set(null);
-    this.store.reserve({ name, phone, branch, date: this.date });
-    void this.router.navigate(['/reserved']);
+    if (await this.store.reserve({ name, phone, storeId: branch, date: this.date, requestId: this.requestId, items: this.items().map(p => p.id) })) { this.requestId = crypto.randomUUID(); await this.router.navigate(['/reserved'], { queryParams: this.catalog.linkParams() }); }
   }
 
   whatsapp(): string {

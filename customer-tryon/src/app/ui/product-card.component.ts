@@ -13,7 +13,7 @@ import { IconComponent } from './icon.component';
   template: `
     @let p = product();
     <article class="card">
-      <a class="pic" [routerLink]="['/p', p.id]" [attr.aria-label]="p.name">
+      <a class="pic" [routerLink]="['/p', p.id]" [queryParams]="catalog.linkParams()" [attr.aria-label]="p.name">
         <img [src]="catalog.url(p.card)" [alt]="p.name" loading="lazy" />
         @if (p.badge) { <span class="badge" [class.new]="p.badge === 'new'">{{ p.badge === 'new' ? 'New' : 'Bestseller' }}</span> }
       </a>
@@ -22,10 +22,10 @@ import { IconComponent } from './icon.component';
         <ct-icon [name]="store.inWishlist(p.id) ? 'heartFull' : 'heart'" />
       </button>
       <div class="info">
-        <a class="name serif" [routerLink]="['/p', p.id]">{{ p.name }}</a>
+        <a class="name serif" [routerLink]="['/p', p.id]" [queryParams]="catalog.linkParams()">{{ p.name }}</a>
         <span class="meta">{{ p.purity }} {{ p.metal }} · {{ p.grossWeight }} g</span>
         <span class="price">{{ catalog.money(total()) }}</span>
-        <a class="btn try" [routerLink]="['/try', p.id]"><ct-icon name="camera" /> Try on</a>
+        <a class="btn try" [routerLink]="['/try', p.id]" [queryParams]="catalog.linkParams()"><ct-icon name="camera" /> Try on</a>
       </div>
     </article>
   `,

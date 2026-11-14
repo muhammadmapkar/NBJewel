@@ -42,7 +42,7 @@ public sealed class AuthController(UserManager<ApplicationUser> users, SignInMan
     [EnableRateLimiting("auth")]
     public async Task<IActionResult> Register(LoginRequest request, CancellationToken cancellationToken)
     {
-        if (sampleIdentity.Enabled) return StatusCode(403, new { message = "Customer registration is unavailable in local sample staff mode." });
+        if (sampleIdentity.Enabled && !sampleIdentity.AllowCustomers) return StatusCode(403, new { message = "Customer registration is unavailable in local sample staff mode." });
         if (!availability.Configured) return StatusCode(503, new { message = "Identity is not configured." });
         if (verification.Required && !verification.SenderConfigured) return VerificationUnavailable();
         var user = new ApplicationUser { UserName = request.Email.Trim(), Email = request.Email.Trim(), AccountType = "customer" };

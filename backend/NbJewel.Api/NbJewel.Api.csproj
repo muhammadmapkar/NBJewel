@@ -19,6 +19,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="../../customer-tryon/public/catalog/catalog.json" Link="sample-data/storefront-catalog.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../customer-tryon/public/catalog/store-directory.json" Link="sample-data/store-directory.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../../scripts/cutout-jewelry.py" Link="scripts/cutout-jewelry.py" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <None Include="../../sample-data/*.json" Link="sample-data/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../../sample-data/jewelry/*.*" Link="sample-data/jewelry/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

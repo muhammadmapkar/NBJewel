@@ -1,15 +1,15 @@
 /* Role: The customer app look: warm ivory, deep maroon and antique gold, an elegant serif for
    names and headings, and a clean sans for everything else. Phone first. */
 :root {
-  --ivory: #faf6ef;
+  --ivory: #FAF6EE;
   --cream: #f3ebdd;
   --card: #fffdf9;
   --ink: #2b1a14;
   --muted: #7a6a5c;
   --line: #e8dcc8;
-  --maroon: #6b1d2a;
-  --maroon-deep: #4a121c;
-  --gold: #b88a2e;
+  --maroon: #5C1420;
+  --maroon-deep: #4A0E17;
+  --gold: #C9931E;
   --gold-soft: #e9d6a8;
   --night: #120c0a;
   --radius: 16px;
@@ -40,3 +40,11 @@ img { display: block; max-width: 100%; }
 .muted { color: var(--muted); }
 
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* Shared portal surfaces extend the existing theme. */
+.portal-page { max-width:1120px; margin:auto; padding:32px 20px 48px; }
+.portal-page h1 { font-size:clamp(32px,5vw,48px); margin:8px 0 16px; }
+.portal-card { display:block; background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:24px; margin:20px 0; box-shadow:var(--shadow); }
+.eyebrow { color:var(--gold); font-size:12px; text-transform:uppercase; letter-spacing:.14em; font-weight:700; }
+.small { font-size:12px; }
+@media(max-width:767px) { body { padding-bottom:calc(72px + env(safe-area-inset-bottom)); } }

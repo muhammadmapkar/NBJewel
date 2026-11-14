@@ -13,6 +13,7 @@ using NbJewel.Api.Models;
 using NbJewel.Api.Repositories;
 using NbJewel.Api.Platform;
 using NbJewel.Api.Knowledge;
+using NbJewel.Api.Storefront;
 
 // Developer tool, not the web server: "dotnet run --project backend/NbJewel.Api -- --setup-db [--reset]"
 // creates the SQL Server database, applies docs/item_catalog_schema.sql, and seeds sample-data/*.json.
@@ -59,6 +60,10 @@ TrustedProxySetup.Configure(builder.Services);
 builder.AddIdentityFoundation();
 builder.Services.AddSingleton<IAccountVerificationSender, SmtpAccountVerificationSender>();
 builder.Services.AddScoped<AccountVerification>();
+builder.Services.AddScoped<CustomerPortal>();
+builder.Services.AddScoped<StoreDirectory>();
+builder.Services.AddHttpClient("spot-rates", client => client.MaxResponseContentBufferSize = 65536).RemoveAllLoggers();
+builder.Services.AddSingleton(services => new SpotRates(services.GetRequiredService<IHttpClientFactory>().CreateClient("spot-rates"), services.GetRequiredService<IConfiguration>()));
 builder.Services.AddSingleton<IPasswordWork, PasswordWork>();
 builder.Services.AddControllersWithViews(options =>
 {
@@ -110,6 +115,8 @@ builder.Services.AddSingleton(services =>
 });
 builder.Services.AddSingleton<IItemImageAssetRepository, FileItemImageAssetRepository>();
 builder.Services.AddSingleton<ItemCutoutPipeline>();
+builder.Services.AddSingleton(services => JewelryVisionOptions.Read(services.GetRequiredService<IConfiguration>()));
+builder.Services.AddHttpClient<IJewelryVision, JewelryVisionClient>().RemoveAllLoggers();
 
 // The chatbot runs inside this API. The Gemini key and model come only from environment variables
 // (GEMINI_API_KEY, GEMINI_MODEL, GEMINI_THINKING_LEVEL). If they are missing, /api/chat answers 503.
