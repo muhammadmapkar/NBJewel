@@ -47,7 +47,11 @@ type Group = Exclude<keyof Filters, 'collections'>;
         @case ('error') { <p class="empty">The collection could not load. <button type="button" class="link" (click)="catalog.load(true)">Try again</button></p> }
         @default {
           <p class="count-line">{{ shown().length }} {{ shown().length === 1 ? 'design' : 'designs' }}</p>
-          @if (!shown().length) {
+          @if (!catalog.products().length) {
+            <p class="empty" role="status">No designs are available right now. Please check back soon.
+              <button type="button" class="link" (click)="catalog.load(true)">Refresh collection</button>
+            </p>
+          } @else if (!shown().length) {
             <p class="empty">No designs match these filters. <button type="button" class="link" (click)="clearAll()">Clear filters</button></p>
           }
           <div class="grid">@for (p of shown(); track p.id) { <ct-product-card [product]="p" /> }</div>

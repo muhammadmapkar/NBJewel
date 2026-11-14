@@ -53,7 +53,7 @@ The chatbot stays inside the .NET API and answers only from ERP data returned by
 
 ## Storefront source and rates
 
-`customer-tryon/public/storefront-config.json` is a public, nonsecret runtime configuration. Its committed `apiBaseUrl` is `http://localhost:5155`, which selects the local API. Set it to `null` to select the bundled sample catalog. Set the address to `http://localhost:5155` for local API mode, then reload the customer page. On a deployed static host, changing the served config file selects a source without rebuilding JavaScript. No deployment was performed here.
+`customer-tryon/public/storefront-config.json` is a public, nonsecret runtime configuration. Its committed `apiBaseUrl` is `null`, which shows the six bundled demo designs and their existing images. This keeps the demo browsable even when no ERP products are published. Set it to `http://localhost:5155` and reload the customer page to explicitly test the local API catalog. API mode shows only published ERP products and may legitimately be empty after revocation; it never restores bundled products automatically. Empty home/shop views explain that no designs are available instead of rendering blank headings. On a deployed static host, changing the served config file selects a source without rebuilding JavaScript. No deployment was performed here.
 
 A missing config file (HTTP 404) selects the bundled catalog. Invalid config, unavailable API, malformed data or incomplete pagination shows the catalog error UI and does not restore bundled products. API mode loads all published pages and server-calculated prices. Reload the page to read publication/copy/price changes; the service also supports explicit refresh. It does not poll or promise live updates to an already open page.
 

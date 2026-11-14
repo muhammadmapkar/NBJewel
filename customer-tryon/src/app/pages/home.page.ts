@@ -26,27 +26,33 @@ import { SiteHeaderComponent } from '../ui/site-header.component';
         @case ('loading') { <div class="grid">@for (n of [1, 2]; track n) { <div class="skeleton"></div> }</div> }
         @case ('error') { <p class="empty">The collection could not load. <button type="button" class="link" (click)="catalog.load(true)">Try again</button></p> }
         @default {
-          <section>
-            <h2 class="serif">Collections</h2>
-            <div class="collections">
-              @for (c of collections(); track c.name) {
-                <a class="tile" routerLink="/shop" [queryParams]="{ collection: c.name }">
-                  <img [src]="catalog.url(c.image)" alt="" loading="lazy" />
-                  <span class="serif">{{ c.name }}</span>
-                </a>
-              }
-            </div>
-          </section>
+          @if (catalog.products().length) {
+            <section>
+              <h2 class="serif">Collections</h2>
+              <div class="collections">
+                @for (c of collections(); track c.name) {
+                  <a class="tile" routerLink="/shop" [queryParams]="{ collection: c.name }">
+                    <img [src]="catalog.url(c.image)" alt="" loading="lazy" />
+                    <span class="serif">{{ c.name }}</span>
+                  </a>
+                }
+              </div>
+            </section>
 
-          <section>
-            <div class="head"><h2 class="serif">Bestsellers</h2><a class="more" routerLink="/shop" [queryParams]="{ sort: 'popular' }">See all</a></div>
-            <div class="row">@for (p of bestsellers(); track p.id) { <ct-product-card [product]="p" /> }</div>
-          </section>
+            <section>
+              <div class="head"><h2 class="serif">Bestsellers</h2><a class="more" routerLink="/shop" [queryParams]="{ sort: 'popular' }">See all</a></div>
+              <div class="row">@for (p of bestsellers(); track p.id) { <ct-product-card [product]="p" /> }</div>
+            </section>
 
-          <section>
-            <div class="head"><h2 class="serif">New arrivals</h2><a class="more" routerLink="/shop" [queryParams]="{ sort: 'newest' }">See all</a></div>
-            <div class="row">@for (p of newest(); track p.id) { <ct-product-card [product]="p" /> }</div>
-          </section>
+            <section>
+              <div class="head"><h2 class="serif">New arrivals</h2><a class="more" routerLink="/shop" [queryParams]="{ sort: 'newest' }">See all</a></div>
+              <div class="row">@for (p of newest(); track p.id) { <ct-product-card [product]="p" /> }</div>
+            </section>
+          } @else {
+            <p class="empty" role="status">No designs are available right now. Please check back soon.
+              <button type="button" class="link" (click)="catalog.load(true)">Refresh collection</button>
+            </p>
+          }
 
           <section class="how">
             <h2 class="serif">How try-on works</h2>

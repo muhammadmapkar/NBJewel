@@ -1,4 +1,4 @@
 {
-  "_role": "Nonsecret runtime configuration. Set apiBaseUrl to the API origin/base path to use published ERP products; null retains the bundled sample catalog.",
-  "apiBaseUrl": "http://localhost:5155"
+  "_role": "Nonsecret runtime configuration. Null shows the bundled demo collection. Set apiBaseUrl to http://localhost:5155 to show only published ERP products; an empty API catalog stays empty.",
+  "apiBaseUrl": null
 }
