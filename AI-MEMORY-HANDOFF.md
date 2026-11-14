@@ -2,9 +2,9 @@
 # AI memory handoff
 
 ## Lock
-- Agent: none (released by codex-storefront).
-- Since: 2026-11-14T05:50:06+04:00
-- Status: released after tasks 7-9, all six checks and lead-review corrections; stop and wait for Muhammad.
+- Agent: codex-storefront
+- Since: 2026-11-14T08:38:22+04:00
+- Status: held for authorized API mode, legitimate sample staff sign-in and browser lifecycle checks.
 
 ## Branch and last commit
 - Branch: `feature/customer-storefront`.
@@ -24,7 +24,7 @@
 - Snapshot commit: the commit containing this handoff; resolve with `git log -1 --format=%H -- AI-MEMORY-HANDOFF.md`. Compare it with HEAD on the next start. A literal self-referencing commit hash cannot be recorded inside the same commit.
 
 ## Current goal
-Tasks 7, 8, 9 and lead review are complete. Stop and wait for Muhammad. Manual browser/device/quality/licensing checks remain separate; no later-phase work is authorized.
+Muhammad authorized remaining steps 1, 2, 3: enable local storefront API mode, make legitimate demo staff sign-in available without SQL, and verify upload/review/publish/update/revoke in the real browser.
 
 ## Done
 - Lead review: three important issues reproduced then fixed (exact authorized public revision, ERP saved-copy parent propagation, no sample ID reuse across persisted asset/publication lifetimes). Prepared SQL publication key and public necklace/earring category contracts aligned. Final backend 357 passed, 6 SQL skipped, build zero warnings/errors; ERP 72 tests/build passed. Storefront unchanged since 64 tests/build gate. All reviewer exclusions accepted as documented manual/later-phase limits.
@@ -42,6 +42,9 @@ Tasks 7, 8, 9 and lead review are complete. Stop and wait for Muhammad. Manual b
 - Setup files written: replaced stale handoff statements, added the handoff protocol to AGENTS.md, and added Claude/Copilot routing instructions. Validation passed; setup pushed as `d44c748`.
 
 ## Next steps (ordered checklist)
+- [x] Runtime 1: set nonsecret storefront apiBaseUrl=http://localhost:5155; test/build and push.
+- [ ] Runtime 2: add explicit opt-in Development-only Sample identity, loopback-bound API, runtime-only generated staff credentials and real Identity hashing/cookies/grants/CSRF. Verify unsafe environment/provider/bindings fail closed, wrong password/anonymous/no-CSRF denied. No SQL/production/default identity bypass.
+- [ ] Runtime 3: run API/ERP/storefront locally; real-browser staff sign-in, upload a permitted synthetic sample, inspect revision, approve only that sample quality, publish, verify storefront, update price/copy, reload, revoke and verify removal. Record evidence and limits; leave no published test item.
 - [x] Setup: handoff/protocol validation passed; these four files form the setup checkpoint, pushed before task 1 begins.
 - [x] 1. Storefront metadata and sample platinum support. Size L. Files: backend models, repositories, sample-data, docs/item_catalog_schema.sql. Done when a labelled sample platinum product keeps metal, purity, and storefront metadata. Test: `dotnet test backend/NbJewel.Api.Tests`.
 - [x] 2. Public read-only endpoints for products and metal rates. Size M. Files: controllers, Knowledge/KnowledgeService.cs, Identity/ErpBoundaryFilter.cs, backend tests. Anonymous reads return published allowed products only; unpublished and excluded categories stay hidden. Test: backend suite.
@@ -55,6 +58,10 @@ Tasks 7, 8, 9 and lead review are complete. Stop and wait for Muhammad. Manual b
 - [x] After task 9: sequential read-only lead review completed; all findings corrected with regressions and affected suites/builds passing. Stop and wait for Muhammad.
 
 ## Blockers and decisions
+- New authorization supersedes the earlier stop after phase 2 only for runtime steps 1-3. No SQL/Docker/deploy/merge, general accounts, chatbot or locator work. Use the existing checkout and file handoff only; ai-memory skill routing does not replace the user-mandated handoff.
+- Design choice (assumed local demo): an explicit opt-in in-memory Identity provider in Development with Repository=Sample and forced localhost URLs. Seed exactly one staff identity via UserManager with a runtime-generated password and minimum catalog/upload/publication grants. Reject SQL connection configuration or unsafe hosting. Identity records/session credentials reset on restart; assets and ID reservations remain persistent. No hardcoded password, secret file, automatic login, anonymous ERP grant or customer elevation.
+- Alternative considered: existing SQL identity is disallowed by current authorization; a custom authentication bypass would skip existing password/cookie/CSRF behavior. Use the existing ASP.NET Identity EF store with the already test-used in-memory provider instead.
+- Execution plan: implement inline, TDD for provider/seeding/guards, run full backend suite and affected Angular checks, checkpoint explicit paths, then perform the native Chrome browser workflow. Browser extension host is unavailable; CUA native Chrome access is the available fallback. No parallel implementers.
 - Lead review 87c5c19: fix public preview/metadata revision interleaving, ERP child-to-parent saved copy propagation, and restarted sample ID reuse. Add deterministic regressions first. Preserve ID reservations on the configured asset filesystem so new memory-only samples cannot inherit old assets/publication. Also align prepared SQL externally assigned publication key and restrict public categories to implemented necklace/earring contract. Reviewer exclusions accepted: full item persistence/accounts/SQL execution/cutout quality/licensing/browser devices/polling/production/merge/deploy/later phases remain outside this sample gate.
 - Task 7 plan: test metal filters and Gold/Silver/Platinum rate matching; add recorded-rate/date helpers, themed header rate details, metal filter options and product effective date/change explanation. Bundled rates have no recorded date, so label unknown rather than invent freshness. Keep API price snapshots authoritative even when the latest rate list differs.
 - Task 8 plan: one backend sample HTTP scenario publishes, changes item pricing/copy, reads updated values, revokes and checks product/preview removal; matching storefront refresh tests verify changed price/copy and absence after revoke without a rebuild.
@@ -107,6 +114,7 @@ Tasks 7, 8, 9 and lead review are complete. Stop and wait for Muhammad. Manual b
 - Pre-existing owner changes preserved, excluded from staging: PROGRESS.md, docs/run-guide.md, customer-tryon/package-lock.json; untracked browser security plan, old proof image, pasted jewelry image.
 
 ## Test commands and last results
+- Runtime step 1: storefront npm test 64 passed; production build passed with bounded workers; runtime config now targets http://localhost:5155.
 - Final review corrections: backend build 0 warnings/errors; full backend tests 357 passed, 6 SQL skipped, 0 failed. Sample forced, SQL/connection env vars removed, existing Python interpreter. Logs /tmp/nbjewel-review-final-backend-build.log and /tmp/nbjewel-review-final-backend-test.log. ERP npm test 72 passed; bounded-worker production build passed. Storefront code unchanged since task 9 gate: 64 tests/build passed. Diff whitespace check passed.
 - Review regressions: 3 revision interleavings failed before fix; restart ID reuse returned another item asset before fix; missing saved-item output failed lifecycle test before fix; prepared SQL model returned OnAdd before ValueGeneratedNever. All now green. Legacy ID metadata and corrupt reservation tests also pass. No SQL connection opened by model/schema tests.
 - Task 9 six-check gate (2026-11-14): backend build zero warnings/errors; backend test 349 passed, 6 SQL skipped, zero failed; ERP test 71 passed and production build passed; storefront test 64 passed and production build passed. Both known warnings absent. Backend forced Sample, all SQL/connection env vars removed, existing temp Python interpreter. Backend logs /tmp/nbjewel-task9-backend-build.log and /tmp/nbjewel-task9-backend-test.log.
@@ -142,6 +150,8 @@ Tasks 7, 8, 9 and lead review are complete. Stop and wait for Muhammad. Manual b
 - Real browser CORS and cookies.
 
 ## Agent log (newest first)
+- 2026-11-14 codex-storefront: runtime step 1 config enabled and storefront 64 tests/build passed. Checkpoint/push before implementing the explicit local sample identity provider.
+- 2026-11-14T08:38:22+04:00 codex-storefront: startup fetch/ff-only pull passed, branch and snapshot HEAD 9f8e997 matched, released Lock acquired. User authorized runtime steps 1-3. Owner changes preserved; ports 5155/4200/4300 currently have no listeners.
 - 2026-11-14T05:50:06+04:00 codex-storefront: all review findings addressed. Final backend 357/6 SQL skips and build passed; ERP 72/build passed; storefront gate 64/build remains applicable. Updated gate/README and released Lock in final explicit-path checkpoint. Tasks 7-9 and lead review complete; stop for Muhammad. No owner files, secrets, forbidden worktree, merge, deploy, Docker or SQL data steps touched.
 - 2026-11-14 codex-storefront: review finding 3 now passes: creation reserves monotonic IDs on the asset filesystem, scans legacy link/publication IDs and fails closed on corrupt reservations. Restart regression no longer inherits asset/approval/public visibility. Prepared SQL identity contract test reproduced OnAdd versus Never without a SQL connection; corrected EF/schema files only.
 - 2026-11-14 codex-storefront: review finding 2 regression failed for missing saved-item event, then passed after emitting the returned Item to the parent and updating its signal. Lifecycle test destroys/recreates Images and verifies subsequent Save preserves changed copy. ID-restart regression initially lacked status.write in its test identity; corrected fixture grant only, no auth boundary change.
