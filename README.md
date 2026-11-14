@@ -37,13 +37,23 @@ npm --prefix frontend start
 npm --prefix customer-tryon start
 ```
 
-Staff routes require a legitimate ERP session, permissions, all-store scope where required, and CSRF protection. With the default unconfigured identity provider, staff sign-in is unavailable. No demo admin, account provisioning or authentication bypass was added. Public storefront reads can return an empty catalog without a staff session or database. Accounts, chatbot enhancements and locator work are later phases.
+Staff routes require a legitimate ERP session, permissions, all-store scope where required, and CSRF protection. With the default unconfigured identity provider, staff sign-in is unavailable. The explicit local sample launcher below enables one temporary staff identity through the existing Identity password/cookie pipeline. No authentication bypass is added. Public storefront reads can return an empty catalog without a staff session or database. Accounts, chatbot enhancements and locator work are later phases.
+
+For the authorized local staff demo, use this API command instead of Terminal 1 above:
+
+```bash
+CUTOUT_PYTHON_PATH=/path/to/prepared/python python3 scripts/run-sample-api.py
+```
+
+The launcher prints `sample.staff@nbjewel.invalid` and a freshly generated temporary password to that terminal. Sign in at `http://localhost:4200/sign-in`. Do not save the password in the browser or a file. The account/password/session expire on API restart; run the launcher again for new credentials. This is an assumed sample staff identity with only catalog/read/status/upload/publication permissions, not a real NB Jewel role mapping.
+
+This opt-in mode requires Development, Sample ERP data and no SQL/connection settings. It binds only `localhost:5155`, rejects nonloopback peers/hosts and configured proxies/Kestrel endpoints, and retains existing password hashing, lockout, session cookies, CSRF and per-action grants. Default and production identity behavior is unchanged. The launcher does not read `.env`; it removes inherited connection/credential settings and isolates sample assets under `App_Data/local-sample-demo`. For manual launch, opt-in uses `SampleIdentity__Enabled=true` and a strong runtime-only `SampleIdentity__StaffPassword`; never commit credentials.
 
 The chatbot stays inside the .NET API and answers only from ERP data returned by fixed read-only tools. It has no free SQL and must not answer from model memory. Any model credentials belong only in backend environment variables. Model availability was not tested in this phase.
 
 ## Storefront source and rates
 
-`customer-tryon/public/storefront-config.json` is a public, nonsecret runtime configuration. Its committed `apiBaseUrl` is `null`, which selects the bundled sample catalog. Set the address to `http://localhost:5155` for local API mode, then reload the customer page. On a deployed static host, changing the served config file selects a source without rebuilding JavaScript. No deployment was performed here.
+`customer-tryon/public/storefront-config.json` is a public, nonsecret runtime configuration. Its committed `apiBaseUrl` is `http://localhost:5155`, which selects the local API. Set it to `null` to select the bundled sample catalog. Set the address to `http://localhost:5155` for local API mode, then reload the customer page. On a deployed static host, changing the served config file selects a source without rebuilding JavaScript. No deployment was performed here.
 
 A missing config file (HTTP 404) selects the bundled catalog. Invalid config, unavailable API, malformed data or incomplete pagination shows the catalog error UI and does not restore bundled products. API mode loads all published pages and server-calculated prices. Reload the page to read publication/copy/price changes; the service also supports explicit refresh. It does not poll or promise live updates to an already open page.
 

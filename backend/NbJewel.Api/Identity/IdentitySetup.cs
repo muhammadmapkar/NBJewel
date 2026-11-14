@@ -8,12 +8,17 @@ public static class IdentitySetup
 {
     public static void AddIdentityFoundation(this WebApplicationBuilder builder)
     {
-        var connection = builder.Configuration["NBJEWEL_IDENTITY_CONNECTION"];
-        builder.Services.AddSingleton(new IdentityAvailability(!string.IsNullOrWhiteSpace(connection)));
+        builder.Services.AddSingleton(services => SampleIdentityOptions.Read(services.GetRequiredService<IConfiguration>(), services.GetRequiredService<IHostEnvironment>()));
+        builder.Services.AddHostedService<SampleIdentityBootstrap>();
+        builder.Services.AddSingleton(services => new IdentityAvailability(services.GetRequiredService<SampleIdentityOptions>().Enabled ||
+            !string.IsNullOrWhiteSpace(services.GetRequiredService<IConfiguration>()["NBJEWEL_IDENTITY_CONNECTION"])));
         // An unconfigured context has no provider and is never used for anonymous/public requests.
-        builder.Services.AddDbContext<IdentityDatabase>(options =>
+        builder.Services.AddDbContext<IdentityDatabase>((services, options) =>
         {
-            if (!string.IsNullOrWhiteSpace(connection)) options.UseSqlServer(connection);
+            var sample = services.GetRequiredService<SampleIdentityOptions>();
+            var connection = services.GetRequiredService<IConfiguration>()["NBJEWEL_IDENTITY_CONNECTION"];
+            if (sample.Enabled) options.UseInMemoryDatabase(sample.DatabaseName);
+            else if (!string.IsNullOrWhiteSpace(connection)) options.UseSqlServer(connection);
         });
         builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
         {

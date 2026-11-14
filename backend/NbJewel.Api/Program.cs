@@ -48,6 +48,9 @@ if (args.Contains("--platform-schema"))
     return 0;
 }
 
+// Reject unsafe explicit sample settings before any configured SQL key-ring can be opened.
+if (builder.Configuration.GetValue<bool>("SampleIdentity:Enabled"))
+    _ = SampleIdentityOptions.Read(builder.Configuration, builder.Environment);
 builder.Services.AddPlatformKeyProtection(builder.Configuration, builder.Environment);
 builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 1024 * 1024);
 // The site and API sit behind one proxy. Forwarded headers are honored only from TRUSTED_PROXIES, so rate limits see the real client address.
@@ -168,6 +171,7 @@ builder.Services.AddRateLimiter(options =>
 });
 
 var app = builder.Build();
+app.ConfigureSampleIdentityRuntime();
 if (args.Contains("--bootstrap-identity")) return await IdentitySetup.BootstrapAsync(app);
 // Must run first: later middleware (HTTPS redirect, rate limiter, cookies) reads the corrected address and scheme.
 // It does nothing until TRUSTED_PROXIES names at least one proxy.
