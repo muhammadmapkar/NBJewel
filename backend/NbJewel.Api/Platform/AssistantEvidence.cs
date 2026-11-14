@@ -12,6 +12,7 @@ public sealed class EvidenceCheckCache
     internal Dictionary<string, bool> Results { get; } = [];
     internal HashSet<string>? Allowed { get; set; }
     internal IReadOnlySet<int>? Published { get; set; }
+    internal IReadOnlyDictionary<int, string>? Categories { get; set; }
 }
 
 public sealed class AssistantEvidence(IKnowledgeEvidenceValidator knowledge, IPublicationReader publications,
@@ -42,7 +43,10 @@ public sealed class AssistantEvidence(IKnowledgeEvidenceValidator knowledge, IPu
         if (ctx.AssistantId == "website")
         {
             cache.Published ??= await publications.PublishedItemIdsAsync(ct);
-            return int.TryParse(source.RecordId, out var id) && cache.Published.Contains(id);
+            if (!int.TryParse(source.RecordId, out var id) || !cache.Published.Contains(id)) return false;
+            var item = await repository.GetItemAsync(id, ct);
+            cache.Categories ??= await PublicCatalogPolicy.AllowedCategoriesAsync(repository, ct);
+            return item is not null && PublicCatalogPolicy.Allows(item, cache.Categories);
         }
         if (!ctx.AllStores && source.Tool is not ("list_categories" or "get_latest_metal_rate"))
             return int.TryParse(source.RecordId, out var id) && (await repository.GetStockAsync(id, ct)).Any(x => ctx.StoreIds.Contains(x.StoreId));

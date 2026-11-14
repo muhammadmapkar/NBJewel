@@ -1,6 +1,8 @@
 // Role: Verifies fresh authorization and public catalog boundaries for assistant tools.
 using System.Text.Json.Nodes;
 using System.Reflection;
+using NbJewel.Api.Chat;
+using Microsoft.Extensions.Configuration;
 using NbJewel.Api.Models;
 using NbJewel.Api.Repositories;
 using NbJewel.Api.Identity;
@@ -16,8 +18,9 @@ public class ScopedAssistantToolsTests
         public AccountAccess? Access { get; set; }
         public Task<AccountAccess?> ResolveAsync(string userId, CancellationToken ct) => Task.FromResult(Access);
     }
-    private sealed class Knowledge : IKnowledgeRetriever
+    private sealed class Knowledge : IKnowledgeRetriever, IKnowledgeEvidenceValidator
     {
+        public Task<bool> CanUseAsync(AssistantContext context, string chunkId, CancellationToken ct) => Task.FromResult(true);
         public Task<IReadOnlyList<KnowledgeHit>> SearchAsync(AssistantContext context, string query, CancellationToken ct) => Task.FromResult<IReadOnlyList<KnowledgeHit>>([]);
     }
     private sealed class Publications(params int[] ids) : IPublicationReader
@@ -129,11 +132,53 @@ public class ScopedAssistantToolsTests
         var empty = new ScopedChatDataReader(repo, scope with { StoreIds = [] });
         Assert.Equal(0, (await empty.SearchItemsAsync(null, null, null, null, null, 1, 10, default)).TotalCount);
     }
+    [Theory]
+    [InlineData(1)] // Complete ring, excluded from storefront.
+    [InlineData(11)] // Draft bangles.
+    [InlineData(31)] // Draft platinum necklace.
+    public async Task Public_tools_hide_ineligible_products_even_when_publication_remains(int id)
+    {
+        var repo = SampleRepositoryFactory.Create();
+        var tools = new AssistantTools(new Permissions(), repo, new Knowledge(), new Publications(id));
+        var context = new AssistantContext("website", "visitor", "visitor", [], [], false);
+        Assert.Equal("not_found", (string?)(await tools.RunAsync(context, "get_public_product", new JsonObject { ["itemId"] = id }, default))["status"]);
+        var search = await tools.RunAsync(context, "search_public_products", new(), default);
+        Assert.Equal(0, (int)search["data"]!["totalCount"]!);
+        Assert.Empty(search["sources"]!.AsArray());
+    }
+
+    [Theory]
+    [InlineData("status")]
+    [InlineData("category")]
+    [InlineData("metal")]
+    public async Task Website_history_and_tools_recheck_product_eligibility_after_publication(string change)
+    {
+        var repo = SampleRepositoryFactory.Create();
+        var publications = new Publications(7);
+        var knowledge = new Knowledge();
+        var tools = new AssistantTools(new Permissions(), repo, knowledge, publications);
+        var evidence = new AssistantEvidence(knowledge, publications, tools, repo, new AssistantRegistry(new ConfigurationBuilder().Build()));
+        var context = new AssistantContext("website", "visitor", "visitor", [], [], false);
+        ChatSource[] sources = [new("get_public_product", "7")];
+        Assert.True(await evidence.CanUseAsync(context, sources, default));
+        Assert.Equal("ok", (string?)(await tools.RunAsync(context, "get_public_product", new JsonObject { ["itemId"] = 7 }, default))["status"]);
+        // The sample adapter returns its in-memory item. Simulate a changed ERP row,
+        // including an unsupported metal imported outside the validated write API.
+        var item = (await repo.GetItemAsync(7, default))!;
+        if (change == "status") await repo.UpdateStatusAsync(7, "Draft", default);
+        else if (change == "category") item.CategoryId = 2;
+        else item.MetalType = "Palladium";
+        Assert.False(await evidence.CanUseAsync(context, sources, default));
+        Assert.Equal("not_found", (string?)(await tools.RunAsync(context, "get_public_product", new JsonObject { ["itemId"] = 7 }, default))["status"]);
+        var search = await tools.RunAsync(context, "search_public_products", new(), default);
+        Assert.Equal(0, (int)search["data"]!["totalCount"]!);
+    }
+
     [Fact]
     public async Task Public_projection_omits_internal_fields()
     {
         var repo = SampleRepositoryFactory.Create();
-        var item = (await repo.SearchItemsAsync(null, null, null, null, null, 1, 1, default)).Items[0];
+        var item = (await repo.GetItemAsync(7, default))!;
         var tools = new AssistantTools(new Permissions(), repo, new Knowledge(), new Publications(item.Id));
         var context = new AssistantContext("website", "visitor", "customer", [], [], false);
         var result = await tools.RunAsync(context, "get_public_product", new JsonObject { ["itemId"] = item.Id }, default);

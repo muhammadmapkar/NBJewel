@@ -76,19 +76,20 @@ public sealed class AssistantTools(IPermissionAdapter permissions, IItemReposito
             var ids = await publications.PublishedItemIdsAsync(ct);
             if (!ids.Contains(id)) return Result("not_found");
             var item = await repository.GetItemAsync(id, ct);
-            return item is null ? Result("not_found") : Result("ok", await PublicItem(item, ct), new JsonArray(Source(name, id.ToString())));
+            return item is null || !PublicCatalogPolicy.Allows(item, await PublicCatalogPolicy.AllowedCategoriesAsync(repository, ct)) ? Result("not_found") : Result("ok", await PublicItem(item, ct), new JsonArray(Source(name, id.ToString())));
         }
         if (!Only(args, "query", "page", "pageSize") || !TextArg(args, "query", 100, false, out var search) || !IntArg(args, "page", 1, int.MaxValue, 1, out var page) || !IntArg(args, "pageSize", 1, 50, 10, out var size)) return Result("error");
         var published = await publications.PublishedItemIdsAsync(ct);
         if (published.Count > 10000) throw new AssistantUnavailableException();
         // Read the catalog in pages of 100 (the repository search already narrows by text) and keep published matches,
         // instead of one query per published item. The repository search also matches design codes, so the code/name check stays.
+        var categories = await PublicCatalogPolicy.AllowedCategoriesAsync(repository, ct);
         var matches = new List<Item>();
         for (var current = 1; ; current++)
         {
-            var batch = await repository.SearchItemsAsync(search, null, null, null, null, current, 100, ct);
+            var batch = await repository.SearchItemsAsync(search, null, null, null, ItemStatusRules.Complete, current, 100, ct);
             if (batch.TotalCount > 10000) throw new AssistantUnavailableException();
-            matches.AddRange(batch.Items.Where(item => published.Contains(item.Id) &&
+            matches.AddRange(batch.Items.Where(item => published.Contains(item.Id) && PublicCatalogPolicy.Allows(item, categories) &&
                 (search is null || item.Code.Contains(search, StringComparison.OrdinalIgnoreCase) || item.Name.Contains(search, StringComparison.OrdinalIgnoreCase))));
             if ((long)current * 100 >= batch.TotalCount) break;
             if (batch.Items.Count == 0) throw new AssistantUnavailableException();

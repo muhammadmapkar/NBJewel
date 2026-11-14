@@ -2,11 +2,14 @@
 # AI memory handoff
 
 ## Lock
-- Agent: none (released by codex-storefront).
-- Since: 2026-11-14T11:15:53+04:00
-- Status: released after restoring the visible demo collection and verifying API empty states.
+- Agent: none (released by codex-reconciliation).
+- Since: 2026-11-14T11:44:43+04:00
+- Status: released in the final reconciliation checkpoint; audit and reproduced bug repair verified. Eight-feature delivery remains incomplete as recorded below.
 
 ## Branch and last commit
+- Reconciliation baseline: `5e6066f2dcee8fd49f7086cc34cd1630ade5ca57`, exact origin alignment verified after fetch/reset/ff-only pull.
+- Backup branch: `backup/local-accidental-run-20261114-113421`, commit `d98c7b52a326a87d4a93aed568708a1d7d7693ea` (local, preserving all six initial changed files). Other local branches retained.
+- Reconciliation checkpoint: resolve `git log -1 --format=%H -- RECONCILIATION_REPORT.md`; this commit also releases the Lock.
 - Branch: `feature/customer-storefront`.
 - Remote: `origin/feature/customer-storefront`; upstream exists; fetch and fast-forward pull succeeded.
 - Verified Phase 1 baseline: `a4f8ef3acb049daaea9016dc18dfbf2886e708f0` (Phase 1).
@@ -28,9 +31,14 @@
 - Snapshot commit: the commit containing this handoff; resolve with `git log -1 --format=%H -- AI-MEMORY-HANDOFF.md`. Compare it with HEAD on the next start. A literal self-referencing commit hash cannot be recorded inside the same commit.
 
 ## Current goal
-Empty storefront fix complete. Default is explicitly bundled demo mode (apiBaseUrl=null): all 6 designs and 22 existing image assets work. API mode remains opt-in and never falls back after errors/revocation; empty API catalogs show a customer-facing message. Stop and wait for Muhammad.
+Origin reconciliation, forensic audit and reproduced assistant visibility repair are verified. Read RECONCILIATION_REPORT.md for actual eight-feature status and setup keys. All eight features are NOT complete on origin: account/profile/cart UI, external market-rate feed, customer chatbot UI/approved answer corpus and ERP-connected locator remain incomplete. Automatic cutout publication also conflicts with required manual quality approval. No claim that credentials alone enable these domains.
+
 
 ## Done
+- Reconciliation: archived all six local changes and original ancestry on the timestamped backup branch before alignment. Explicit owner approval overrode protected-file exclusions only for backup/alignment. Confirmed no main/master remote, selected the existing storefront origin branch, fetched/reset/ff-only pulled successfully. Local and origin baseline were already identical; no semantic merge performed.
+- Forensic audit: Track A corrected .env.example, compared local env names without revealing values, verified manifest/lock roots and found no clear tracked clutter. Track C installed both apps in isolated /tmp copies without changing lockfiles; both typechecks/test/build gates passed. Serena unavailable; repository reference searches and compilers used; Headroom available/used.
+- Reproduced and fixed website assistant eligibility bypass: three ineligible published products returned ok and Draft product history remained valid before the fix. Shared public catalog policy now protects detail/search/history; added regressions for Draft/category/metal transitions. Full backend 380 passed, 6 SQL skipped, zero failures; build zero warnings/errors. Independent medium review found no blocking defects; minor coverage/default-wording feedback addressed.
+- Detailed report records missing product implementations, exact configuration keys, static SQL schema limitations, dependency install warnings, and manual browser/quality checks. No new product domain is claimed complete without implementation.
 - Empty-storefront fix: inspected no_items.png and reproduced empty headings in Chrome. Source images were intact; API source had zero publications after our smoke test revoke. Restored explicit null/bundled default and all 6 original demo designs. Added honest empty states for home/shop when API is empty, preserving API no-fallback and publication gates. Chrome verified both API-empty messages before source change and actual restored home/shop images afterward. All 22 referenced PNG URLs returned 200/image/png. Storefront 64 tests/build passed.
 - Runtime review completed: single-staff scope now explicitly denies customer registration in sample mode. Regression returned 200 before fix, now 403 with no added account/session. Added real five-failure lockout and fresh-host rejection of old cookie/password checks. Final full backend suite 374 passed, 6 SQL skipped. Restarted the sample API with reviewed code/fresh runtime credentials, browser old session redirected to sign-in, fresh login succeeded, password-save declined and Images left open with the synthetic preview ready/approved but unpublished. All runtime review findings addressed; no production identity changes.
 - Runtime step 3: real native Chrome browser signed in through the existing form, uploaded sample-data/jewelry/necklace-gold-pendant.png to seeded item 7, inspected the rendered transparent synthetic preview, saved assumed sample copy, explicitly approved that revision and published. Storefront /shop showed one design and /p/7 rendered its actual preview, copy and dated breakdown. ERP edits changed the name/copy and making percentage 10.89 -> 20.89; customer reload showed total AED 2,403.78 -> 2,620.56 and updated copy without rebuilding. Returning to Images retained saved copy. Revoke succeeded; customer reload showed design unavailable and shop 0 designs. No test product remains published. This approves only the synthetic workflow fixture, not real image quality or licensing.
@@ -51,6 +59,14 @@ Empty storefront fix complete. Default is explicitly bundled demo mode (apiBaseU
 - Setup files written: replaced stale handoff statements, added the handoff protocol to AGENTS.md, and added Claude/Copilot routing instructions. Validation passed; setup pushed as `d44c748`.
 
 ## Next steps (ordered checklist)
+- [x] Reconcile backup/origin, audit, repair reproduced assistant eligibility gap, run full affected checks and prepare final checkpoint with released Lock.
+- [ ] Complete the requested storefront authentication/profile/cart domain; backend Identity alone does not implement it.
+- [ ] Select/implement live market pricing and freshness/currency/unit policy; current rates are recorded ERP/sample rates.
+- [ ] Complete customer chatbot UI and explicitly approved researched FAQ corpus with platform storage.
+- [ ] Define verified public store coordinates/participation/sync-health contracts and implement ERP-connected locator.
+- [ ] Separately authorize/provision SQL and reviewed upgrade migrations; run the six opt-in SQL checks afterward. Preserve manual cutout approval/licensing gates.
+
+Historical phase-2 checklist:
 - [x] Empty-storefront fix: regression for empty home sections, restore explicit null/bundled config, add customer-facing empty messaging without exposing ERP internals; run storefront tests/build.
 - [x] Verify actual browser home/shop show original demo images; check all bundled card/piece URLs exist and local API remains empty/revoked. Update handoff/docs, commit/push and release Lock.
 - [x] Runtime 1: set nonsecret storefront apiBaseUrl=http://localhost:5155; test/build and push.
@@ -69,6 +85,10 @@ Empty storefront fix complete. Default is explicitly bundled demo mode (apiBaseU
 - [x] After task 9: sequential read-only lead review completed; all findings corrected with regressions and affected suites/builds passing. Stop and wait for Muhammad.
 
 ## Blockers and decisions
+- Latest user authorized reconciliation and parallel lower-reasoning audit/verification, superseding historical sequential/phase-stop rules for this task. No other worktree was created or accessed. Backend/sample-only restrictions and no deployment/SQL execution remain.
+- Origin has only demo-changes, tryon-feature and feature/customer-storefront. Remote default demo-changes is the older ERP demo; resetting to it would discard the storefront. The current storefront branch was therefore aligned to its own origin counterpart. No main/master exists remotely.
+- Missing domains are entire absent implementations, not merge conflicts or missing env assignments. They remain explicitly unchecked above; do not mislabel them Needs Manual Config alone. Do not fabricate store coordinates, ERP participation, spot rates or NB Jewel business policies to fill them.
+- Backup/archive exists locally as requested; no backup push was authorized. Cleanup checkpoint pushes only the storefront branch. Owner files were touched only by the explicitly approved backup/alignment, never by subsequent cleanup.
 - Root cause 2026-11-14: no_items.png shows empty Collections/Bestsellers/New arrivals. Bundled PNGs and ERP cutout revision exist. Committed apiBaseUrl selected an API with no published products after our explicit test revocation. No asset deletion or cutout failure occurred. The home page rendered empty headings with no explanation.
 - Safest fix: explicitly restore null/bundled default to show the original demo collection. API mode remains available by setting its nonsecret address; API errors/empty results must not silently fall back or expose revoked products. Do not seed/auto-approve/auto-publish owner photos or weaken publication gates. Fix the actual empty-state UI as well. User asked for a fix with no questions; no new source-switch feature needed.
 - Runtime outcome: no blockers for authorized steps 1-3. Staff sign-in is intentionally temporary/local, not persistent general accounts. Launcher generates credentials only in its terminal; no credential is in this handoff. Local services remain running (API session 88847; ERP 11272; storefront 57103) until stopped by their owner/runtime. Current staff browser is authenticated. Restart resets sample item copy/prices while keeping cutout/ID reservation and revoked publication files.
@@ -115,6 +135,7 @@ Empty storefront fix complete. Default is explicitly bundled demo mode (apiBaseU
 - No questions to owner. Choose conservative sample-only behavior and log assumptions. Accounts, chatbot, locator are later phases.
 
 ## Files touched
+- Reconciliation changes: .env.example; RECONCILIATION_REPORT.md; AI-MEMORY-HANDOFF.md; backend/NbJewel.Api/Models/PublicCatalogPolicy.cs; backend/NbJewel.Api/Controllers/PublicCatalogController.cs; backend/NbJewel.Api/Platform/AssistantTools.cs; backend/NbJewel.Api/Platform/AssistantEvidence.cs; backend/NbJewel.Api.Tests/ScopedAssistantToolsTests.cs; backend/NbJewel.Api.Tests/ScanCostTests.cs.
 - Empty storefront fix: customer-tryon/public/storefront-config.json; customer-tryon/src/app/pages/home.page.ts and shop.page.ts; README.md; this handoff. Owner screenshot no_items.png read only, not staged.
 - Runtime review correction: AuthController.cs, SampleIdentityRuntimeTests.cs, README, phase 2 gate follow-on record and this handoff.
 - Runtime steps 1-3: storefront public config, backend IdentitySetup/new SampleIdentitySetup, Program.cs, backend csproj, new SampleIdentityRuntimeTests; new scripts/run-sample-api.py, README.md, this handoff. Synthetic runtime assets are isolated ignored files in backend/NbJewel.Api/App_Data/local-sample-demo, not staged. No credentials recorded in tracked files.
@@ -132,6 +153,9 @@ Empty storefront fix complete. Default is explicitly bundled demo mode (apiBaseU
 - Pre-existing owner changes preserved, excluded from staging: PROGRESS.md, docs/run-guide.md, customer-tryon/package-lock.json; untracked browser security plan, old proof image, pasted jewelry image.
 
 ## Test commands and last results
+- Reconciliation final: `dotnet build backend/NbJewel.Api --no-restore`: 0 warnings/errors; `dotnet test backend/NbJewel.Api.Tests --no-restore`: 380 passed, 6 SQL skipped, 0 failed. Sanitized Sample processes with SQL/connection/Gemini-key variables removed and existing cutout interpreter. Logs /tmp/nbjewel-reconciliation-final-build.log and /tmp/nbjewel-reconciliation-final-tests.log. Initial four regressions failed as intended: /tmp/nbjewel-reconciliation-red.log.
+- Both isolated frontend copies: `npm ci --no-audit --no-fund`, `npx tsc --noEmit -p tsconfig.app.json`, `npm test`, `NG_BUILD_MAX_WORKERS=2 npm run build` all passed. ERP 72 tests, storefront 64 tests; lockfiles unchanged. Logs /tmp/nbjewel-trackc-verification. Initial sandbox restrictions resolved through approved retries. No lint script/config exists. uuid deprecation and ERP optional Vitest peer warning remain documented.
+- Static .env.example uniqueness/coverage and manifest/lock consistency passed. `git diff --check` passed. No SQL/live feed/maps/SMTP call or new browser visual verification claimed.
 - Empty storefront final: customer-tryon npm test 64 passed; NG_BUILD_MAX_WORKERS=2 npm run build passed, no warnings. Manual RED: screenshot and Chrome reproduced blank headings before fix. Chrome now verifies explicit empty-catalog messaging (API mode), restored 6 designs/cards plus home collections (bundled mode). All 22 card/part PNG URLs returned 200/image/png; no missing source files. Live API still totalCount=0/revoked. Diff whitespace check passed. Backend/ERP source unchanged, so their suites were not rerun for this config/template fix.
 - Final runtime review correction: full backend sample suite 374 passed, 6 SQL skipped, 0 failed; build passed, SQL/connection env vars removed. Log /tmp/nbjewel-sample-runtime-reviewed.log. Registration RED /tmp/nbjewel-sample-registration-red.log. Existing storefront 64 tests/build passed for API config; no Angular source changed in this follow-on. Final diff whitespace check passed.
 - Final live runtime: restarted API and verified old Chrome session expired; fresh staff sign-in and protected Images preview loaded with no published test product. Real browser positive cookies/CSRF/CORS and cross-origin image loading verified for localhost 4200/4300/5155 only. Direct follow-up anonymous API reads returned config=API, products empty, preview404, ERP401. No SQL connection was opened. No generated credentials committed or saved to browser.
@@ -164,6 +188,8 @@ Empty storefront fix complete. Default is explicitly bundled demo mode (apiBaseU
 - Task 1 baseline: `dotnet test backend/NbJewel.Api.Tests` with all SQL/connection environment variables removed and `Repository__Provider=Sample`: 309 passed, 6 skipped, 0 failed. Initial sandbox run aborted at VSTest socket binding; same command outside sandbox passed. No SQL executed. Logs: `/tmp/nbjewel-task1-baseline.log`.
 
 ## Manual checks for Muhammad
+- Read RECONCILIATION_REPORT.md before configuring services: exact key names and absent implementations are distinguished. Keep SQL variables unset for sample use; no provider key alone enables missing spot-feed or map code.
+- Current audit did not retest camera/phone layouts, cookie flows or representative cutout quality. Prior browser evidence below is historical, not newly repeated.
 - Local Chrome Images-tab upload, copy, synthetic-preview approval, publication, copy/price reload and revocation passed. Repeat with representative permitted photos and target devices. Local opt-in sample staff identity and complete synthetic workflow verified in Chrome; default mode without the launcher remains protected/unconfigured.
 - To select API mode, set the nonsecret apiBaseUrl in public/storefront-config.json to the API address and reload the page. The committed runtime config now selects null/bundled demo; select http://localhost:5155 explicitly for ERP API checks. For nonlocal origins set backend CORS_ORIGINS explicitly; verify cookies/CSRF and camera export in a real browser. No deployment performed.
 - Review new cutout quality against representative permitted sample photos before approving publication. Synthetic alpha/restart tests do not approve visual product quality or licensing.
@@ -173,6 +199,8 @@ Empty storefront fix complete. Default is explicitly bundled demo mode (apiBaseU
 - Real browser CORS and cookies.
 
 ## Agent log (newest first)
+- 2026-11-14T11:44:43+04:00 codex-reconciliation: final reviewed backend 380/6 skipped and both frontend gates passed. Env/report/eligibility fix ready for explicit-path checkpoint and push; releasing Lock in that checkpoint. Unimplemented requested product domains remain unchecked, not claimed complete.
+- 2026-11-14 codex-reconciliation: backup verified, fetch/reset/ff-only pull passed; clean exact origin baseline. No semantic merge, remote branch deletion, SQL execution, Docker or forbidden worktree access. Two initial backup approvals rejected; explicit owner override then approved. Current audit will distinguish absent implementation from manual configuration.
 - 2026-11-14T11:15:53+04:00 codex-storefront: fixed no_items.png root cause, verified home/shop render all 6 original demo designs, all 22 image URLs succeed and API publications remain revoked. API-empty views now explain absence without fallback. Storefront64/build passed. Final explicit-path checkpoint/push and Lock release; no owner file or screenshot modified/staged.
 - 2026-11-14 codex-storefront: reproduced the screenshot in native Chrome. All 6 bundled products/22 referenced images exist; live API returned zero products. Fixed home blank sections and shop misleading filter message. Verified both empty API views in Chrome before explicitly restoring null/bundled config. Publication remains revoked; no automatic API fallback. Storefront 64 tests passed; production build passed.
 - 2026-11-14T11:11:35+04:00 codex-storefront: fetch/ff-only pull passed, branch/snapshot verified ca3ebf9, released Lock acquired. Read owner-provided no_items.png only; preserve it untracked. Confirmed bundled image files intact and persisted item-7 decision published=false.

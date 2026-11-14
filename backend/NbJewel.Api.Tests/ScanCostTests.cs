@@ -61,8 +61,9 @@ public class ScanCostTests
         var sample = SampleRepositoryFactory.Create(); var items = await AllItems(sample);
         var published = items.Select(x => x.Id).ToHashSet(); var repo = new CountingRepository(sample);
         var tools = new AssistantTools(new Permissions(null), repo, new NoKnowledge(), new Publications(published));
-        var word = items[0].Name.Split(' ')[0];
-        var truth = items.Where(x => x.Code.Contains(word, StringComparison.OrdinalIgnoreCase) || x.Name.Contains(word, StringComparison.OrdinalIgnoreCase)).OrderBy(x => x.Id).ToList();
+        var word = items.Single(x => x.Id == 7).Name.Split(' ')[0];
+        var truth = items.Where(x => x.Status == "Complete" && (x.CategoryId == 3 || x.CategoryId == 6) &&
+            (x.Code.Contains(word, StringComparison.OrdinalIgnoreCase) || x.Name.Contains(word, StringComparison.OrdinalIgnoreCase))).OrderBy(x => x.Id).ToList();
         var context = new AssistantContext("website", "visitor:a", "visitor", [], [], false, ["public"]);
         var result = await tools.RunAsync(context, "search_public_products", new JsonObject { ["query"] = word, ["pageSize"] = 50 }, default);
         Assert.Equal("ok", (string)result["status"]!);
@@ -75,12 +76,12 @@ public class ScanCostTests
     public async Task Public_search_still_hides_items_that_are_not_published()
     {
         var sample = SampleRepositoryFactory.Create(); var items = await AllItems(sample);
-        var published = new HashSet<int> { items[0].Id }; var repo = new CountingRepository(sample);
+        var published = new HashSet<int> { 7 }; var repo = new CountingRepository(sample);
         var tools = new AssistantTools(new Permissions(null), repo, new NoKnowledge(), new Publications(published));
         var context = new AssistantContext("website", "visitor:a", "visitor", [], [], false, ["public"]);
         var result = await tools.RunAsync(context, "search_public_products", new JsonObject(), default);
         Assert.Equal(1, (int)result["data"]!["totalCount"]!);
-        Assert.Equal(items[0].Id, (int)result["data"]!["items"]![0]!["id"]!);
+        Assert.Equal(7, (int)result["data"]!["items"]![0]!["id"]!);
     }
 
     [Fact]
