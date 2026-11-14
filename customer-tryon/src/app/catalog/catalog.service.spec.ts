@@ -57,3 +57,20 @@ it('rejects an incomplete API price or unsupported product instead of inventing 
   setup(api); service.load(); http.expectOne(`${api}/api/storefront/metal-rates`).flush([rate]);
   http.expectOne(`${api}/api/storefront/products?page=1&pageSize=100`).flush({ items: [{ ...product(), price: null }], page: 1, pageSize: 100, totalCount: 1 }); expect(service.state().status).toBe('error');
 });
+
+it('reads published, updated and revoked sample data through the same runtime service without a rebuild', () => {
+  setup(api);
+  const respond = (items: ReturnType<typeof product>[]) => {
+    http.expectOne(`${api}/api/storefront/products?page=1&pageSize=100`).flush({ items, page: 1, pageSize: 100, totalCount: items.length });
+    http.expectOne(`${api}/api/storefront/metal-rates`).flush([rate]);
+  };
+  service.load(); respond([product()]);
+  expect(service.find('7')?.name).toBe('Sample necklace'); expect(service.price(service.find('7')!).total).toBe(814.8);
+  const updated = product(); updated.name = 'Updated sample necklace'; updated.storefront.description = 'Assumed updated copy';
+  updated.price.stoneValue = 123; updated.price.vatAmount = 42.45; updated.price.totalPrice = 891.45;
+  service.load(true); respond([updated]);
+  expect(service.find('7')?.description).toBe('Assumed updated copy'); expect(service.find('7')?.name).toBe(updated.name);
+  expect(service.price(service.find('7')!)).toMatchObject({ stones: 123, vat: 42.45, total: 891.45, effectiveDate: '2026-09-30', changeExplanation: 'Recorded sample rate' });
+  service.load(true); respond([]); expect(service.find('7')).toBeUndefined(); expect(service.products()).toEqual([]);
+  http.expectNone(`${page}catalog/catalog.json`);
+});

@@ -16,13 +16,16 @@
 - Task 3 commit: `0bfeefd` (pushed).
 - Task 4 commit: `c0ebc67` (pushed).
 - Task 5 commit and verified predecessor for this checkpoint: `2e82dc7` (pushed).
-- Task 6 is in the snapshot commit resolved below.
+- Task 6 commit: `2f79a37` (pushed).
+- Task 7 commit: `f9b9130` (pushed).
+- Task 8 is in the snapshot commit resolved below.
 - Snapshot commit: the commit containing this handoff; resolve with `git log -1 --format=%H -- AI-MEMORY-HANDOFF.md`. Compare it with HEAD on the next start. A literal self-referencing commit hash cannot be recorded inside the same commit.
 
 ## Current goal
 Complete tasks 7, 8, 9; run all six checks and the lead review, then stop for Muhammad.
 
 ## Done
+- Task 8: sample HTTP scenario publishes a reviewed item, updates copy/stones/VAT, observes fresh anonymous list/detail prices, then revokes product and preview; one unchanged runtime storefront service reads publish/update/revoke responses through refresh without static fallback. Backend 349 passed (6 SQL skips); storefront 64 passed. Existing behavior already passed the new proof, so no production changes were needed.
 - Task 7: metal filters and metal/purity rate matching for Gold, Silver, Platinum; themed header shows recorded sample rates/dates; product breakdown shows actual date/change explanation and reconciled cents. Bundled Gold rate dates explicitly unknown; missing matching static rates fail closed. Storefront 63 tests/build passed.
 - Task 6: nonsecret public runtime config chooses API or bundled static catalog. API mode loads every published page and recorded rates, uses server price breakdowns and approved preview URLs, rejects invalid data, exposes refresh and never falls back to static products on API failure. Public API preview canvas loading uses anonymous CORS. Minimal price labels show correct metal/making/VAT; full task 7 UI remains pending. Storefront 58 tests/build passed; backend CORS regression and full suite passed 348 (6 SQL skips).
 - Task 5: real ERP Images-tab upload/copy/review/publish/revoke controls reuse shared widget/theme; publication requires a Complete supported item, description, matching price, ready approved current cutout and explicit confirmation. Sample decisions persist on disk, bind to approved revisions, and survive fresh API hosts. Replacements/revocations hide published products/previews. No staff account or authentication bypass added.
@@ -43,7 +46,7 @@ Complete tasks 7, 8, 9; run all six checks and the lead review, then stop for Mu
 - [x] 5. ERP upload and explicit publication controls. Size M. Files: ERP catalog/core data and KnowledgeController.cs. Ready sample item publishes; unfinished cutout cannot publish. Test: ERP npm test/build and backend suite.
 - [x] 6. Storefront loads from configurable API address. Size M. Files: storefront catalog service/models, app.config.ts, config/service tests. Configured address uses API; unset address uses static catalog. Test: storefront npm test/build.
 - [x] 7. Dated rates, metal filters, price explanations. Size M. Files: storefront header, catalog, shop/product pages. Gold, silver, platinum use matching rate, breakdown, real effective date, no invented freshness. Test: storefront npm test/build.
-- [ ] 8. Prove updates appear without rebuilding. Size M. Files: backend and storefront service tests. Publish, update, revoke a sample product; storefront reads reflect each change. Test: backend/storefront suites.
+- [x] 8. Prove updates appear without rebuilding. Size M. Files: backend and storefront service tests. Publish, update, revoke a sample product; storefront reads reflect each change. Test: backend/storefront suites.
 - [ ] 9. Warnings, docs, phase gate. Size S. Files: shop page, vitest.config.ts, README.md, docs/superpowers/plans/, this handoff. All six baseline checks pass; completed work and manual checks stay separate. Test: backend build/test, ERP npm test/build, storefront npm test/build.
 - [ ] After task 9: run the lead review, stop, wait for Muhammad.
 
@@ -80,11 +83,12 @@ Complete tasks 7, 8, 9; run all six checks and the lead review, then stop for Mu
 - The prior handoff described another branch and old SQL authorization. Replaced from Muhammad's current seed and protocol; current instructions prohibit all Docker/SQL data steps.
 - Ruling: use this existing feature checkout and this handoff as the only ledger; no worktree, extra handoff, or AI-memory service mutation. Agents are sequential and the owner's forbidden worktree stays untouched.
 - Ruling: snapshot commit is resolved from git history because a commit cannot embed its own hash. Record verified predecessor and task implementation hashes as work advances.
-- Remaining work: task 8 complete publication/update/revocation proof, task 9 warnings/docs/six-check gate and lead review. API mode now uses recorded server prices/rates; default unset configuration intentionally retains the bundled demo.
+- Remaining work: task 9 warnings/docs/six-check gate and lead review. API mode now uses recorded server prices/rates; default unset configuration intentionally retains the bundled demo.
 - Known warnings: unused RouterLink in ShopPage; Vitest config loading.
 - No questions to owner. Choose conservative sample-only behavior and log assumptions. Accounts, chatbot, locator are later phases.
 
 ## Files touched
+- Task 8: backend Jewelry/ItemCutoutHttpTests.cs, storefront catalog.service.spec.ts, this handoff.
 - Task 7: storefront catalog models/tests/service, site header, shop and product pages, this handoff.
 - Task 6: customer-tryon/public/storefront-config.json; storefront config token/loader/tests, catalog API models, catalog service/tests/models, app.config.ts, minimal product/try-on page bindings; backend Program.cs local CORS defaults and PublicCatalogHttpTests.cs regression; this handoff. No package manifests/lockfiles or owner files changed by this agent.
 - Task 5: knowledge product store interface/file implementation, KnowledgeDatabase/Service/Controller, ItemImagesController, PublicCatalogController, image asset repository review method, ItemCutoutPipeline/ItemImageAsset, ERP boundary, Program.cs, docs/platform-schema.sql; backend publication/asset HTTP tests and prepared-asset helper; frontend item models, StorefrontAdminService/tests, StorefrontPanelComponent and ItemDetailComponent; this handoff.
@@ -96,6 +100,7 @@ Complete tasks 7, 8, 9; run all six checks and the lead review, then stop for Mu
 - Pre-existing owner changes preserved, excluded from staging: PROGRESS.md, docs/run-guide.md, customer-tryon/package-lock.json; untracked browser security plan, old proof image, pasted jewelry image.
 
 ## Test commands and last results
+- Task 8: backend sample suite (SQL/connection env variables removed, existing Python interpreter): 349 passed, 6 SQL skipped, 0 failed. Log /tmp/nbjewel-task8-backend.log. Storefront npm test: 64 passed. Test-only changes; no rebuild needed for the new proof.
 - Task 7: storefront npm test: 63 passed; npm run build with NG_BUILD_MAX_WORKERS=2 passed. Three metal contract failures and one cents-format failure observed before implementation. Known RouterLink/Vitest warnings remain for task 9.
 - Task 6 final: storefront `npm test`: 58 passed; `NG_BUILD_MAX_WORKERS=2 npm run build`: passed. Shipped output contains browser/storefront-config.json. Existing Vitest config loading and unused ShopPage RouterLink warnings remain task 9. Backend full sample suite after CORS support: 348 passed, 6 SQL skips, 0 failed (`/tmp/nbjewel-task6-backend.log`). SQL/connection variables removed, Sample forced, temp Python configured as above.
 - Task 6 RED: 7 expected config/API failures and 1 static-mode pass before implementation. Local storefront CORS regression failed before adding the existing development port (`/tmp/nbjewel-task6-cors-red.log`). Final tests cover runtime URL validation/loading, missing config fallback, static mode, paginated API reads, authoritative price/date mapping, no stale fallback, refresh/revocation and invalid product data. Diff whitespace checks passed for all task paths.
@@ -127,6 +132,7 @@ Complete tasks 7, 8, 9; run all six checks and the lead review, then stop for Mu
 - Real browser CORS and cookies.
 
 ## Agent log (newest first)
+- 2026-11-14 codex-storefront: task 7 pushed as f9b9130. Task 8 publish/update/revoke proof passed in backend and storefront suites. Checkpoint/push before task 9 warning cleanup, documentation and six-check phase gate.
 - 2026-11-14 codex-storefront: task 7 matching/filter/date tests verified RED then implemented; full storefront tests and production build passed. Header uses recorded sample dates, no invented freshness; bundled missing dates labelled. Checkpoint/push before task 8.
 - 2026-11-14T05:27:25+04:00 codex-storefront: startup fetch/ff-only pull passed, branch confirmed, full handoff read, released Lock acquired, HEAD and snapshot verified at 2f79a37. Owner files untouched.
 - 2026-11-14T02:27:32+04:00 codex-storefront: task 6 final storefront 58 tests/build and backend 348 tests (6 SQL skips) passed. Task 5 was pushed as 2e82dc7. Tasks 5-6 complete; released Lock in final explicit-path checkpoint. Next is task 7. Owner files, secrets, forbidden worktree and SQL/Docker data untouched.

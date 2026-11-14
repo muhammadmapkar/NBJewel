@@ -129,6 +129,46 @@ public sealed class ItemCutoutHttpTests
     }
 
     [Fact]
+    public async Task PublishedSampleCopyAndPriceUpdatesReachAnonymousReadsThenRevokeImmediately()
+    {
+        await using var factory = Factory(Storage());
+        using var staff = await Admin(factory);
+        using var customer = factory.CreateClient();
+        var item = (await staff.GetFromJsonAsync<JsonObject>("/api/items/7"))!;
+        item["storefront"] = new JsonObject { ["description"] = "Assumed sample before update", ["isSample"] = true };
+        Assert.Equal(HttpStatusCode.OK, (await staff.PutAsJsonAsync("/api/items/7", item)).StatusCode);
+        using var upload = await Upload(staff, 7, Photo);
+        Assert.Equal(HttpStatusCode.Created, upload.StatusCode);
+        var revision = (await upload.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("revisionId").GetString();
+        Assert.Equal(HttpStatusCode.OK, (await staff.PostAsJsonAsync("/api/items/7/image/review", new { confirm = true, revisionId = revision, approve = true })).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await staff.PostAsJsonAsync("/api/ai/knowledge/products/7/publish", new { confirm = true, assetRevisionId = revision })).StatusCode);
+        var before = await customer.GetFromJsonAsync<JsonElement>("/api/storefront/products/7");
+        var oldTotal = before.GetProperty("price").GetProperty("totalPrice").GetDecimal();
+        Assert.Equal("Assumed sample before update", before.GetProperty("storefront").GetProperty("description").GetString());
+        item["name"] = "Updated sample necklace";
+        item["stoneValue"] = 123m;
+        item["vatPercent"] = 5m;
+        item["storefront"]!["description"] = "Assumed sample after update";
+        Assert.Equal(HttpStatusCode.OK, (await staff.PutAsJsonAsync("/api/items/7", item)).StatusCode);
+        using var response = await customer.GetAsync("/api/storefront/products/7");
+        Assert.True(response.Headers.CacheControl?.NoStore);
+        var after = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("Updated sample necklace", after.GetProperty("name").GetString());
+        Assert.Equal("Assumed sample after update", after.GetProperty("storefront").GetProperty("description").GetString());
+        var price = after.GetProperty("price");
+        Assert.Equal(123m, price.GetProperty("stoneValue").GetDecimal());
+        Assert.Equal(5m, price.GetProperty("vatPercent").GetDecimal());
+        Assert.NotEqual(oldTotal, price.GetProperty("totalPrice").GetDecimal());
+        Assert.Equal(price.GetProperty("metalValue").GetDecimal() + price.GetProperty("makingCharge").GetDecimal() + 123m + price.GetProperty("vatAmount").GetDecimal(), price.GetProperty("totalPrice").GetDecimal());
+        var list = await customer.GetFromJsonAsync<JsonElement>("/api/storefront/products");
+        Assert.Equal("Updated sample necklace", list.GetProperty("items")[0].GetProperty("name").GetString());
+        Assert.Equal(HttpStatusCode.NoContent, (await staff.PostAsJsonAsync("/api/ai/knowledge/products/7/revoke", new { confirm = true })).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await customer.GetAsync("/api/storefront/products/7")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await customer.GetAsync("/api/storefront/products/7/preview")).StatusCode);
+        Assert.Equal(0, (await customer.GetFromJsonAsync<JsonElement>("/api/storefront/products")).GetProperty("totalCount").GetInt32());
+    }
+
+    [Fact]
     public async Task RingAndUnknownItemCannotCreateAssets()
     {
         var storage = Storage(); await using var factory = Factory(storage); using var client = await Admin(factory);
