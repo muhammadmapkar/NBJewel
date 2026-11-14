@@ -2,9 +2,9 @@
 # AI memory handoff
 
 ## Lock
-- Agent: codex-storefront
-- Since: 2026-11-14T08:38:22+04:00
-- Status: held for authorized API mode, legitimate sample staff sign-in and browser lifecycle checks.
+- Agent: none (released by codex-storefront).
+- Since: 2026-11-14T09:05:10+04:00
+- Status: released after runtime steps 1-3, sequential review correction and fresh browser login verification.
 
 ## Branch and last commit
 - Branch: `feature/customer-storefront`.
@@ -20,13 +20,17 @@
 - Task 7 commit: `f9b9130` (pushed).
 - Task 8 commit: `dec6fc1` (pushed).
 - Task 9 commit: `87c5c19` (pushed).
-- Lead-review corrections and lock release are in the snapshot commit resolved below.
+- Phase 2 lead-review corrections: `9f8e997` (pushed).
+- Runtime API config: `621020d` (pushed).
+- Runtime staff identity/browser lifecycle checkpoint: `e834bc4` (pushed).
+- Runtime review correction and lock release are in the snapshot commit resolved below.
 - Snapshot commit: the commit containing this handoff; resolve with `git log -1 --format=%H -- AI-MEMORY-HANDOFF.md`. Compare it with HEAD on the next start. A literal self-referencing commit hash cannot be recorded inside the same commit.
 
 ## Current goal
-Muhammad authorized remaining steps 1, 2, 3: enable local storefront API mode, make legitimate demo staff sign-in available without SQL, and verify upload/review/publish/update/revoke in the real browser.
+Authorized runtime steps 1, 2, 3 are complete: local API mode, legitimate temporary sample staff login and real-browser upload/review/publish/update/reload/revoke verification. Stop and wait for Muhammad. Remaining phone/camera/real-image/licensing, durable runtime dependency setup and SQL/deployment work are separate.
 
 ## Done
+- Runtime review completed: single-staff scope now explicitly denies customer registration in sample mode. Regression returned 200 before fix, now 403 with no added account/session. Added real five-failure lockout and fresh-host rejection of old cookie/password checks. Final full backend suite 374 passed, 6 SQL skipped. Restarted the sample API with reviewed code/fresh runtime credentials, browser old session redirected to sign-in, fresh login succeeded, password-save declined and Images left open with the synthetic preview ready/approved but unpublished. All runtime review findings addressed; no production identity changes.
 - Runtime step 3: real native Chrome browser signed in through the existing form, uploaded sample-data/jewelry/necklace-gold-pendant.png to seeded item 7, inspected the rendered transparent synthetic preview, saved assumed sample copy, explicitly approved that revision and published. Storefront /shop showed one design and /p/7 rendered its actual preview, copy and dated breakdown. ERP edits changed the name/copy and making percentage 10.89 -> 20.89; customer reload showed total AED 2,403.78 -> 2,620.56 and updated copy without rebuilding. Returning to Images retained saved copy. Revoke succeeded; customer reload showed design unavailable and shop 0 designs. No test product remains published. This approves only the synthetic workflow fixture, not real image quality or licensing.
 - Runtime step 2: explicit Development/Sample/localhost-only in-memory staff Identity provider, real UserManager password hashing, existing cookie/grant/CSRF checks, runtime-generated credentials and isolated asset storage via scripts/run-sample-api.py. Defaults remain unconfigured; no SQL or auth bypass. Backend 371 passed, 6 SQL skipped. Staff session works in the actual ERP browser; browser password-save prompt declined.
 - Runtime step 1: committed local API address in public/storefront-config.json; 64 storefront tests/build passed. Pushed as 621020d.
@@ -61,6 +65,8 @@ Muhammad authorized remaining steps 1, 2, 3: enable local storefront API mode, m
 - [x] After task 9: sequential read-only lead review completed; all findings corrected with regressions and affected suites/builds passing. Stop and wait for Muhammad.
 
 ## Blockers and decisions
+- Runtime outcome: no blockers for authorized steps 1-3. Staff sign-in is intentionally temporary/local, not persistent general accounts. Launcher generates credentials only in its terminal; no credential is in this handoff. Local services remain running (API session 88847; ERP 11272; storefront 57103) until stopped by their owner/runtime. Current staff browser is authenticated. Restart resets sample item copy/prices while keeping cutout/ID reservation and revoked publication files.
+- Runtime reviewer exclusions accepted: production security/hosting, SQL/persistence, broader accounts, real-image quality/licensing, other devices/origins and deployment remain outside this authorization. Review's important registration scope finding fixed; minor lockout/restart coverage added. No further review pending.
 - New authorization supersedes the earlier stop after phase 2 only for runtime steps 1-3. No SQL/Docker/deploy/merge, general accounts, chatbot or locator work. Use the existing checkout and file handoff only; ai-memory skill routing does not replace the user-mandated handoff.
 - Design choice (assumed local demo): an explicit opt-in in-memory Identity provider in Development with Repository=Sample and forced localhost URLs. Seed exactly one staff identity via UserManager with a runtime-generated password and minimum catalog/upload/publication grants. Reject SQL connection configuration or unsafe hosting. Identity records/session credentials reset on restart; assets and ID reservations remain persistent. No hardcoded password, secret file, automatic login, anonymous ERP grant or customer elevation.
 - Alternative considered: existing SQL identity is disallowed by current authorization; a custom authentication bypass would skip existing password/cookie/CSRF behavior. Use the existing ASP.NET Identity EF store with the already test-used in-memory provider instead.
@@ -69,7 +75,7 @@ Muhammad authorized remaining steps 1, 2, 3: enable local storefront API mode, m
 - Task 7 plan: test metal filters and Gold/Silver/Platinum rate matching; add recorded-rate/date helpers, themed header rate details, metal filter options and product effective date/change explanation. Bundled rates have no recorded date, so label unknown rather than invent freshness. Keep API price snapshots authoritative even when the latest rate list differs.
 - Task 8 plan: one backend sample HTTP scenario publishes, changes item pricing/copy, reads updated values, revokes and checks product/preview removal; matching storefront refresh tests verify changed price/copy and absence after revoke without a rebuild.
 - Task 9 plan: fix existing unused RouterLink/Vitest config warnings, update README and a phase 2 review record, run backend build/test plus both Angular test/build commands, then delegate one read-only lead review sequentially (no implementation work while the reviewer runs). Resolve material findings, repeat affected checks, checkpoint and release Lock. No merge, deploy or SQL execution.
-- Task 6 runtime: public `customer-tryon/public/storefront-config.json` defaults apiBaseUrl=null, preserving the bundled catalog. Set its nonsecret apiBaseUrl (for local use, `http://localhost:5155`) to select API mode; deployed config can be changed without rebuilding JavaScript. Missing config (404) is static mode; invalid config or API failure gives the existing catalog error UI. No API keys, cookies or ERP auth services are added to the customer app.
+- Task 6 runtime: public `customer-tryon/public/storefront-config.json` originally defaulted apiBaseUrl=null; authorized runtime step 1 now sets http://localhost:5155. Setting null still selects the bundled catalog. Set its nonsecret apiBaseUrl (for local use, `http://localhost:5155`) to select API mode; deployed config can be changed without rebuilding JavaScript. Missing config (404) is static mode; invalid config or API failure gives the existing catalog error UI. No API keys, cookies or ERP auth services are added to the customer app.
 - Task 6 maps server prices verbatim, all pages up to the existing 10,000-item cap, recorded rate dates and approved revision preview URLs. A refresh cancels older in-flight loads. API mode has no invented branch list, hallmark or current-date freshness. New API earring assets are assumed to be one reviewed earring used in both placements; visual fit/quality remains manual. Static multi-piece catalog behavior is retained.
 - Scope ruling: API preview canvases need anonymous cross-origin image loading. Added anonymous image crossOrigin and a regression-tested default CORS allowance for the repository's existing localhost:4300 storefront port alongside localhost:4200. Nonlocal origins still require explicit CORS_ORIGINS; no wildcard or auth bypass. Minimal product price labels name actual metal/making/VAT to avoid mislabeling API values. Task 7 subsequently completed filters/dated header.
 - Task 5 completed decisions: optional IProductPublicationStore uses atomic JSON only in Sample mode without a platform SQL connection; knowledge documents still use the existing provider. Publication records include reviewed AssetRevisionId; both SQL model/schema changes are files only, not applied. Samples keep identity protected and do not create accounts. Default public product reads can now return an empty catalog without SQL; ERP mutations still require a valid existing staff session.
@@ -98,11 +104,12 @@ Muhammad authorized remaining steps 1, 2, 3: enable local storefront API mode, m
 - The prior handoff described another branch and old SQL authorization. Replaced from Muhammad's current seed and protocol; current instructions prohibit all Docker/SQL data steps.
 - Ruling: use this existing feature checkout and this handoff as the only ledger; no worktree, extra handoff, or AI-memory service mutation. Agents are sequential and the owner's forbidden worktree stays untouched.
 - Ruling: snapshot commit is resolved from git history because a commit cannot embed its own hash. Record verified predecessor and task implementation hashes as work advances.
-- No automated phase 2 implementation steps remain. Manual checks below remain open; stop and wait for Muhammad. API mode now uses recorded server prices/rates; default unset configuration intentionally retains the bundled demo.
+- No automated phase 2 implementation steps remain. Manual checks below remain open; stop and wait for Muhammad. API mode now uses recorded server prices/rates; unset configuration still supports the bundled demo; the committed local config now selects the API.
 - Known RouterLink/Vitest config warnings resolved in task 9.
 - No questions to owner. Choose conservative sample-only behavior and log assumptions. Accounts, chatbot, locator are later phases.
 
 ## Files touched
+- Runtime review correction: AuthController.cs, SampleIdentityRuntimeTests.cs, README, phase 2 gate follow-on record and this handoff.
 - Runtime steps 1-3: storefront public config, backend IdentitySetup/new SampleIdentitySetup, Program.cs, backend csproj, new SampleIdentityRuntimeTests; new scripts/run-sample-api.py, README.md, this handoff. Synthetic runtime assets are isolated ignored files in backend/NbJewel.Api/App_Data/local-sample-demo, not staged. No credentials recorded in tracked files.
 - Lead-review fixes: backend PublicCatalogController, PlatformContracts, KnowledgeService/KnowledgeDatabase, SampleItemRepository/new SampleItemIdAllocator; PublicCatalogHttpTests/KnowledgeAdminHttpTests/ItemCutoutHttpTests/new PublicationSchemaContractTests/new SampleItemIdReservationTests; ERP item-detail/storefront-panel and new lifecycle test; docs/platform-schema.sql, README, phase 2 gate record, this handoff.
 - Task 9: README.md, storefront shop.page.ts and vitest.config.ts, docs/superpowers/plans/2026-11-14-customer-storefront-phase-2.md, this handoff.
@@ -118,6 +125,8 @@ Muhammad authorized remaining steps 1, 2, 3: enable local storefront API mode, m
 - Pre-existing owner changes preserved, excluded from staging: PROGRESS.md, docs/run-guide.md, customer-tryon/package-lock.json; untracked browser security plan, old proof image, pasted jewelry image.
 
 ## Test commands and last results
+- Final runtime review correction: full backend sample suite 374 passed, 6 SQL skipped, 0 failed; build passed, SQL/connection env vars removed. Log /tmp/nbjewel-sample-runtime-reviewed.log. Registration RED /tmp/nbjewel-sample-registration-red.log. Existing storefront 64 tests/build passed for API config; no Angular source changed in this follow-on. Final diff whitespace check passed.
+- Final live runtime: restarted API and verified old Chrome session expired; fresh staff sign-in and protected Images preview loaded with no published test product. Real browser positive cookies/CSRF/CORS and cross-origin image loading verified for localhost 4200/4300/5155 only. Direct follow-up anonymous API reads returned config=API, products empty, preview404, ERP401. No SQL connection was opened. No generated credentials committed or saved to browser.
 - Runtime identity final full backend suite: 371 passed, 6 SQL skipped, 0 failed; build succeeded with no compiler warnings. Sample forced, all SQL/connection env vars removed, existing Python selected. Log /tmp/nbjewel-sample-runtime-final.log. RED: 4 expected missing login/host/password guard failures, 1 existing default-denial case passed. 9 additional policy cases cover unsafe environment/provider/connections/bindings/proxies.
 - Live browser evidence: staff login and ERP item read; source upload, rendered transparent preview, saved copy/revision approval/publication; customer image, dated breakdown and changed copy/price after reload; tab copy retention; revoked detail unavailable and shop 0 designs. API/Angular services listened only on loopback. CUA completion recorded. A default-sandbox HTTP follow-up was denied by local network sandbox; repeated read-only check with escalation.
 - Runtime step 1: storefront npm test 64 passed; production build passed with bounded workers; runtime config now targets http://localhost:5155.
@@ -147,8 +156,8 @@ Muhammad authorized remaining steps 1, 2, 3: enable local storefront API mode, m
 - Task 1 baseline: `dotnet test backend/NbJewel.Api.Tests` with all SQL/connection environment variables removed and `Repository__Provider=Sample`: 309 passed, 6 skipped, 0 failed. Initial sandbox run aborted at VSTest socket binding; same command outside sandbox passed. No SQL executed. Logs: `/tmp/nbjewel-task1-baseline.log`.
 
 ## Manual checks for Muhammad
-- With a legitimate staff session, inspect real Images-tab upload, saved copy, manual quality approval, confirmed publication and revocation in the browser. Default unconfigured staff identity remains protected/unavailable; no account was provisioned.
-- To select API mode, set the nonsecret apiBaseUrl in public/storefront-config.json to the API address and reload the page. The committed default is null/static. For nonlocal origins set backend CORS_ORIGINS explicitly; verify cookies/CSRF and camera export in a real browser. No deployment performed.
+- Local Chrome Images-tab upload, copy, synthetic-preview approval, publication, copy/price reload and revocation passed. Repeat with representative permitted photos and target devices. Local opt-in sample staff identity and complete synthetic workflow verified in Chrome; default mode without the launcher remains protected/unconfigured.
+- To select API mode, set the nonsecret apiBaseUrl in public/storefront-config.json to the API address and reload the page. The committed runtime config now selects http://localhost:5155/API. For nonlocal origins set backend CORS_ORIGINS explicitly; verify cookies/CSRF and camera export in a real browser. No deployment performed.
 - Review new cutout quality against representative permitted sample photos before approving publication. Synthetic alpha/restart tests do not approve visual product quality or licensing.
 - Phone and desktop alignment.
 - Camera capture, Retake, native share.
@@ -156,6 +165,8 @@ Muhammad authorized remaining steps 1, 2, 3: enable local storefront API mode, m
 - Real browser CORS and cookies.
 
 ## Agent log (newest first)
+- 2026-11-14T09:05:10+04:00 codex-storefront: authorized runtime steps 1-3 complete. Review correction passed 374 backend tests/6 SQL skips. Restarted isolated API, verified old browser session expires and fresh staff login works, retained revoked synthetic test state. Releasing Lock in final explicit-path checkpoint/push. All owner files untouched; no SQL/Docker/merge/deploy/deletion or forbidden worktree access.
+- 2026-11-14 codex-storefront: sequential runtime review found the opt-in store also enabled existing customer registration. Regression returned 200 before fix; now deny registration only in sample staff mode. Added lockout and old-cookie/old-password host-restart checks (both already passed). Full backend rerun pending; no broader accounts or production identity change.
 - 2026-11-14T08:57:26+04:00 codex-storefront: runtime steps 2-3 passed full backend tests and real browser lifecycle. Revoked item 7 at end; no public smoke fixture remains. API/ERP/storefront left running on loopback for Muhammad. Preparing checkpoint before a sequential read-only review of the new identity mode; Lock remains held.
 - 2026-11-14 codex-storefront: runtime step 1 config enabled and storefront 64 tests/build passed. Checkpoint/push before implementing the explicit local sample identity provider.
 - 2026-11-14T08:38:22+04:00 codex-storefront: startup fetch/ff-only pull passed, branch and snapshot HEAD 9f8e997 matched, released Lock acquired. User authorized runtime steps 1-3. Owner changes preserved; ports 5155/4200/4300 currently have no listeners.

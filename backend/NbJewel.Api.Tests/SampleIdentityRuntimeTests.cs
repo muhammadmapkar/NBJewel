@@ -72,6 +72,45 @@ public sealed class SampleIdentityRuntimeTests
         await Token(client);
         Assert.Equal(HttpStatusCode.ServiceUnavailable, (await client.PostAsJsonAsync("/api/auth/login", new { email = Email, password = Password })).StatusCode);
     }
+    [Fact]
+    public async Task SampleModeCannotCreateAdditionalCustomerAccounts()
+    {
+        await using var factory = new SampleRuntimeFactory(); using var client = factory.CreateClient(); await Token(client);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/auth/register", new { email = "another@sample.invalid", password = Password })).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/auth/me")).StatusCode);
+        using var scope = factory.Services.CreateScope();
+        Assert.Single(scope.ServiceProvider.GetRequiredService<IdentityDatabase>().Users);
+    }
+    [Fact]
+    public async Task FiveWrongPasswordsLockOutEvenTheCorrectSamplePassword()
+    {
+        await using var factory = new SampleRuntimeFactory(); using var client = factory.CreateClient(); await Token(client);
+        for (var attempt = 0; attempt < 5; attempt++)
+            Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/auth/login", new { email = Email, password = "WrongPassword!123" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/auth/login", new { email = Email, password = Password })).StatusCode);
+        using var scope = factory.Services.CreateScope();
+        Assert.True(await scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>().IsLockedOutAsync((await scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>().FindByEmailAsync(Email))!));
+    }
+    [Fact]
+    public async Task RestartRejectsPriorCookieAndPriorGeneratedPassword()
+    {
+        string cookie;
+        await using (var first = new SampleRuntimeFactory())
+        {
+            using var client = first.CreateClient(); await Token(client);
+            using var login = await client.PostAsJsonAsync("/api/auth/login", new { email = Email, password = Password });
+            Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+            cookie = login.Headers.GetValues("Set-Cookie").Single(x => x.StartsWith("nbjewel.session=", StringComparison.Ordinal)).Split(';')[0];
+        }
+        const string nextPassword = "AnotherSyntheticTest!45678";
+        await using var restarted = new SampleRuntimeFactory { PasswordOverride = nextPassword }; using var next = restarted.CreateClient();
+        next.DefaultRequestHeaders.Add("Cookie", cookie);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await next.GetAsync("/api/auth/me")).StatusCode);
+        next.DefaultRequestHeaders.Remove("Cookie"); await Token(next);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await next.PostAsJsonAsync("/api/auth/login", new { email = Email, password = Password })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await next.PostAsJsonAsync("/api/auth/login", new { email = Email, password = nextPassword })).StatusCode);
+    }
+
     [Theory]
     [InlineData("Production", "Repository:Provider", "Sample")]
     [InlineData("Development", "Repository:Provider", "Sql")]
