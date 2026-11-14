@@ -4,7 +4,7 @@
 
 import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { Category, EMPTY_FILTERS, Filters, PRICE_RANGES, SORT_OPTIONS, SortKey, TYPE_OPTIONS, WEIGHT_RANGES, activeFilterCount, filterValues, matchesFilters, sortProducts } from '../catalog/catalog.models';
 import { CatalogService } from '../catalog/catalog.service';
 import { IconComponent } from '../ui/icon.component';
@@ -14,7 +14,7 @@ import { SiteHeaderComponent } from '../ui/site-header.component';
 type Group = Exclude<keyof Filters, 'collections'>;
 
 @Component({
-  selector: 'ct-shop', standalone: true, imports: [RouterLink, IconComponent, ProductCardComponent, SiteHeaderComponent],
+  selector: 'ct-shop', standalone: true, imports: [IconComponent, ProductCardComponent, SiteHeaderComponent],
   template: `
     <ct-site-header />
     <main class="page">

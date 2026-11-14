@@ -1,129 +1,93 @@
+<!-- Role: Explains the sample demo, safe local startup, storefront runtime configuration and phase 2 verification. -->
 # nbjewel-assistant
 
-An internship demo for Cetas (jewelry retail ERP, NB Jewel). It has an Angular catalog, a .NET API, and a chat assistant that answers only from ERP data through fixed read-only tools. The assistant runs inside the .NET API.
+An internship demo for Cetas (jewelry retail ERP, NB Jewel). The ERP Angular app, customer try-on Angular app and .NET API use synthetic sample data. Unconfirmed business rules are assumed demo policy, not NB Jewel internals. No real client data is permitted.
 
-This repository uses fake data only. It contains no real client data and does not claim to reproduce NB Jewel internals. Anything unconfirmed is marked "assumed" in the docs.
+## Project map
 
-## Structure
+- `frontend/`: staff ERP app with the existing theme, catalog, Images tab and chat panel.
+- `customer-tryon/`: customer catalog, filters, product breakdown, camera try-on and local wishlist/bag.
+- `backend/NbJewel.Api/`: .NET API, fixed read-only chatbot tools, protected ERP mutations and public storefront reads.
+- `backend/NbJewel.Api.Tests/`: sample repository and HTTP integration tests. SQL checks require a separately authorized server and remain unexecuted in this phase.
+- `sample-data/`: synthetic catalog fixtures, including the explicitly labelled Draft platinum sample. There are 31 ERP items; publication determines the public subset.
+- `scripts/cutout-jewelry.py`: existing cutout algorithm. `scripts/build-tryon-catalog.py`: existing bundled catalog builder.
+- `docs/item_catalog_schema.sql` and other SQL schema files: prepared contracts only. No schema or data changes were applied for phase 2.
+- [Phase 2 gate record](docs/superpowers/plans/2026-11-14-customer-storefront-phase-2.md): scope, test evidence and manual review boundaries.
+- `AGENTS.md` and `AI-MEMORY-HANDOFF.md`: agent rules and the only session handoff/lock.
 
-A beginner map. Each source file starts with a short comment that says what it is for.
+## Local sample startup
 
-- `customer-tryon/`: separate customer facing try-on app (catalog, live camera try-on with physics). See its README.
-- `frontend/`: Angular app (themed shell, catalog, chat panel, virtual try-on). Code is in `frontend/src/app/`. Try-on code is in `frontend/src/app/features/tryon/`.
-- `backend/NbJewel.Api/`: .NET Web API.
-  - `Controllers/`: the HTTP endpoints (items, stock, categories, chat and so on).
-  - `Chat/`: the chatbot. The 8 read-only tools (`ChatTools.cs`), the 4 answer guards (`Guards.cs`), the system prompt, the Gemini REST client and the loop that ties them together (`ChatOrchestrator.cs`).
-  - `Models/`: the data shapes and the shared item validation rules.
-  - `Jewelry/`: the virtual try-on jewelry store (upload checks, owner PIN, file based repository). Separate from the chatbot.
-  - `Repositories/`: where data comes from. `SampleItemRepository` reads JSON, `SqlItemRepository` reads SQL Server. `Program.cs` picks one.
-- `backend/NbJewel.Api.Tests/`: .NET tests (API and chatbot). They run on the Sample repository, and on SQL Server too when a test connection is set.
-- `sample-data/`: synthetic JSON used by the Sample repository and to seed SQL Server. `sample-data/jewelry/` holds the 6 generated try-on sample images.
-- `docs/`: documentation (see below) and the SQL schema `item_catalog_schema.sql`.
-- `scripts/setup-db.sh`: one command to prepare the local SQL Server.
-- `docker-compose.yml`: the local SQL Server container (Sql mode only).
-- `backend/Dockerfile` and `render.yaml`: optional hosting of the API on Render. `frontend/vercel.json` and `frontend/netlify.toml`: hosting of the app.
-- `.env.example`: every environment variable name. Names only, no values.
+Requirements: .NET 10 SDK and Node.js/npm compatible with the repository's Angular toolchain. Use existing installed dependencies. If dependencies are absent, install them using the applicable checked-in lockfile in each app directory. Do not modify the owner's storefront lockfile during agent work.
 
-## Documentation
-
-- [Architecture](docs/architecture.md): diagram, chat request flow, swap plan, assumed details
-- [Tool registry](docs/tool-registry.md): the 8 read-only tools
-- [Grounding design](docs/grounding-design.md): how answers are kept to the data, and the known limits
-- [Decision record: where the chatbot lives](docs/decision-ai-service.md): why it moved into the .NET API
-- [Demo script](docs/demo-script.md): a 10 minute walkthrough
-- [Data privacy checklist](docs/data-privacy-checklist.md): checks before any real data, and API key rules
-- [Questions for Sakthivel](docs/questions-for-sakthivel.md): open questions
-- [Run guide](docs/run-guide.md): start the services, run the tests, secrets check
-- [Virtual try-on design](docs/tryon-design.md): how the camera try-on works, landmarks, assumptions, known limits
-- [Virtual try-on deploy](docs/tryon-deploy.md): https hosting, environment variables, CORS, testing on a phone
-- Older placeholders from the first phase, not updated since: [API contracts](docs/api-contracts.md), [Assumptions](docs/assumptions.md), [Data dictionary](docs/data-dictionary.md)
-
-## Quick start
-
-Requirements: .NET 10 SDK, Node.js with npm. Two services run together, each in its own Terminal tab, from the repository root. More detail is in the [run guide](docs/run-guide.md).
-
-### Sample mode (default, no database)
-
-The API reads `sample-data/` and keeps changes in memory. A restart resets them.
+The catalog needs no model API key. Keep all SQL and connection environment variables unset. These commands do not read a secrets file. Start each service in a separate terminal from the repository root:
 
 ```bash
-# Tab 1: .NET API on 5155 (first time: cp .env.example .env, fill in GEMINI_API_KEY and GEMINI_MODEL)
-set -a; source .env; set +a
-cd backend/NbJewel.Api && dotnet run --launch-profile http
+# Terminal 1: sample API, http://localhost:5155
+python3 - <<'PYTHON'
+import os, subprocess
+env = {k: v for k, v in os.environ.items() if 'CONNECTION' not in k.upper() and 'SQL' not in k.upper()}
+env['Repository__Provider'] = 'Sample'
+subprocess.run(['dotnet', 'run', '--project', 'backend/NbJewel.Api', '--launch-profile', 'http'], env=env, check=True)
+PYTHON
 
-# Tab 2: Angular app on 4200 (first time: npm install)
-cd frontend && npm start
+# Terminal 2: staff ERP, http://localhost:4200
+npm --prefix frontend start
+
+# Terminal 3: customer storefront, http://localhost:4300
+npm --prefix customer-tryon start
 ```
 
-Without a Gemini key and model the catalog still works, and chat answers "The assistant is busy. Please try again."
+Staff routes require a legitimate ERP session, permissions, all-store scope where required, and CSRF protection. With the default unconfigured identity provider, staff sign-in is unavailable. No demo admin, account provisioning or authentication bypass was added. Public storefront reads can return an empty catalog without a staff session or database. Accounts, chatbot enhancements and locator work are later phases.
 
-Virtual try-on: set `OWNER_PIN` in `.env` before starting the API. Then open `http://localhost:4200/owner/jewelry` (owner, asks for the PIN) and `http://localhost:4200/tryon` (customer). Uploads are saved under `backend/NbJewel.Api/App_Data/jewelry` unless `JEWELRY_STORAGE_PATH` is set. Frontend unit tests: `cd frontend && npm test`. To try it on a phone (all steps can be done from the phone), see [tryon-deploy.md](docs/tryon-deploy.md).
+The chatbot stays inside the .NET API and answers only from ERP data returned by fixed read-only tools. It has no free SQL and must not answer from model memory. Any model credentials belong only in backend environment variables. Model availability was not tested in this phase.
 
-### Sql mode (SQL Server in Docker)
+## Storefront source and rates
 
-Changes are saved in the database. This needs Docker. On Apple Silicon the container runs under amd64 emulation.
+`customer-tryon/public/storefront-config.json` is a public, nonsecret runtime configuration. Its committed `apiBaseUrl` is `null`, which selects the bundled sample catalog. Set the address to `http://localhost:5155` for local API mode, then reload the customer page. On a deployed static host, changing the served config file selects a source without rebuilding JavaScript. No deployment was performed here.
+
+A missing config file (HTTP 404) selects the bundled catalog. Invalid config, unavailable API, malformed data or incomplete pagination shows the catalog error UI and does not restore bundled products. API mode loads all published pages and server-calculated prices. Reload the page to read publication/copy/price changes; the service also supports explicit refresh. It does not poll or promise live updates to an already open page.
+
+Gold, Silver and Platinum match rates by both metal and purity. API rate dates and change explanations come from recorded data, including historical sample dates. Bundled Gold rates have no recorded effective date, which the UI states explicitly. No date is inferred from the current day. Prices show metal, making, stones, configured VAT and a reconciled total. Zero VAT on legacy inputs is an explicit compatibility default, not tax advice. Recorded-rate comparisons hold current item inputs constant and are not historical sales invoices.
+
+Anonymous read-only routes:
+
+- `GET /api/storefront/products` with bounded paging.
+- `GET /api/storefront/products/{id}`.
+- `GET /api/storefront/products/{id}/preview`.
+- `GET /api/storefront/metal-rates`.
+
+The API rechecks publication and returns a narrow public DTO with no ERP stock/store fields. Only Complete items in allowed demo categories/metals with a reviewed current cutout can appear. Revocation hides the product and preview on subsequent reads. Default CORS allows localhost ports 4200 and 4300; nonlocal origins need an explicit backend `CORS_ORIGINS` allowlist. Browser cookies, CSRF, cross-origin canvas and camera behavior still require real browser checks.
+
+## ERP image and publication flow
+
+Using a legitimate staff session, open the catalog item's Images tab. Upload a permitted sample necklace or earring image, save storefront copy, inspect the exact generated revision and explicitly approve its visual quality. Publish with confirmation only after the item is Complete and its supported cutout is ready and approved. An unfinished, failed, unapproved or replaced revision cannot publish. Explicit revocation removes it from subsequent public reads.
+
+The existing Python script needs Pillow, numpy and scipy on the interpreter selected by backend `CUTOUT_PYTHON_PATH` (default `python3`). No new background-removal engine was added. For this session, tests used an isolated temporary interpreter at `/tmp/nbjewel-cutout-runtime-venv/bin/python`; this is not a deployed runtime. Generated preview quality remains manual review and source-photo licensing remains open.
+
+Set nonsecret backend `ITEM_ASSET_STORAGE_PATH` to persistent storage for a running demo. The default is the API's `App_Data/item-assets`. Source/preview revisions and publication decisions persist on that filesystem. Sample ERP item edits themselves are in memory and reset on API restart, including new item records and changed copy/status. Persistent asset links do not make the whole sample ERP durable. Ephemeral host disks require a separately configured persistent volume.
+
+## Verification
+
+Run backend checks with all SQL/connection variables removed and Sample forced. Select a Python interpreter with the existing cutout dependencies:
 
 ```bash
-cp .env.example .env     # then set MSSQL_SA_PASSWORD and NBJEWEL_SQL_CONNECTION in .env
-./scripts/setup-db.sh    # starts SQL Server, creates the database, loads the sample data
-set -a; source .env; set +a
-cd backend/NbJewel.Api && Repository__Provider=Sql dotnet run --launch-profile http
+CUTOUT_PYTHON_PATH=/path/to/prepared/python python3 - <<'PYTHON'
+import os, subprocess
+env = {k: v for k, v in os.environ.items() if 'CONNECTION' not in k.upper() and 'SQL' not in k.upper()}
+env['Repository__Provider'] = 'Sample'
+for command in [
+    ['dotnet', 'build', 'backend/NbJewel.Api'],
+    ['dotnet', 'test', 'backend/NbJewel.Api.Tests'],
+]:
+    subprocess.run(command, env=env, check=True)
+PYTHON
+
+npm --prefix frontend test
+NG_BUILD_MAX_WORKERS=2 npm --prefix frontend run build
+npm --prefix customer-tryon test
+NG_BUILD_MAX_WORKERS=2 npm --prefix customer-tryon run build
 ```
 
-Start the Angular app as in Sample mode. Use `./scripts/setup-db.sh --reset` to drop the database and load fresh sample data. To run the tests on both providers, set `NBJEWEL_SQL_CONNECTION` to a server and run `dotnet test backend/NbJewel.Api.Tests`. Tests use a separate database called `NBJewelTest`, never the dev database.
+The automated gate covers sample behavior, API authorization/publication boundaries, transparent PNG generation/restart, pricing and runtime storefront loading. The publish/update/revoke proofs use HTTP integration and the same storefront service without rebuilding it. SQL integration tests are skipped, not counted as SQL validation.
 
-Keep the real `GEMINI_API_KEY` only in the .NET API environment, never in the frontend or in git.
-
-## Status
-
-| Area | Status |
-|---|---|
-| Sample data (30 items, 10 designs, variants, stock, stores, categories, rates) | Done |
-| .NET API: items, designs, variants, stock (read and add), price, status workflow, categories, stores, metal rates, Swagger, CORS | Done |
-| Chatbot inside the .NET API: `POST /api/chat`, 8 read-only tools, 4 answer guards, Gemini REST client, 30 s per model call and 45 s per question, 503 "The assistant is busy. Please try again." on failure | Done |
-| Angular themed shell and static pages (dashboard, scheme master, chit master, financial year, password) | Done, mock data only |
-| Angular catalog: list (design code column, search, sort), filters, detail, price breakdown, stock entry, create and edit with design dropdown, status workflow badges | Done |
-| Angular printable item tag with a QR code of the item code (`/catalog/:id/tag`, uses the `qrcode` npm package) | Done, print preview not checked |
-| Angular images tab | Done with fake in-memory data, no backend endpoint |
-| Angular variants tab | Done, served by the API |
-| Angular chat panel with source chips, refusal style and the server's error message | Done |
-| .NET tests (API and chatbot): 149 passed, 2 skipped (SQL parity tests that need a SQL Server) | Done |
-| Live test against Gemini (5 questions: 3 on topic, 1 off topic, 1 no match) | Two clean runs, 5 of 5 each (latest 2026-10-14, 1.4 to 8.1 s per answer). An earlier run was partial because of Gemini 503s and slow calls |
-| Frontend unit tests | Not built |
-| Login, roles and permissions | Not built |
-| SQL Server repository (`SqlItemRepository`, switch with `Repository:Provider`), docker-compose, setup script, tests that run on both providers | Built. Sample tests pass. SQL tests are written but not yet run against a real server (no Docker on the dev machine yet) |
-| Real NB Jewel API repository | Not built |
-| Backend endpoints for images and stock history | Not built |
-| Image upload and storage | Not built |
-| Theme pages connected to the API | Not built (mock data) |
-| Deployment and CI | Not built |
-| Real client data | Not allowed until the [privacy checklist](docs/data-privacy-checklist.md) is complete |
-
-## Known gaps
-
-- No login, roles or permissions. Anyone who can reach the API can read and change items. This is acceptable only for a local demo with fake data.
-- The SQL Server path has not been run against a real server yet. Treat it as unverified until `./scripts/setup-db.sh` and the SQL tests have passed once.
-- The Angular item form still lets a user type a net weight and sends it. The API ignores it and always computes gross minus stone.
-- Images and stock history have no backend endpoint. The images tab uses fake in-memory data.
-- The live Gemini result is two clean runs of 5 questions. Gemini sometimes answers 503 or slowly. The API then fails fast and the user sees the busy message.
-- The guards check numbers and sources, not whether the sentence around a number is true. See the [grounding design](docs/grounding-design.md).
-- Sample mode loses all changes on restart.
-
-## Safety boundaries
-
-- The assistant answers only from ERP data returned by fixed read-only tools.
-- There is no free-form SQL and no answering from model memory.
-- The data layer is swappable: sample data now, SQL Server or a verified ERP API later.
-- All identifiers, names, amounts, rates and records are fake.
-
-## Assumed SQL fields
-
-These columns were added to `docs/item_catalog_schema.sql` so the SQL provider returns the same JSON as the Sample provider. They are assumed, not confirmed by NB Jewel:
-
-- `ItemVariant.Color` and `ItemVariant.PriceDelta` (assumed).
-- `StockByStore.Reserved` (assumed). Low stock means on hand minus reserved is below the threshold.
-- `StockByStore` now keeps stock per item, optional variant and store (assumed redesign), because the sample data has items with no variants.
-- `MetalRate.Currency`, default AED (assumed).
-- `Store.Code`, made by the seed as ST01, ST02 and so on (assumed).
-- Purity `Fineness` values for 24K, 22K, 18K and 925 (assumed).
-- Net weight is always gross minus stone. The API ignores any `netWt` a client sends and returns 400 when stone is above gross.
+Manual checks for Muhammad remain separate: phone/desktop alignment; real sample cutout quality and licensing; camera capture, Retake and native share; real-browser CORS, cookies and CSRF; full staff Images-tab flow with a valid identity provider. No merge, deployment, production approval, SQL execution or Docker action is part of this phase.

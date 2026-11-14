@@ -1,7 +1,5 @@
-// Role: Settings for the customer app unit tests (Vitest): the pure try-on math and physics.
+// Role: Configures customer storefront unit tests with CommonJS syntax matching this package.
 // Run with: npm test
-import { defineConfig } from 'vitest/config';
-
-export default defineConfig({
+module.exports = {
   test: { include: ['src/**/*.spec.ts'], environment: 'node' }
-});
+};
