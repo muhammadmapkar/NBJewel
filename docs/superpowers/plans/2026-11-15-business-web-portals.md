@@ -328,14 +328,14 @@ All tasks are **authorized, pending implementation**, in the stated order after 
 ### C2. Storefront business routes
 - **Depends on:** C1.
 - **Touchpoints:** customer-tryon app.config.ts (`/shops/:slug` parent with child routes, legacy redirects); new link helper extending `CatalogService.linkParams`; CatalogService/StoreService reset on slug change; config/models (optional price, `pricesHidden`); header/home/contact templates (branding, sections); product.page.ts and bag.page.ts enquiry text; home.page.ts and tryon.page.ts context fixes.
-- [ ] RED (route and service specs):
+- [x] RED (route and service specs):
   - switching slug clears all prior catalog, bag and wishlist state with no stale data
   - every link stays under the current slug
   - hidden mode renders no price
   - enquiry uses the published number and name
   - legacy `source=erp` redirect keeps product and store
   - offline shop shows the unavailable page with no fallback
-- [ ] Implement. Storefront test/typecheck/build green.
+- [x] Implement. Storefront test/typecheck/build green.
 
 ### D. ERP Web Portal editor and preview
 - **Depends on:** B (APIs), C2 (preview route).

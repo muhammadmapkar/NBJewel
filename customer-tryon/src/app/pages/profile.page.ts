@@ -13,11 +13,11 @@ import { SiteHeaderComponent } from '../ui/site-header.component';
 <label>Name<input name="name" [(ngModel)]="name" required maxlength="100" autocomplete="name" /></label>
 <label>Phone<input name="phone" [(ngModel)]="phone" maxlength="30" type="tel" autocomplete="tel" /></label>
 <button class="btn" [disabled]="store.working()">Save details</button></form>
-<div class="summary-links"><a class="portal-card" routerLink="/bag" [queryParams]="catalog.linkParams()"><b>{{ store.bagCount() }}</b> designs in your bag</a><a class="portal-card" routerLink="/wishlist" [queryParams]="catalog.linkParams()"><b>{{ store.wishlist().length }}</b> saved favourites on this device</a></div>
+<div class="summary-links"><a class="portal-card" [routerLink]="catalog.link('bag')" [queryParams]="catalog.linkParams()"><b>{{ store.bagCount() }}</b> designs in your bag</a><a class="portal-card" [routerLink]="catalog.link('wishlist')" [queryParams]="catalog.linkParams()"><b>{{ store.wishlist().length }}</b> saved favourites on this device</a></div>
 <section class="portal-card"><h2 class="serif">Store reservations</h2><p class="muted">Requests await store confirmation. No stock hold or payment has been made.</p>
 @for (r of store.reservations(); track r.reference) { <article><b>{{ r.reference }}</b><p>{{ r.branch }} · {{ r.date }}</p><p>{{ r.items.length }} designs · {{ r.status }}</p></article> } @empty { <p>No reservation requests yet.</p> }</section>
 <section class="portal-card"><h2 class="serif">Saved designs</h2>
-@for (id of store.wishlist(); track id) { <p><a [routerLink]="['/p', id]" [queryParams]="catalog.linkParams()">{{ catalog.find(id)?.name ?? id }}</a></p> } @empty { <p>No saved designs in this catalog yet.</p> }</section>
+@for (id of store.wishlist(); track id) { <p><a [routerLink]="catalog.link('p', id)" [queryParams]="catalog.linkParams()">{{ catalog.find(id)?.name ?? id }}</a></p> } @empty { <p>No saved designs in this catalog yet.</p> }</section>
 <section class="portal-card"><h2 class="serif">Order summary</h2><p>There are no paid orders. Your bag and reservation requests help you plan an in-store visit.</p></section>
 <button class="btn ghost" (click)="logout()">Sign out</button>
 } @else { <p>Sign in to view your saved details.</p><button class="btn" (click)="session.require('Sign in to your profile')">Sign in</button> }
@@ -27,5 +27,5 @@ export class ProfilePage {
   name = ''; phone = ''; notice = '';
   constructor() { this.catalog.load(); effect(() => { const data = this.store.profile(); this.name = data.name; this.phone = data.phone; }); }
   async save(): Promise<void> { this.notice = await this.store.saveProfile(this.name, this.phone) ? 'Your details are saved.' : ''; }
-  async logout(): Promise<void> { try { await this.session.logout(); await this.router.navigate(['/']); } catch (error) { this.notice = customerError(error); } }
+  async logout(): Promise<void> { try { await this.session.logout(); await this.router.navigate(this.catalog.link()); } catch (error) { this.notice = customerError(error); } }
 }

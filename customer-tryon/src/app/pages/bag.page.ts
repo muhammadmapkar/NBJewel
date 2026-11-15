@@ -22,40 +22,40 @@ import { SiteHeaderComponent } from '../ui/site-header.component';
       @if (!store.session.identity()) { <button class="btn ghost" (click)="store.session.require('Sign in to view your bag')">Sign in to your bag</button> }
       @if (unavailable().length && catalog.state().status === 'ready') {
         <p>Some saved designs are no longer available:</p>
-        @for (id of unavailable(); track id) { <p>{{ id }} <button class="chip" (click)="store.removeFromBag(id)">Remove</button></p> }
+        @for (id of unavailable(); track id) { <p>{{ id }} <button class="chip" [disabled]="!catalog.actionEnabled('bag')" (click)="store.removeFromBag(id)">Remove</button></p> }
       }
       @if (!items().length) {
         <div class="empty">
           <p>Your bag is empty.</p>
-          <a class="btn" routerLink="/shop" [queryParams]="catalog.linkParams()">Browse the collection</a>
+          <a class="btn" [routerLink]="catalog.link('shop')" [queryParams]="catalog.linkParams()">Browse the collection</a>
         </div>
       } @else {
         <ul class="items">
           @for (p of items(); track p.id) {
             <li>
-              <a class="thumb" [routerLink]="['/p', p.id]" [queryParams]="catalog.linkParams()"><img [src]="catalog.url(p.card)" [alt]="p.name" /></a>
+              <a class="thumb" [routerLink]="catalog.link('p', p.id)" [queryParams]="catalog.linkParams()"><img [src]="catalog.url(p.card)" [alt]="p.name" /></a>
               <div class="info">
-                <a class="name serif" [routerLink]="['/p', p.id]" [queryParams]="catalog.linkParams()">{{ p.name }}</a>
+                <a class="name serif" [routerLink]="catalog.link('p', p.id)" [queryParams]="catalog.linkParams()">{{ p.name }}</a>
                 <span class="meta">{{ p.code }} · {{ p.purity }} · {{ p.grossWeight }} g</span>
-                <b>{{ catalog.money(catalog.price(p).total) }}</b>
+                @if (catalog.showPrices()) { <b>{{ catalog.money(catalog.price(p).total) }}</b> }
                 <div class="links">
-                  <a [routerLink]="['/try', p.id]" [queryParams]="catalog.linkParams()">Try on</a>
-                  <button type="button" (click)="moveToWishlist(p)">Move to wishlist</button>
-                  <button type="button" (click)="store.removeFromBag(p.id)">Remove</button>
+                  @if (catalog.actionEnabled('tryOn')) { <a [routerLink]="catalog.link('try', p.id)" [queryParams]="catalog.linkParams()">Try on</a> }
+                  <button type="button" [disabled]="!catalog.actionEnabled('bag')" (click)="moveToWishlist(p)">Move to wishlist</button>
+                  <button type="button" [disabled]="!catalog.actionEnabled('bag')" (click)="store.removeFromBag(p.id)">Remove</button>
                 </div>
               </div>
             </li>
           }
         </ul>
 
-        <div class="summary">
+        @if (catalog.showPrices()) { <div class="summary">
           <div><span>{{ items().length }} {{ items().length === 1 ? 'design' : 'designs' }}</span><span>{{ catalog.money(total()) }}</span></div>
           <div class="muted"><span>Includes VAT</span><span>{{ catalog.money(vat()) }}</span></div>
           <div class="grand"><span>Total</span><span>{{ catalog.money(total()) }}</span></div>
           <p class="muted small">Final price is set on the day of purchase by that day's gold rate. Prices here use a sample rate.</p>
-        </div>
+        </div> }
 
-        <form class="reserve" (ngSubmit)="reserve()" #f="ngForm">
+        @if (catalog.actionEnabled('reservations')) { <form class="reserve" (ngSubmit)="reserve()" #f="ngForm">
           <h2 class="serif">Reserve in store</h2>
           <p class="muted">Request a store visit for these designs. The store must confirm availability; no payment or stock hold is made.</p>
           <label>Full name<input name="name" [(ngModel)]="name" required autocomplete="name" /></label>
@@ -69,9 +69,9 @@ import { SiteHeaderComponent } from '../ui/site-header.component';
           <label>Visit date<input name="date" [(ngModel)]="date" required type="date" [min]="today" /></label>
           @if (error()) { <p class="error">{{ error() }}</p> }
           <button type="submit" class="btn" [disabled]="store.working()">Reserve {{ items().length }} {{ items().length === 1 ? 'design' : 'designs' }}</button>
-          <a class="btn wa" [href]="whatsapp()" target="_blank" rel="noopener"><ct-icon name="chat" /> Enquire on WhatsApp</a>
           <p class="muted small">Demo: the reservation is not sent to a real store.</p>
-        </form>
+        </form> }
+        @if (catalog.actionEnabled('enquiries')) { <a class="btn wa" [href]="whatsapp()" target="_blank" rel="noopener"><ct-icon name="chat" /> Enquire on WhatsApp</a> }
       }
     </main>
   `,
@@ -125,7 +125,7 @@ export class BagPage {
   branch = '';
   date = '';
 
-  constructor() { this.catalog.selectStore(null, this.catalog.source()); void this.directory.load(); }
+  constructor() { this.catalog.load(); void this.directory.load(); }
 
   moveToWishlist(p: Product): void {
     if (!this.store.inWishlist(p.id)) this.store.toggleWishlist(p.id);
@@ -141,12 +141,8 @@ export class BagPage {
     if (!branch) { this.error.set('Please choose a store.'); return; }
     if (!this.date || this.date < this.today) { this.error.set('Please choose a visit date from today on.'); return; }
     this.error.set(null);
-    if (await this.store.reserve({ name, phone, storeId: branch, date: this.date, requestId: this.requestId, items: this.items().map(p => p.id) })) { this.requestId = crypto.randomUUID(); await this.router.navigate(['/reserved'], { queryParams: this.catalog.linkParams() }); }
+    if (await this.store.reserve({ name, phone, storeId: branch, date: this.date, requestId: this.requestId, items: this.items().map(p => p.id) })) { this.requestId = crypto.randomUUID(); await this.router.navigate(this.catalog.link('reserved'), { queryParams: this.catalog.linkParams() }); }
   }
 
-  whatsapp(): string {
-    const lines = this.items().map(p => `- ${p.name} (${p.code}) ${this.catalog.money(this.catalog.price(p).total)}`);
-    const text = `Hello NB Jewel, I would like to enquire about:\n${lines.join('\n')}\nTotal ${this.catalog.money(this.total())}`;
-    return `https://wa.me/?text=${encodeURIComponent(text)}`;
-  }
+  whatsapp(): string { return this.catalog.enquiry(this.items()) ?? ''; }
 }

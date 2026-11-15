@@ -28,10 +28,10 @@ import { SiteHeaderComponent } from '../ui/site-header.component';
             @for (p of items(); track p.id) { <li><img [src]="catalog.url(p.card)" alt="" /><span>{{ p.name }}</span></li> }
           </ul>
           <p class="muted small">Bring your try-on photos to compare in store. Demo: this reservation was not sent to a real store.</p>
-          <a class="btn" routerLink="/shop" [queryParams]="catalog.linkParams()">Continue browsing</a>
+          <a class="btn" [routerLink]="catalog.link('shop')" [queryParams]="catalog.linkParams()">Continue browsing</a>
         </div>
       } @else {
-        <div class="card"><p>No reservation yet.</p><a class="btn" routerLink="/shop" [queryParams]="catalog.linkParams()">Browse the collection</a></div>
+        <div class="card"><p>No reservation yet.</p><a class="btn" [routerLink]="catalog.link('shop')" [queryParams]="catalog.linkParams()">Browse the collection</a></div>
       }
     </main>
   `,

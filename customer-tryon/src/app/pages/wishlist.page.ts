@@ -15,7 +15,7 @@ import { SiteHeaderComponent } from '../ui/site-header.component';
     <main class="page">
       <h1 class="serif">Wishlist</h1>
       @if (!items().length) {
-        <div class="empty"><p>Tap the heart on any design to save it here.</p><a class="btn" routerLink="/shop" [queryParams]="catalog.linkParams()">Browse the collection</a></div>
+        <div class="empty"><p>Tap the heart on any design to save it here.</p><a class="btn" [routerLink]="catalog.link('shop')" [queryParams]="catalog.linkParams()">Browse the collection</a></div>
       } @else {
         <div class="grid">@for (p of items(); track p.id) { <ct-product-card [product]="p" /> }</div>
       }

@@ -34,7 +34,7 @@ import { SiteHeaderComponent } from '../ui/site-header.component';
                 <div class="dots">@for (img of images(); track img; let i = $index) { <span [class.on]="i === slide()"></span> }</div>
               }
               @if (p.badge) { <span class="badge" [class.new]="p.badge === 'new'">{{ p.badge === 'new' ? 'New' : 'Bestseller' }}</span> }
-              <button type="button" class="heart" [class.on]="store.inWishlist(p.id)" (click)="store.toggleWishlist(p.id)" [attr.aria-label]="store.inWishlist(p.id) ? 'Remove from wishlist' : 'Add to wishlist'">
+              <button type="button" class="heart" [disabled]="catalog.preview()" [class.on]="store.inWishlist(p.id)" (click)="store.toggleWishlist(p.id)" [attr.aria-label]="store.inWishlist(p.id) ? 'Remove from wishlist' : 'Add to wishlist'">
                 <ct-icon [name]="store.inWishlist(p.id) ? 'heartFull' : 'heart'" />
               </button>
             </section>
@@ -43,28 +43,28 @@ import { SiteHeaderComponent } from '../ui/site-header.component';
               <p class="collection">{{ p.collection }} collection</p>
               <h1 class="serif">{{ p.name }}</h1>
               <p class="code">Item code {{ p.code }}</p>
-              <p class="price">{{ catalog.money(price().total) }} <span>incl. VAT</span></p>
-              <p class="rate">Price based on the {{ p.metal.toLowerCase() }} rate of {{ catalog.money(price().rate) }} per gram ({{ p.purity }}, sample). {{ dateLabel(price().effectiveDate) }}.</p>
+              @if (catalog.showPrices()) { <p class="price">{{ catalog.money(price().total) }} <span>incl. VAT</span></p>
+              <p class="rate">Price based on the {{ p.metal.toLowerCase() }} rate of {{ catalog.money(price().rate) }} per gram ({{ p.purity }}, sample). {{ dateLabel(price().effectiveDate) }}.</p> }
 
               <div class="actions">
-                <a class="btn try" [routerLink]="['/try', p.id]" [queryParams]="catalog.linkParams()"><ct-icon name="camera" /> {{ p.kinds.length > 1 ? 'Try the full set' : 'Try it on' }}</a>
-                <button type="button" class="btn ghost" (click)="addToBag(p)">{{ store.inBag(p.id) ? 'In your bag' : 'Add to bag' }}</button>
+                @if (catalog.actionEnabled('tryOn')) { <a class="btn try" [routerLink]="catalog.link('try', p.id)" [queryParams]="catalog.linkParams()"><ct-icon name="camera" /> {{ p.kinds.length > 1 ? 'Try the full set' : 'Try it on' }}</a> }
+                @if (catalog.actionEnabled('bag')) { <button type="button" class="btn ghost" (click)="addToBag(p)">{{ store.inBag(p.id) ? 'In your bag' : 'Add to bag' }}</button> }
               </div>
               @if (store.error()) { <p role="alert">{{ store.error() }}</p> }
-              @if (added()) { <p class="toast" role="status">Added to your bag. <a routerLink="/bag" [queryParams]="catalog.linkParams()">View bag</a></p> }
+              @if (added()) { <p class="toast" role="status">Added to your bag. <a [routerLink]="catalog.link('bag')" [queryParams]="catalog.linkParams()">View bag</a></p> }
 
-              @if (p.kinds.length > 1) {
+              @if (catalog.actionEnabled('tryOn') && p.kinds.length > 1) {
                 <div class="pieces">
                   <b>In this set</b>
                   <div class="piece-row">
                     @for (k of p.kinds; track k) {
-                      <a class="piece" [routerLink]="['/try', p.id]" [queryParams]="{ source: catalog.source(), store: catalog.storeId(), parts: k }">{{ label(k) }} <span>Try alone</span></a>
+                      @if (catalog.actionEnabled('tryOn')) { <a class="piece" [routerLink]="catalog.link('try', p.id)" [queryParams]="catalog.contextParams({ source: catalog.source(), store: catalog.storeId(), parts: k })">{{ label(k) }} <span>Try alone</span></a> }
                     }
                   </div>
                 </div>
               }
 
-              <a class="enquire" [href]="whatsapp(p)" target="_blank" rel="noopener"><ct-icon name="chat" /> Enquire on WhatsApp</a>
+              @if (catalog.actionEnabled('enquiries')) { <a class="enquire" [href]="whatsapp(p)" target="_blank" rel="noopener"><ct-icon name="chat" /> Enquire on WhatsApp</a> }
 
               <h2 class="serif">Specifications</h2>
               <dl class="specs">
@@ -75,11 +75,11 @@ import { SiteHeaderComponent } from '../ui/site-header.component';
                 <div><dt>Stones</dt><dd>{{ p.stones.length ? p.stones.join(', ') : 'None (plain metal)' }}</dd></div>
                 <div><dt>Size</dt><dd>{{ p.size }}</dd></div>
                 <div><dt>Hallmark</dt><dd>{{ p.hallmark }}</dd></div>
-                <div><dt>Making charge</dt><dd>{{ p.makingLabel || (p.makingPercent + '% of metal value') }}</dd></div>
+                @if (catalog.showPrices()) { <div><dt>Making charge</dt><dd>{{ p.makingLabel || (p.makingPercent + '% of metal value') }}</dd></div> }
                 <div><dt>Occasion</dt><dd>{{ p.occasions.join(', ') }}</dd></div>
               </dl>
 
-              <h2 class="serif">Price breakdown</h2>
+              @if (catalog.showPrices()) { <h2 class="serif">Price breakdown</h2>
               <dl class="specs money">
                 <div><dt>{{ p.metal }} ({{ p.netWeight }} g x {{ catalog.money(price().rate) }})</dt><dd>{{ catalog.money(price().gold) }}</dd></div>
                 <div><dt>Making charge</dt><dd>{{ catalog.money(price().making) }}</dd></div>
@@ -88,14 +88,14 @@ import { SiteHeaderComponent } from '../ui/site-header.component';
                 <div class="total"><dt>Total</dt><dd>{{ catalog.money(price().total) }}</dd></div>
               </dl>
 
-              <p class="rate">{{ price().changeExplanation || 'No recorded comparison with an earlier rate is available for this price.' }}</p>
+              <p class="rate">{{ price().changeExplanation || 'No recorded comparison with an earlier rate is available for this price.' }}</p> }
 
               <h2 class="serif">About this design</h2>
               <p class="desc">{{ p.description }}</p>
               <ul class="perks">
-                <li>Reserve online, see it in store before you buy</li>
+                @if (catalog.actionEnabled('reservations')) { <li>Request a visit to see this design in store</li> }
                 <li>Sample specifications require in-store verification</li>
-                <li>Exchange on the metal value at our stores (sample policy)</li>
+                <li>Contact this shop for availability and visit details</li>
               </ul>
             </section>
           </div>
@@ -106,12 +106,12 @@ import { SiteHeaderComponent } from '../ui/site-header.component';
               <div class="row">@for (s of similar(); track s.id) { <ct-product-card [product]="s" /> }</div>
             </section>
           }
-          <p class="foot">Sample data: designs, prices, specifications and metal rates are for the demo.</p>
+          <p class="foot">Sample catalog. Confirm specifications and availability with this shop.</p>
 
           <div class="sticky">
-            <div class="sp"><b>{{ catalog.money(price().total) }}</b><span>incl. VAT</span></div>
-            <a class="btn" [routerLink]="['/try', p.id]" [queryParams]="catalog.linkParams()"><ct-icon name="camera" /> Try on</a>
-            <button type="button" class="btn ghost" (click)="addToBag(p)" [attr.aria-label]="'Add ' + p.name + ' to bag'"><ct-icon name="bag" /></button>
+            @if (catalog.showPrices()) { <div class="sp"><b>{{ catalog.money(price().total) }}</b><span>incl. VAT</span></div> }
+            @if (catalog.actionEnabled('tryOn')) { <a class="btn" [routerLink]="catalog.link('try', p.id)" [queryParams]="catalog.linkParams()"><ct-icon name="camera" /> Try on</a> }
+            @if (catalog.actionEnabled('bag')) { <button type="button" class="btn ghost" (click)="addToBag(p)" [attr.aria-label]="'Add ' + p.name + ' to bag'"><ct-icon name="bag" /></button> }
           </div>
 
           @if (zoom(); as z) {
@@ -122,7 +122,7 @@ import { SiteHeaderComponent } from '../ui/site-header.component';
             </div>
           }
         } @else {
-          <p class="empty">This design is not available. <a class="link" routerLink="/shop" [queryParams]="catalog.linkParams()">See all designs</a></p>
+          <p class="empty">This design is not available. <a class="link" [routerLink]="catalog.link('shop')" [queryParams]="catalog.linkParams()">See all designs</a></p>
         }
       }
     }
@@ -231,10 +231,5 @@ export class ProductPage {
     this.added.set(await this.store.addToBag(p.id));
   }
 
-  // Opens WhatsApp with the design already written in; the customer picks the chat (assumed:
-  // the shop's WhatsApp number is not known yet).
-  whatsapp(p: Product): string {
-    const text = `Hello NB Jewel, I would like to know more about ${p.name} (${p.code}), ${this.catalog.money(this.price().total)}.`;
-    return `https://wa.me/?text=${encodeURIComponent(text)}`;
-  }
+  whatsapp(p: Product): string { return this.catalog.enquiry([p]) ?? ''; }
 }

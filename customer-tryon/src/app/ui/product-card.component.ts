@@ -13,19 +13,19 @@ import { IconComponent } from './icon.component';
   template: `
     @let p = product();
     <article class="card">
-      <a class="pic" [routerLink]="['/p', p.id]" [queryParams]="catalog.linkParams()" [attr.aria-label]="p.name">
+      <a class="pic" [routerLink]="catalog.link('p', p.id)" [queryParams]="catalog.linkParams()" [attr.aria-label]="p.name">
         <img [src]="catalog.url(p.card)" [alt]="p.name" loading="lazy" />
         @if (p.badge) { <span class="badge" [class.new]="p.badge === 'new'">{{ p.badge === 'new' ? 'New' : 'Bestseller' }}</span> }
       </a>
-      <button type="button" class="heart" [class.on]="store.inWishlist(p.id)" (click)="store.toggleWishlist(p.id)"
+      <button type="button" class="heart" [disabled]="catalog.preview()" [class.on]="store.inWishlist(p.id)" (click)="store.toggleWishlist(p.id)"
         [attr.aria-label]="store.inWishlist(p.id) ? 'Remove from wishlist' : 'Add to wishlist'" [attr.aria-pressed]="store.inWishlist(p.id)">
         <ct-icon [name]="store.inWishlist(p.id) ? 'heartFull' : 'heart'" />
       </button>
       <div class="info">
-        <a class="name serif" [routerLink]="['/p', p.id]" [queryParams]="catalog.linkParams()">{{ p.name }}</a>
+        <a class="name serif" [routerLink]="catalog.link('p', p.id)" [queryParams]="catalog.linkParams()">{{ p.name }}</a>
         <span class="meta">{{ p.purity }} {{ p.metal }} · {{ p.grossWeight }} g</span>
-        <span class="price">{{ catalog.money(total()) }}</span>
-        <a class="btn try" [routerLink]="['/try', p.id]" [queryParams]="catalog.linkParams()"><ct-icon name="camera" /> Try on</a>
+        @if (catalog.showPrices()) { <span class="price">{{ catalog.money(total()) }}</span> }
+        @if (catalog.actionEnabled('tryOn')) { <a class="btn try" [routerLink]="catalog.link('try', p.id)" [queryParams]="catalog.linkParams()"><ct-icon name="camera" /> Try on</a> }
       </div>
     </article>
   `,

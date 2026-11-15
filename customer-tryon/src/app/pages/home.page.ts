@@ -11,15 +11,16 @@ import { SiteHeaderComponent } from '../ui/site-header.component';
   selector: 'ct-home', standalone: true, imports: [RouterLink, ProductCardComponent, SiteHeaderComponent],
   template: `
     <ct-site-header [dark]="true" />
-    <section class="hero">
-      <p class="eyebrow">Virtual try-on</p>
-      <h1 class="serif">See it on you<br />before you visit</h1>
-      <p class="lead">Browse our gold collections and wear any design live with your phone camera. It moves with you, the video stays on your phone.</p>
+    @if (catalog.portal()?.showBanner !== false) { <section class="hero">
+      <p class="eyebrow">{{ catalog.actionEnabled('tryOn') ? 'Virtual try-on' : 'Our collection' }}</p>
+      <h1 class="serif">{{ catalog.portal()?.headline }}</h1>
+      @if (catalog.assetUrl(catalog.portal()?.bannerAssetId); as banner) { <img [src]="banner" alt="" style="max-width:100%;max-height:320px;object-fit:cover" /> }
+      <p class="lead">{{ catalog.portal()?.introduction }}</p>
       <div class="cta">
-        <a class="btn gold" routerLink="/shop">Shop the collection</a>
-        @if (featured(); as f) { <a class="btn ghost light" [routerLink]="['/try', f.id]">Try on now</a> }
+        <a class="btn gold" [routerLink]="catalog.link('shop')" [queryParams]="catalog.linkParams()">Shop the collection</a>
+        @if (catalog.actionEnabled('tryOn')) { @if (featured(); as f) { <a class="btn ghost light" [routerLink]="catalog.link('try', f.id)" [queryParams]="catalog.linkParams()">Try on now</a> } }
       </div>
-    </section>
+    </section> }
 
     <main class="page">
       @switch (catalog.state().status) {
@@ -27,53 +28,53 @@ import { SiteHeaderComponent } from '../ui/site-header.component';
         @case ('error') { <p class="empty">The collection could not load. <button type="button" class="link" (click)="catalog.load(true)">Try again</button></p> }
         @default {
           @if (catalog.products().length) {
-            <section>
+            @if (catalog.portal()?.showCollections !== false) { <section>
               <h2 class="serif">Collections</h2>
               <div class="collections">
                 @for (c of collections(); track c.name) {
-                  <a class="tile" routerLink="/shop" [queryParams]="{ collection: c.name }">
+                  <a class="tile" [routerLink]="catalog.link('shop')" [queryParams]="catalog.contextParams({ collection: c.name })">
                     <img [src]="catalog.url(c.image)" alt="" loading="lazy" />
                     <span class="serif">{{ c.name }}</span>
                   </a>
                 }
               </div>
-            </section>
+            </section> }
 
-            <section>
-              <div class="head"><h2 class="serif">Bestsellers</h2><a class="more" routerLink="/shop" [queryParams]="{ sort: 'popular' }">See all</a></div>
+            @if (catalog.portal()?.showFeatured !== false) { <section>
+              <div class="head"><h2 class="serif">Bestsellers</h2><a class="more" [routerLink]="catalog.link('shop')" [queryParams]="catalog.contextParams({ sort: 'popular' })">See all</a></div>
               <div class="row">@for (p of bestsellers(); track p.id) { <ct-product-card [product]="p" /> }</div>
             </section>
 
             <section>
-              <div class="head"><h2 class="serif">New arrivals</h2><a class="more" routerLink="/shop" [queryParams]="{ sort: 'newest' }">See all</a></div>
+              <div class="head"><h2 class="serif">New arrivals</h2><a class="more" [routerLink]="catalog.link('shop')" [queryParams]="catalog.contextParams({ sort: 'newest' })">See all</a></div>
               <div class="row">@for (p of newest(); track p.id) { <ct-product-card [product]="p" /> }</div>
-            </section>
+            </section> }
           } @else {
             <p class="empty" role="status">No designs are available right now. Please check back soon.
               <button type="button" class="link" (click)="catalog.load(true)">Refresh collection</button>
             </p>
           }
 
-          <section class="how">
+          @if (catalog.actionEnabled('tryOn')) { <section class="how">
             <h2 class="serif">How try-on works</h2>
             <ol>
               <li><b>Pick a design</b><span>Any necklace, earrings or full set.</span></li>
               <li><b>Allow the camera</b><span>Face the camera with your ears and neck in view.</span></li>
               <li><b>Move and compare</b><span>Pieces turn and swing with you. Switch designs live, then save a photo.</span></li>
             </ol>
-          </section>
+          </section> }
         }
       }
-      <section class="portal-card">
-        <p class="eyebrow">Discover our stores</p><h2 class="serif">Find Nearest NB JEWEL Store</h2>
-        <p>Explore the map, see store sync status and browse available designs before planning your visit.</p>
-        <a class="btn" routerLink="/stores">Explore stores map</a>
+      @if (catalog.portal()?.showStores !== false) { <section class="portal-card">
+        <p class="eyebrow">Discover our stores</p><h2 class="serif">Find {{ catalog.portal()?.name }} stores</h2>
+        <p>Browse available designs before planning your visit.</p><a class="btn" [routerLink]="catalog.link('stores')" [queryParams]="catalog.linkParams()">Explore stores map</a>
+      </section> }
+      @if (catalog.portal()?.showStory && catalog.portal()?.story) { <section class="portal-card"><h2 class="serif">About {{ catalog.portal()?.name }}</h2><p>{{ catalog.portal()?.story }}</p></section> }
+      <section class="portal-card"><h2 class="serif">Contact {{ catalog.portal()?.name }}</h2>
+        <p>{{ catalog.portal()?.phone }}</p><p>{{ catalog.portal()?.email }}</p><p>{{ catalog.portal()?.openingHours }}</p>
+        @if (catalog.enquiry([]); as enquiry) { <a class="btn" [href]="enquiry" target="_blank" rel="noopener">Enquire on WhatsApp</a> }
       </section>
-      <section class="portal-card"><p class="eyebrow">The NB JEWEL showcase</p><h2 class="serif">A design for every chapter</h2>
-        <p>From bridal statements and temple motifs to antique-inspired details and everyday favourites, explore our sample collection at your own pace.</p>
-        <div class="trust"><p><b>Transparent pricing</b><br />See metal, making, stones and VAT.</p><p><b>Thoughtful previews</b><br />Compare designs before a visit.</p><p><b>Your choice, your pace</b><br />Browse freely. Sign in when you are ready.</p></div>
-      </section>
-      <footer class="foot">Demo shop. Designs, prices, specifications and gold rates are sample data.</footer>
+      <footer class="foot">Sample collection. Confirm specifications and availability with this shop.</footer>
     </main>
   `,
   styles: [`
@@ -112,15 +113,15 @@ import { SiteHeaderComponent } from '../ui/site-header.component';
 })
 export class HomePage {
   readonly catalog = inject(CatalogService);
-  readonly bestsellers = computed(() => [...this.catalog.products()].sort((a, b) => a.popularity - b.popularity).slice(0, 6));
+  readonly bestsellers = computed(() => [...this.catalog.products()].filter(p => !this.catalog.portal()?.featuredItemIds.length || this.catalog.portal()!.featuredItemIds.includes(Number(p.id))).sort((a, b) => a.popularity - b.popularity).slice(0, 6));
   readonly newest = computed(() => [...this.catalog.products()].sort((a, b) => b.addedOn.localeCompare(a.addedOn)).slice(0, 6));
   readonly featured = computed(() => this.bestsellers()[0]);
   // One tile per collection, pictured by its most popular design.
   readonly collections = computed(() => {
     const byName = new Map<string, string>();
     for (const p of [...this.catalog.products()].sort((a, b) => a.popularity - b.popularity)) if (!byName.has(p.collection)) byName.set(p.collection, p.card);
-    return [...byName].map(([name, image]) => ({ name, image }));
+    return [...byName].filter(([name]) => !this.catalog.portal()?.visibleCollections.length || this.catalog.portal()!.visibleCollections.includes(name)).map(([name, image]) => ({ name, image }));
   });
 
-  constructor() { this.catalog.selectStore(null); }
+  constructor() { this.catalog.load(); }
 }

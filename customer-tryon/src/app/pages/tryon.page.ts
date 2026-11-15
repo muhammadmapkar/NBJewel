@@ -35,17 +35,17 @@ const HINT_AFTER_MS = 700;
       <canvas #canvas [class.hidden]="phase() !== 'running'" aria-label="Camera with jewelry"></canvas>
 
       <header class="top">
-        <a class="round" routerLink="/" aria-label="Back to designs">‹</a>
+        <a class="round" [routerLink]="catalog.link()" aria-label="Back to designs" [queryParams]="catalog.linkParams()">‹</a>
         <div class="title"><span class="serif">{{ product()?.name ?? 'Try-On' }}</span></div>
         <button type="button" class="round" (click)="flip()" [disabled]="phase() !== 'running'" aria-label="Switch camera">⟲</button>
       </header>
 
       @switch (phase()) {
         @case ('loading') { <div class="panel"><div class="spinner" aria-hidden="true"></div><p>Opening the camera. Allow it when your phone asks.</p></div> }
-        @case ('missing') { <div class="panel"><p>This design is not available.</p><a class="btn" routerLink="/">See all designs</a></div> }
+        @case ('missing') { <div class="panel"><p>This design is not available.</p><a class="btn" [routerLink]="catalog.link()" [queryParams]="catalog.linkParams()">See all designs</a></div> }
         @case ('insecure') { <div class="panel"><p>The camera only works on a secure (https) link.</p></div> }
         @case ('denied') { <div class="panel"><p>Camera access is blocked. Allow the camera for this site in your browser settings, then try again.</p><button type="button" class="btn" (click)="restart()">Try again</button></div> }
-        @case ('nocamera') { <div class="panel"><p>No camera was found on this device.</p><a class="btn" routerLink="/">Back to designs</a></div> }
+        @case ('nocamera') { <div class="panel"><p>No camera was found on this device.</p><a class="btn" [routerLink]="catalog.link()" [queryParams]="catalog.linkParams()">Back to designs</a></div> }
         @case ('busy') { <div class="panel"><p>The camera is in use by another app. Close it and try again.</p><button type="button" class="btn" (click)="restart()">Try again</button></div> }
         @case ('modelerror') { <div class="panel"><p>The try-on could not load. Check your internet connection and try again.</p><button type="button" class="btn" (click)="restart()">Try again</button></div> }
         @case ('error') { <div class="panel"><p>Something went wrong with the camera.</p><button type="button" class="btn" (click)="restart()">Try again</button></div> }
@@ -64,8 +64,8 @@ const HINT_AFTER_MS = 700;
         }
         @if (product(); as p) {
           <div class="buy">
-            <span class="buy-price">{{ catalog.money(catalog.price(p).total) }}</span>
-            <button type="button" class="buy-btn" (click)="store.addToBag(p.id)" [disabled]="store.inBag(p.id)">{{ store.inBag(p.id) ? 'In your bag' : 'Add to bag' }}</button>
+            @if (catalog.showPrices()) { <span class="buy-price">{{ catalog.money(catalog.price(p).total) }}</span> }
+            @if (catalog.actionEnabled('bag')) { <button type="button" class="buy-btn" (click)="store.addToBag(p.id)" [disabled]="store.inBag(p.id)">{{ store.inBag(p.id) ? 'In your bag' : 'Add to bag' }}</button> }
           </div>
         }
         <div class="controls">
@@ -205,7 +205,7 @@ export class TryonPage implements OnDestroy {
 
   switchTo(product: Product): void {
     if (product.id === this.productId()) return;
-    void this.router.navigate(['/try', product.id], { queryParams: this.catalog.linkParams(), replaceUrl: true });
+    void this.router.navigate(this.catalog.link('try', product.id), { queryParams: this.catalog.linkParams(), replaceUrl: true });
   }
 
   restart(): void { void this.startCamera(); }

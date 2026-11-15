@@ -35,7 +35,7 @@ type Group = Exclude<keyof Filters, 'collections'>;
         </button>
         <label class="tool sort">Sort
           <select [value]="sort()" (change)="sort.set($any($event.target).value)">
-            @for (s of sorts; track s.value) { <option [value]="s.value">{{ s.label }}</option> }
+            @for (s of sorts(); track s.value) { <option [value]="s.value">{{ s.label }}</option> }
           </select>
         </label>
       </div>
@@ -121,17 +121,17 @@ export class ShopPage {
   readonly selectedStore = computed(() => this.directory.stores().find(s => s.location.id === this.catalog.storeId() && s.location.source === this.catalog.source()));
   private readonly route = inject(ActivatedRoute);
   readonly types = TYPE_OPTIONS;
-  readonly sorts = SORT_OPTIONS;
+  readonly sorts = computed(() => this.catalog.showPrices() ? SORT_OPTIONS : SORT_OPTIONS.filter(s => s.value !== 'priceLow' && s.value !== 'priceHigh'));
   readonly filters = signal<Filters>(EMPTY_FILTERS);
   readonly sort = signal<SortKey>('popular');
   readonly panelOpen = signal(false);
   readonly count = computed(() => activeFilterCount({ ...this.filters(), collections: [] }));
 
   readonly shown = computed(() => {
-    const f = this.filters();
+    const f = this.catalog.showPrices() ? this.filters() : { ...this.filters(), prices: [] };
     const total = (id: string) => { const p = this.catalog.find(id); return p ? this.catalog.price(p).total : 0; };
     const list = this.catalog.products().filter(p => matchesFilters(p, f, total(p.id)));
-    return sortProducts(list, this.sort(), p => total(p.id));
+    return sortProducts(list, !this.catalog.showPrices() && (this.sort() === 'priceLow' || this.sort() === 'priceHigh') ? 'popular' : this.sort(), p => total(p.id));
   });
 
   readonly groups = computed(() => {
@@ -145,10 +145,11 @@ export class ShopPage {
       { key: 'weights' as Group, label: 'Weight', options: opts(WEIGHT_RANGES.map(r => r.label)) },
       { key: 'stones' as Group, label: 'Stone', options: opts(v.stones) },
       { key: 'occasions' as Group, label: 'Occasion', options: opts(v.occasions) }
-    ];
+    ].filter(group => this.catalog.showPrices() || group.key !== 'prices');
   });
 
   constructor() {
+    this.route.paramMap.pipe(takeUntilDestroyed()).subscribe(() => { this.filters.set(EMPTY_FILTERS); this.sort.set('popular'); this.panelOpen.set(false); });
     void this.directory.load();
     this.catalog.load();
     this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe(q => {
@@ -157,7 +158,7 @@ export class ShopPage {
       const collection = q.get('collection');
       this.filters.update(f => ({ ...f, collections: collection ? [collection] : [] }));
       const sort = q.get('sort') as SortKey | null;
-      if (sort && this.sorts.some(s => s.value === sort)) this.sort.set(sort);
+      if (sort && this.sorts().some(s => s.value === sort)) this.sort.set(sort);
     });
   }
 

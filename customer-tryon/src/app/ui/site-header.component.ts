@@ -18,20 +18,20 @@ import { IconComponent } from './icon.component';
       @if (back()) {
         <button type="button" class="icon-btn" (click)="goBack()" aria-label="Back"><ct-icon name="back" /></button>
       }
-      <a class="brand logo" routerLink="/">NB Jewel</a>
+      <a class="brand logo" [routerLink]="catalog.link()" [queryParams]="catalog.linkParams()">@if (catalog.assetUrl(catalog.portal()?.logoAssetId); as logo) { <img height="32" [src]="logo" alt=""/> } {{ catalog.portal()?.name ?? 'Storefront' }}</a>
       <span class="spacer"></span>
-      <a class="link desktop" routerLink="/shop" [queryParams]="catalog.linkParams()">Shop</a>
-      <a class="link desktop" routerLink="/stores">Stores Map</a>
-      <a class="icon-btn" routerLink="/wishlist" [queryParams]="catalog.linkParams()" aria-label="Wishlist">
+      <a class="link desktop" [routerLink]="catalog.link('shop')" [queryParams]="catalog.linkParams()">Shop</a>
+      <a class="link desktop" [routerLink]="catalog.link('stores')" [queryParams]="catalog.linkParams()">Stores Map</a>
+      <a class="icon-btn" [routerLink]="catalog.link('wishlist')" [queryParams]="catalog.linkParams()" aria-label="Wishlist">
         <ct-icon name="heart" />@if (store.wishlist().length) { <span class="count">{{ store.wishlist().length }}</span> }
       </a>
-      <a class="icon-btn" routerLink="/bag" [queryParams]="catalog.linkParams()" aria-label="Bag">
+      @if (catalog.actionEnabled('bag')) { <a class="icon-btn" [routerLink]="catalog.link('bag')" [queryParams]="catalog.linkParams()" aria-label="Bag">
         <ct-icon name="bag" />@if (store.bagCount()) { <span class="count">{{ store.bagCount() }}</span> }
-      </a>
-      @if (session.identity()) { <a class="link desktop" routerLink="/profile" [queryParams]="catalog.linkParams()">Customer Profile</a> }
-      @else { <button class="link signin" type="button" (click)="session.require()">Sign In</button> }
+      </a> }
+      @if (session.identity()) { <a class="link desktop" [routerLink]="catalog.link('profile')" [queryParams]="catalog.linkParams()">Customer Profile</a> }
+      @else if (!catalog.preview()) { <button class="link signin" type="button" (click)="session.require()">Sign In</button> }
     </header>
-    <ct-market-rates />
+    @if (catalog.showPrices() && catalog.portal()?.showMarketRates !== false) { <ct-market-rates /> }
     @if (rates().length) {
       <details class="rates">
         <summary>Recorded sample metal rates</summary>
@@ -60,7 +60,7 @@ import { IconComponent } from './icon.component';
 export class SiteHeaderComponent {
   readonly session = inject(CustomerSession);
   readonly catalog = inject(CatalogService);
-  readonly rates = computed(() => { const c = this.catalog.catalog(); return c ? recordedRates(c) : []; });
+  readonly rates = computed(() => { const c = this.catalog.catalog(); return this.catalog.showPrices() && c ? recordedRates(c) : []; });
   readonly dateLabel = effectiveDateLabel;
   readonly store = inject(StoreService);
   private readonly location = inject(Location);
