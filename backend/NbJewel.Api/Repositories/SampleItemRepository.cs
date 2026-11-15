@@ -25,19 +25,21 @@ public sealed class SampleItemRepository : IItemRepository
     private readonly SampleItemIdAllocator? ids;
 
     public SampleItemRepository(IWebHostEnvironment environment, ItemCutoutOptions? storage = null)
+        : this(Directory.Exists(Path.Combine(environment.ContentRootPath, "sample-data"))
+            ? Path.Combine(environment.ContentRootPath, "sample-data") : Path.Combine(AppContext.BaseDirectory, "sample-data"), storage) { }
+
+    // Assumed partition entry point; the factory supplies a registry-validated directory.
+    public SampleItemRepository(string directory, ItemCutoutOptions? storage = null, bool allowEmpty = false)
     {
         ids = storage is null ? null : new SampleItemIdAllocator(storage);
-        var contentRootDirectory = Path.Combine(environment.ContentRootPath, "sample-data");
-        var directory = Directory.Exists(contentRootDirectory)
-            ? contentRootDirectory
-            : Path.Combine(AppContext.BaseDirectory, "sample-data");
-        items = Load<Item>(directory, "items.json");
-        stock = Load<StockRecord>(directory, "stock.json");
-        variants = Load<ItemVariant>(directory, "variants.json");
-        categories = Load<Category>(directory, "categories.json");
-        stores = Load<Store>(directory, "stores.json");
-        designs = Load<Design>(directory, "designs.json");
-        rates = Load<MetalRate>(directory, "metal-rates.json");
+        List<T> Read<T>(string file) => allowEmpty && !File.Exists(Path.Combine(directory, file)) ? [] : Load<T>(directory, file);
+        items = Read<Item>("items.json");
+        stock = Read<StockRecord>("stock.json");
+        variants = Read<ItemVariant>("variants.json");
+        categories = Read<Category>("categories.json");
+        stores = Read<Store>("stores.json");
+        designs = Read<Design>("designs.json");
+        rates = Read<MetalRate>("metal-rates.json");
         purities = rates.Select(x => (x.MetalType, x.Purity)).Concat(items.Select(x => (x.MetalType, x.Purity)))
             .DistinctBy(x => (x.Item1.ToLowerInvariant(), x.Item2.ToLowerInvariant())).ToList();
         foreach (var item in items)

@@ -58,8 +58,7 @@ public sealed class KnowledgeController(KnowledgeDatabase db, KnowledgeService s
             {
                 var item = await items.GetItemAsync(id, ct);
                 if (item is null) return NotFound();
-                var category = (await items.GetCategoriesAsync(ct)).FirstOrDefault(x => x.Id == item.CategoryId)?.Name;
-                if (item.Status != ItemStatusRules.Complete || category is not ("Necklaces" or "Earrings") ||
+                if (!PublicCatalogPolicy.Allows(item, await PublicCatalogPolicy.AllowedCategoriesAsync(items, ct)) ||
                     item.Storefront is null || await items.GetPriceAsync(id, ct) is null || string.IsNullOrWhiteSpace(confirmation.AssetRevisionId))
                     return Conflict(new { message = "Complete the item, storefront description and current preview review before publishing." });
             }

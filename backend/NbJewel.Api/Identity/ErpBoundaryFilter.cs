@@ -51,6 +51,8 @@ public sealed class ErpBoundaryFilter(BusinessContext business) : IAsyncAuthoriz
             context.Result = business.Membership is not null && context.HttpContext.Request.RouteValues.ContainsKey("slug") ? new NotFoundResult() : new ForbidResult();
             return;
         }
+        if (controller == "Jewelry" && business.Business?.Slug != BusinessRegistry.DemoSlug)
+        { context.Result = new ForbidResult(); return; }
         var access = business.Access;
         var requiresAllStores = controller is "Jewelry" or "ItemImages" || (controller == "Items" &&
             !HttpMethods.IsGet(context.HttpContext.Request.Method) && name != "AddStock");

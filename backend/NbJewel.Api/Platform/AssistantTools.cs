@@ -1,5 +1,6 @@
 // Role: Authorizes assistant tools and exposes only approved public catalog fields.
 using System.Text.Json.Nodes;
+using NbJewel.Api.Businesses;
 using NbJewel.Api.Chat;
 using NbJewel.Api.Identity;
 using NbJewel.Api.Models;
@@ -7,7 +8,7 @@ using NbJewel.Api.Repositories;
 
 namespace NbJewel.Api.Platform;
 
-public sealed class AssistantTools(IPermissionAdapter permissions, IItemRepository repository, IKnowledgeRetriever knowledge, IPublicationReader publications) : IAssistantTools
+public sealed class AssistantTools(IPermissionAdapter permissions, IItemRepository repository, IKnowledgeRetriever knowledge, IPublicationReader publications, BusinessMemberships? memberships = null, BusinessContext? business = null) : IAssistantTools
 {
     private static readonly Dictionary<string, string[]> Required = new()
     {
@@ -55,8 +56,11 @@ public sealed class AssistantTools(IPermissionAdapter permissions, IItemReposito
         if (context.AssistantId == "erp")
         {
             var access = await permissions.ResolveAsync(context.SubjectId, ct);
+            var member = access is null || memberships is null ? null : await memberships.ResolveAsync(access, ct);
+            if (memberships is not null && (member is null || member.Slug != context.BusinessId || business?.Business?.Slug != member.Slug)) throw new AssistantDeniedException();
+            if (member is not null) access = BusinessMemberships.Effective(access!, member);
             if (access is null || access.AccountType != "erp" || !access.Permissions.Contains("chat.read")) throw new AssistantDeniedException();
-            context = new(context.AssistantId, context.SubjectId, access.AccountType, access.Permissions, access.StoreIds, access.AllStores, context.KnowledgeCollections);
+            context = context with { AccountType = access.AccountType, Permissions = access.Permissions, StoreIds = access.StoreIds, AllStores = access.AllStores };
         }
         if (name == "search_knowledge")
         {

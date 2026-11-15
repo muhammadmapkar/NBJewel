@@ -95,45 +95,30 @@ builder.Services.AddCors(options =>
 // "Sql" uses SQL Server and needs the NBJEWEL_SQL_CONNECTION environment variable.
 // An empty value (for example "Repository__Provider=" copied from .env.example) counts as not set.
 var provider = string.IsNullOrWhiteSpace(builder.Configuration["Repository:Provider"]) ? "Sample" : builder.Configuration["Repository:Provider"]!;
-if (provider.Equals("Sql", StringComparison.OrdinalIgnoreCase))
-{
-    var connectionString = builder.Configuration["NBJEWEL_SQL_CONNECTION"];
-    if (string.IsNullOrWhiteSpace(connectionString))
-        throw new InvalidOperationException("Repository:Provider is Sql, but the NBJEWEL_SQL_CONNECTION environment variable is not set.");
-    builder.Services.AddSingleton<IItemRepository>(new SqlItemRepository(connectionString));
-}
-else if (provider.Equals("Sample", StringComparison.OrdinalIgnoreCase))
-{
-    builder.Services.AddSingleton<IItemRepository, SampleItemRepository>();
-}
-else
-{
-    throw new InvalidOperationException($"Unknown Repository:Provider '{provider}'. Use Sample or Sql.");
-}
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<BusinessStorage>();
+builder.Services.AddTransient<IItemRepository>(sp => sp.GetRequiredService<BusinessStorage>().For(BusinessStorage.Current(sp)).Items);
 // Durable ERP item preview revisions use the existing Python cutout script, never a new removal engine.
 builder.Services.AddSingleton(services =>
 {
     var configuration = services.GetRequiredService<IConfiguration>();
     var environment = services.GetRequiredService<IWebHostEnvironment>();
     var path = configuration["ITEM_ASSET_STORAGE_PATH"];
-    return new ItemCutoutOptions(
+    return new DefaultCutoutOptions(new ItemCutoutOptions(
         Path.GetFullPath(string.IsNullOrWhiteSpace(path) ? Path.Combine(environment.ContentRootPath, "App_Data", "item-assets") : path),
         configuration["CUTOUT_PYTHON_PATH"] ?? "python3",
-        Path.Combine(AppContext.BaseDirectory, "scripts", "cutout-jewelry.py"));
+        Path.Combine(AppContext.BaseDirectory, "scripts", "cutout-jewelry.py")));
 });
-if (provider.Equals("Sql", StringComparison.OrdinalIgnoreCase))
-    builder.Services.AddSingleton<IItemImageAssetRepository>(new SqlItemImageAssetRepository(
-        new DbContextOptionsBuilder<ItemAssetDatabase>().UseSqlServer(builder.Configuration["NBJEWEL_SQL_CONNECTION"]).Options));
-else
-    builder.Services.AddSingleton<IItemImageAssetRepository, FileItemImageAssetRepository>();
-builder.Services.AddSingleton<ItemCutoutPipeline>();
+builder.Services.AddTransient<ItemCutoutOptions>(sp => sp.GetRequiredService<BusinessStorage>().For(BusinessStorage.Current(sp)).Cutout);
+builder.Services.AddTransient<IItemImageAssetRepository>(sp => sp.GetRequiredService<BusinessStorage>().For(BusinessStorage.Current(sp)).Assets);
+builder.Services.AddTransient<ItemCutoutPipeline>(sp => sp.GetRequiredService<BusinessStorage>().For(BusinessStorage.Current(sp)).Pipeline);
 builder.Services.AddSingleton(services => JewelryVisionOptions.Read(services.GetRequiredService<IConfiguration>()));
 builder.Services.AddHttpClient<IJewelryVision, JewelryVisionClient>().RemoveAllLoggers();
 
 // The chatbot runs inside this API. The Gemini key and model come only from environment variables
 // (GEMINI_API_KEY, GEMINI_MODEL, GEMINI_THINKING_LEVEL). If they are missing, /api/chat answers 503.
-builder.Services.AddSingleton<IChatDataReader, ChatDataReader>();
-builder.Services.AddSingleton<ChatTools>();
+builder.Services.AddTransient<IChatDataReader, ChatDataReader>();
+builder.Services.AddTransient<ChatTools>();
 builder.Services.AddSingleton(GeminiOptions.FromConfiguration(builder.Configuration));
 builder.Services.AddHttpClient<ILlmClient, GeminiLlmClient>(client =>
 {
@@ -146,9 +131,10 @@ builder.Services.AddScoped<GatewayProvider>();
 var platformConnection = builder.Configuration["AI_PLATFORM_CONNECTION"] ?? builder.Configuration["NBJEWEL_IDENTITY_CONNECTION"];
 builder.Services.AddDbContext<PlatformDatabase>(options => { if (!string.IsNullOrWhiteSpace(platformConnection)) options.UseSqlServer(platformConnection); });
 builder.Services.AddDbContext<KnowledgeDatabase>(options => { if (!string.IsNullOrWhiteSpace(platformConnection)) options.UseSqlServer(platformConnection); });
+builder.Services.AddScoped<KnowledgeDatabase>(sp => sp.GetRequiredService<BusinessStorage>().Knowledge(sp.GetRequiredService<DbContextOptions<KnowledgeDatabase>>(), BusinessStorage.Current(sp)));
 // Sample product decisions persist on disk without enabling SQL or bypassing ERP identity.
 if (provider.Equals("Sample", StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(platformConnection))
-    builder.Services.AddSingleton<IProductPublicationStore, FileProductPublicationStore>();
+    builder.Services.AddTransient<IProductPublicationStore>(sp => sp.GetRequiredService<BusinessStorage>().For(BusinessStorage.Current(sp)).Publications);
 builder.Services.AddScoped<KnowledgeService>();
 builder.Services.AddScoped<IKnowledgeRetriever>(services => services.GetRequiredService<KnowledgeService>());
 builder.Services.AddScoped<IKnowledgeEvidenceValidator>(services => services.GetRequiredService<KnowledgeService>());
@@ -190,6 +176,7 @@ builder.Services.AddRateLimiter(options =>
 });
 
 var app = builder.Build();
+app.Services.GetRequiredService<BusinessStorage>().Validate();
 app.ConfigureSampleIdentityRuntime();
 if (args.Contains("--bootstrap-identity")) return await IdentitySetup.BootstrapAsync(app);
 if (args.Contains("--provision-business"))
@@ -211,9 +198,11 @@ app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
     await context.Response.WriteAsJsonAsync(new ErrorMessage("Something went wrong. Try again."));
 }));
 if (app.Environment.IsDevelopment()) { app.UseSwagger(); app.UseSwaggerUI(); }
+app.UseRouting();
 app.UseCors("AngularDevelopment");
 if (app.Environment.IsProduction()) { app.UseHsts(); app.UseHttpsRedirection(); }
 app.UseAuthentication();
+app.Use(BusinessBoundary.InvokeAsync);
 app.UseAuthorization();
 app.UseRateLimiter();
 // Resolve published metadata on every image request, including requests for known inactive files.

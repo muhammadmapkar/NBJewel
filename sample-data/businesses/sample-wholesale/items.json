@@ -1,0 +1,25 @@
+[
+  {
+    "id": 7,
+    "code": "WS-ONLY",
+    "name": "Assumed wholesale necklace",
+    "categoryId": 3,
+    "designId": 1,
+    "designCode": "WS-DESIGN",
+    "metalType": "Gold",
+    "purity": "22K",
+    "grossWt": 10,
+    "netWt": 10,
+    "stoneWt": 0,
+    "makingType": "PERCENT",
+    "makingValue": 8,
+    "stoneValue": 0,
+    "vatPercent": 0,
+    "status": "Complete",
+    "storefront": {
+      "description": "Assumed wholesale sample",
+      "collection": "Wholesale",
+      "isSample": true
+    }
+  }
+]

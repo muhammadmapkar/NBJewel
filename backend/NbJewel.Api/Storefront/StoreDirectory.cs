@@ -1,5 +1,6 @@
 // Role: Reads explicitly configured public store locations and derives freshness and inventory counts from ERP data.
 using System.Text.Json;
+using NbJewel.Api.Businesses;
 using Microsoft.Data.SqlClient;
 using NbJewel.Api.Repositories;
 using NbJewel.Api.Platform;
@@ -8,7 +9,7 @@ namespace NbJewel.Api.Storefront;
 public sealed record StoreLocation(string Id, string Name, string City, double Latitude, double Longitude, string Source,
     bool IsSample, bool ErpEnabled, DateTimeOffset? InventorySyncedAt, DateTimeOffset? ImagesSyncedAt, string[] ProductIds);
 public sealed record PublicStore(StoreLocation Location, bool LiveSynced, int ProductCount);
-public sealed class StoreDirectory(IConfiguration configuration, IItemRepository items, IPublicationReader publications)
+public sealed class StoreDirectory(IConfiguration configuration, IItemRepository items, IPublicationReader publications, BusinessStorage? storage = null, BusinessContext? business = null, ILogger<StoreDirectory>? logger = null)
 {
     public static bool Fresh(DateTimeOffset? date, DateTimeOffset now) => date.HasValue && date <= now.AddMinutes(1) && date >= now.AddMinutes(-15);
     public async Task<IReadOnlyList<PublicStore>> ReadAsync(CancellationToken ct)
@@ -17,7 +18,7 @@ public sealed class StoreDirectory(IConfiguration configuration, IItemRepository
         StoreLocation[] rows;
         if (!sample) rows = await SqlLocations(ct);
         else {
-            var path = configuration["STOREFRONT_STORES_PATH"];
+            var path = storage is not null && business?.Business is { } current ? storage.DirectoryPath(current) : configuration["STOREFRONT_STORES_PATH"];
             if (string.IsNullOrWhiteSpace(path)) path = Path.Combine(AppContext.BaseDirectory, "sample-data", "store-locations.json");
             var data = await File.ReadAllTextAsync(path, ct);
             if (data.Length > 256000) throw new InvalidOperationException("Invalid store directory.");
@@ -29,7 +30,7 @@ public sealed class StoreDirectory(IConfiguration configuration, IItemRepository
         foreach (var location in rows)
         {
             if (location.Source != "erp") continue;
-            if (!int.TryParse(location.Id, out var id) || !knownStores.Contains(id)) continue;
+            if (!int.TryParse(location.Id, out var id) || !knownStores.Contains(id)) { logger?.LogWarning("Skipped store location outside current business directory."); continue; }
             var count = (await AvailableItemIdsAsync(id, ct)).Count;
             var live = !sample && !location.IsSample && location.ErpEnabled && Fresh(location.InventorySyncedAt, DateTimeOffset.UtcNow) && Fresh(location.ImagesSyncedAt, DateTimeOffset.UtcNow);
             result.Add(new(location with { IsSample = sample || location.IsSample, ProductIds = [] }, live, count));

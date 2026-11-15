@@ -104,7 +104,7 @@ public sealed class KnowledgeHttpFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
-        builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?> { ["NBJEWEL_IDENTITY_CONNECTION"] = "", ["AI_PLATFORM_CONNECTION"] = "", ["Repository:Provider"] = "Sample", ["ITEM_ASSET_STORAGE_PATH"] = Path.Combine(Path.GetTempPath(), "nbjewel-http-assets-" + name) }).AddInMemoryCollection(TestConfiguration));
+        builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?> { ["NBJEWEL_IDENTITY_CONNECTION"] = "", ["AI_PLATFORM_CONNECTION"] = "", ["Repository:Provider"] = "Sample", ["BUSINESS_STORAGE_PATH"] = Path.Combine(Path.GetTempPath(), "nbjewel-http-businesses-" + name), ["ITEM_ASSET_STORAGE_PATH"] = Path.Combine(Path.GetTempPath(), "nbjewel-http-assets-" + name) }).AddInMemoryCollection(TestConfiguration));
         builder.ConfigureTestServices(services => {
             if (AfterPublicationRead is not null) {
                 services.RemoveAll<IPublicationReader>();

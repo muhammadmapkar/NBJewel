@@ -1,0 +1,28 @@
+[
+  {
+    "id": "1",
+    "name": "Assumed wholesale branch",
+    "city": "Assumed city",
+    "latitude": 25,
+    "longitude": 55,
+    "source": "erp",
+    "isSample": true,
+    "erpEnabled": false,
+    "inventorySyncedAt": null,
+    "imagesSyncedAt": null,
+    "productIds": []
+  },
+  {
+    "id": "999",
+    "name": "Assumed invalid branch",
+    "city": "Assumed city",
+    "latitude": 25,
+    "longitude": 55,
+    "source": "erp",
+    "isSample": true,
+    "erpEnabled": false,
+    "inventorySyncedAt": null,
+    "imagesSyncedAt": null,
+    "productIds": []
+  }
+]

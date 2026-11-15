@@ -1,12 +1,13 @@
 // Role: Defines trusted assistant execution, tool, retrieval and conversation contracts shared across modules.
 using System.Text.Json.Nodes;
+using NbJewel.Api.Businesses;
 using NbJewel.Api.Chat;
 using NbJewel.Api.Models;
 
 namespace NbJewel.Api.Platform;
 
 public sealed record AssistantContext(string AssistantId, string SubjectId, string AccountType,
-    string[] Permissions, int[] StoreIds, bool AllStores, string[]? KnowledgeCollections = null, string? ClientAddress = null)
+    string[] Permissions, int[] StoreIds, bool AllStores, string[]? KnowledgeCollections = null, string? ClientAddress = null, string BusinessId = BusinessRegistry.DemoSlug)
 {
     // ClientAddress is the server-derived network key of an anonymous caller. It is never part of the access fingerprint.
     public bool Has(string permission) => AccountType == "erp" && Permissions.Contains(permission);

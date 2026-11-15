@@ -51,6 +51,17 @@ public sealed class BusinessContextTests
         Assert.False(await context.ResolveErpAsync(http, default)); Assert.Null(context.Business);
     }
     [Fact]
+    public async Task ARequestCannotRebindItsRepositoriesAfterMembershipChangesMidRequest()
+    {
+        await using var factory = new IdentityTestFactory(); var id = await factory.Seed("erp", true, []);
+        using var scope = factory.Services.CreateScope();
+        var http = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, id)], "test")) };
+        var context = scope.ServiceProvider.GetRequiredService<BusinessContext>();
+        Assert.True(await context.ResolveErpAsync(http, default)); Assert.Equal("nb-jewel-demo", context.Business!.Slug);
+        var db = scope.ServiceProvider.GetRequiredService<IdentityDatabase>(); var member = await db.Set<BusinessMembership>().SingleAsync(); member.BusinessId = "sample-wholesale"; await db.SaveChangesAsync();
+        Assert.False(await context.ResolveErpAsync(http, default)); Assert.Null(context.Access);
+    }
+    [Fact]
     public async Task StartupMigrationAssignsExistingStaffOnceButNeverCustomers()
     {
         await using var factory = new IdentityTestFactory();

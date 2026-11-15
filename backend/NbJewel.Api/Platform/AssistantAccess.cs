@@ -1,5 +1,6 @@
 // Role: Resolves server identities and signs opaque visitor cookies without accepting client-selected permissions.
 using System.Net;
+using NbJewel.Api.Businesses;
 using System.Net.Sockets;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -11,7 +12,7 @@ using NbJewel.Api.Identity;
 namespace NbJewel.Api.Platform;
 
 public sealed class AssistantAccess(IPermissionAdapter permissions, IDataProtectionProvider protection,
-    AssistantRegistry registry, IWebHostEnvironment environment)
+    AssistantRegistry registry, IWebHostEnvironment environment, BusinessMemberships? memberships = null, BusinessContext? business = null)
 {
     private readonly IDataProtector visitor = protection.CreateProtector("nbjewel.ai.visitor.v1");
     public async Task<AssistantContext> ResolveAsync(string assistant, HttpContext http, CancellationToken ct)
@@ -24,9 +25,12 @@ public sealed class AssistantAccess(IPermissionAdapter permissions, IDataProtect
             if (account is null) throw new AssistantDeniedException();
             if (assistant == "erp")
             {
+                var member = memberships is null ? null : await memberships.ResolveAsync(account, ct);
+                if (memberships is not null && member is null) throw new AssistantDeniedException();
+                if (member is not null) account = BusinessMemberships.Effective(account, member);
                 if (account.AccountType != "erp" || !account.Permissions.Contains("chat.read")) throw new AssistantDeniedException();
                 return new(assistant, account.Id, account.AccountType, account.Permissions, account.StoreIds,
-                    account.AllStores, registry.Get(assistant).KnowledgeCollections.ToArray());
+                    account.AllStores, registry.Get(assistant).KnowledgeCollections.ToArray(), BusinessId: member?.Slug ?? BusinessRegistry.DemoSlug);
             }
             // An ERP account visiting the website receives exactly the public customer context.
             return new(assistant, account.Id, "customer", [], [], false, registry.Get(assistant).KnowledgeCollections.ToArray());
@@ -70,7 +74,7 @@ public sealed class AssistantAccess(IPermissionAdapter permissions, IDataProtect
         {
             var subject = http.User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(subject)) throw new AssistantDeniedException();
-            return new(assistant, subject, assistant == "erp" ? "erp" : "customer", [], [], false);
+            return new(assistant, subject, assistant == "erp" ? "erp" : "customer", [], [], false, BusinessId: assistant == "erp" ? business?.Business?.Slug ?? BusinessRegistry.DemoSlug : BusinessRegistry.DemoSlug);
         }
         if (assistant == "erp") throw new AssistantDeniedException();
         if (http.Request.Cookies.TryGetValue("nbjewel.visitor", out var cookie))
@@ -87,12 +91,15 @@ public sealed class AssistantAccess(IPermissionAdapter permissions, IDataProtect
         var account = await permissions.ResolveAsync(context.SubjectId, ct);
         if (account is null) throw new AssistantDeniedException();
         if (context.AssistantId == "website") return context;
+        var member = memberships is null ? null : await memberships.ResolveAsync(account, ct);
+        if (memberships is not null && (member is null || member.Slug != context.BusinessId)) throw new AssistantDeniedException();
+        if (member is not null) account = BusinessMemberships.Effective(account, member);
         if (account.AccountType != "erp" || !account.Permissions.Contains("chat.read")) throw new AssistantDeniedException();
         return context with { Permissions = account.Permissions, StoreIds = account.StoreIds, AllStores = account.AllStores };
     }
 
     public static string Hash(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
-    public static string Owner(AssistantContext c) => Hash(c.AssistantId + ":" + c.AccountType + ":" + c.SubjectId);
-    public static string Fingerprint(AssistantContext c) => Hash(c.AccountType + ":" + c.AllStores + ":" +
+    public static string Owner(AssistantContext c) => Hash(c.BusinessId + ":" + c.AssistantId + ":" + c.AccountType + ":" + c.SubjectId);
+    public static string Fingerprint(AssistantContext c) => Hash(c.BusinessId + ":" + c.AccountType + ":" + c.AllStores + ":" +
         string.Join(',', c.Permissions.Order()) + ":" + string.Join(',', c.StoreIds.Order()) + ":" + string.Join(',', (c.KnowledgeCollections ?? []).Order()));
 }

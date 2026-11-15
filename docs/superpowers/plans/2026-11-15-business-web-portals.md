@@ -288,9 +288,9 @@ All tasks are **authorized, pending implementation**, in the stated order after 
 ### A2. Data isolation
 - **Depends on:** A1.
 - **Touchpoints:** Program.cs registrations; Repositories (factory, SampleItemRepository, SampleItemIdAllocator, FileItemImageAssetRepository); Knowledge (FileProductPublicationStore, KnowledgeService); Jewelry (ItemCutoutPipeline, FileJewelryRepository demo pin); Storefront/StoreDirectory.cs (including SQL branch); SqlItemImageAssetRepository and ItemAssetDatabase; Chat (ChatTools, ChatDataReader); Platform (AssistantAccess owner/fingerprint, AssistantTools); PublicCatalogController; KnowledgeController.cs:61 to PublicCatalogPolicy (F10 backend remainder); frontend category-name readiness is already fixed in dfc5ba6. Add importer compatibility and SQL DI resolution tests without connecting to SQL.
-- [ ] RED (`BusinessIsolationHttpTests`, two businesses with overlapping item, store and category IDs). Every existing-route row in section 3 gets its negative test, including uploads, publications, caches, chat and assistant conversations. Branch directory validation is covered. ERP spec: eligibility by category name.
-- [ ] Implement the partition factory. Convert the singletons; nb-jewel-demo adopts the existing roots; SQL mode fails closed with more than one business.
-- [ ] Backend full green. ERP test/typecheck/build green.
+- [x] RED (`BusinessIsolationHttpTests`, two businesses with overlapping item, store and category IDs). Every existing-route row in section 3 gets its negative test, including uploads, publications, caches, chat and assistant conversations. Branch directory validation is covered. ERP spec: eligibility by category name.
+- [x] Implement the partition factory. Convert the singletons; nb-jewel-demo adopts the existing roots; SQL mode fails closed with more than one business.
+- [x] Backend full green. ERP test/typecheck/build green.
 
 ### A3. Customer data
 - **Depends on:** A1, A2.

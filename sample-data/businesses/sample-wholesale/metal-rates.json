@@ -1,0 +1,10 @@
+[
+  {
+    "id": 1,
+    "metalType": "Gold",
+    "purity": "22K",
+    "ratePerGram": 1,
+    "currency": "AED",
+    "effectiveDate": "2026-09-30"
+  }
+]

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using NbJewel.Api.Businesses;
 using NbJewel.Api.Identity;
 using NbJewel.Api.Platform;
 
@@ -92,6 +93,7 @@ public partial class PlatformConversationTests
             var db = scope.ServiceProvider.GetRequiredService<IdentityDatabase>();
             db.PermissionGrants.AddRange(Grants.Select(p => new PermissionGrant { UserId = second.Id, Permission = p }));
             db.StoreGrants.Add(new StoreGrant { UserId = second.Id, StoreId = 1 }); await db.SaveChangesAsync();
+            await scope.ServiceProvider.GetRequiredService<BusinessMemberships>().AssignAsync(second.Id, BusinessRegistry.DemoSlug, "staff", default);
         }
         using var first = factory.CreateClient(); await Login(first); var id = await Create(first, "erp");
         using var secondClient = factory.CreateClient(); await Token(secondClient);
