@@ -2,11 +2,12 @@
 # AI memory handoff
 
 ## Lock
-- Agent: codex-qa-doc.
-- Since: 2026-11-14T18:27:23+04:00
-- Status: released in the QA-document checkpoint.
+- Agent: codex-port-diagnosis.
+- Since: 2026-11-15T14:41:25+04:00
+- Status: released in the startup-conflict diagnosis checkpoint.
 
 ## Branch and last commit
+- Startup diagnosis predecessor: `11b3f14973519f76e63a705507e66539a1b94755`; matched HEAD and handoff snapshot after fetch and ff-only pull.
 - Portal upgrade predecessor: `7720b2a64bd36ba5b0d79ab8e2f1f8be70d50b2e`. Final portal snapshot is the commit containing this handoff, resolved with `git log -1 --format=%H -- AI-MEMORY-HANDOFF.md`; push target remains origin/feature/customer-storefront.
 - Reconciliation baseline: `5e6066f2dcee8fd49f7086cc34cd1630ade5ca57`, exact origin alignment verified after fetch/reset/ff-only pull.
 - Backup branch: `backup/local-accidental-run-20261114-113421`, commit `d98c7b52a326a87d4a93aed568708a1d7d7693ea` (local, preserving all six initial changed files). Other local branches retained.
@@ -39,6 +40,7 @@ Origin reconciliation, forensic audit and reproduced assistant visibility repair
 
 
 ## Done
+- Startup conflict diagnosed: existing main-checkout NbJewel.Api PID 81558 owns localhost:5155 and public products returned HTTP 200. Second launcher cannot bind the same port. Existing process left running to preserve its in-memory session; no application change needed.
 - QA guide: docs/QA_TEST.md documents exact startup/login retrieval, a new-item fixture, source=erp catalog links, manual publication/edit/revoke checks, separate browser sessions, inventory limitations and troubleshooting. No real credential recorded; proposed customer credentials are explicitly test-only and require signup.
 - Portal upgrade: secure exact-revision Gemini Vision suggestions with dedicated/shared key fallback and editable ERP auto-fill/regenerate; no automatic save/approval/publication. Customer cookie/CSRF auth gates and resumed intents, owned profile/bag/request persistence, device/account wishlist, public map/store catalogs, mobile/desktop navigation, separate live market reference provider and honest sample/freshness states. Prepared SQL file only.
 - Final read-only review: fixed explicit reservation selection, persistent stale quote status, late-401 auth race, public product store counts, and shared/reloaded source/store context including try-on piece/design changes and profile. All material findings addressed. Root alone wrote implementation; subagents inspected/reviewed only.
@@ -97,6 +99,7 @@ Historical phase-2 checklist:
 - [x] After task 9: sequential read-only lead review completed; all findings corrected with regressions and affected suites/builds passing. Stop and wait for Muhammad.
 
 ## Blockers and decisions
+- 2026-11-15 startup diagnosis: preserve the existing API. To restart with providers, Muhammad can stop the original API terminal with Ctrl+C, confirm port 5155 is free, then rerun the supplied launcher. Only the successful new launch password applies; restart resets temporary identity/session state. Maintenance warning is separate from the confirmed fatal port conflict and was not investigated here.
 - Portal choices: use existing OSM embed (zero key) and local cutout stack (zero key). Two unique provider keys suffice with shared Gemini + GoldAPI, or three for separate ERP/chat Gemini credentials. Root .env remains untouched. Real provider calls were not made during sample checks.
 - Sample store coordinates are assumed, never claimed verified. A live badge requires configured non-sample SQL store, ERP enabled, and both externally supplied sync timestamps fresh within 15 minutes. No upstream ERP sync writer is invented.
 - Reservation endpoint stores requested visits only, not stock allocation, payment or real store delivery. Identity/customer data in sample mode resets on API restart. Local wishlist is account/device scoped.
@@ -151,6 +154,7 @@ Historical phase-2 checklist:
 - No questions to owner. Choose conservative sample-only behavior and log assumptions. Accounts, chatbot, locator are later phases.
 
 ## Files touched
+- Startup diagnosis: AI-MEMORY-HANDOFF.md only. No application, owner file, secret, provider or running process modified.
 - QA documentation task: docs/QA_TEST.md and AI-MEMORY-HANDOFF.md only.
 - Current portal task: exact created/updated paths are listed in docs/portal-upgrades.md. Includes new backend JewelryVision/CustomerPortal/StoreDirectory/SpotRates and tests; ERP storefront-panel/service; customer auth/map/profile/navigation/catalog; env example/launcher/docs/README. No protected owner path or lockfile changed.
 - Reconciliation changes: .env.example; RECONCILIATION_REPORT.md; AI-MEMORY-HANDOFF.md; backend/NbJewel.Api/Models/PublicCatalogPolicy.cs; backend/NbJewel.Api/Controllers/PublicCatalogController.cs; backend/NbJewel.Api/Platform/AssistantTools.cs; backend/NbJewel.Api/Platform/AssistantEvidence.cs; backend/NbJewel.Api.Tests/ScopedAssistantToolsTests.cs; backend/NbJewel.Api.Tests/ScanCostTests.cs.
@@ -171,6 +175,7 @@ Historical phase-2 checklist:
 - Pre-existing owner changes preserved, excluded from staging: PROGRESS.md, docs/run-guide.md, customer-tryon/package-lock.json; untracked browser security plan, old proof image, pasted jewelry image.
 
 ## Test commands and last results
+- Startup diagnosis 2026-11-15: `lsof -nP -iTCP:5155 -sTCP:LISTEN` identified PID 81558 on both loopback families; `ps -p 81558 -o pid=,ppid=,lstart=,comm=` identified this main-checkout API, started Nov 14; read-only `curl --noproxy "*" --max-time 5 -s -o /dev/null -w "%{http_code}" http://localhost:5155/api/storefront/products` returned 200. Fetch and ff-only pull passed with approved sandbox escalation. Handoff-only validation and diff whitespace check passed; application suites not rerun because no source changed.
 - QA document only: verified launcher flags/staff email, Angular catalog/source routes, status/publication control labels and local Python path against repository files; Markdown/content assertions and git diff --check passed. Application suites not rerun because no application code changed.
 - Portal final backend: `dotnet test backend/NbJewel.Api.Tests --no-restore`, Sample forced and SQL/connection/secrets removed, existing CUTOUT_PYTHON_PATH: 394 passed, 6 SQL skipped, zero failed. `dotnet build backend/NbJewel.Api --no-restore`: zero warnings/errors. Logs /tmp/nbjewel-portal-final-backend.log and /tmp/nbjewel-final-backend-build.log.
 - Portal final ERP: `npm test` 73 passed; `npx tsc --noEmit -p tsconfig.app.json` passed; `NG_BUILD_MAX_WORKERS=2 npm run build` passed. Logs /tmp/nbjewel-portal-final-erp.log, /tmp/nbjewel-erp-typecheck.log, /tmp/nbjewel-portal-final-erp-build.log.
@@ -223,6 +228,7 @@ Historical phase-2 checklist:
 - Real browser CORS and cookies.
 
 ## Agent log (newest first)
+- 2026-11-15T14:41:25+04:00 codex-port-diagnosis: read full handoff, verified released lock, clean branch/upstream and snapshot, fetched/pulled, identified existing healthy loopback API as cause of duplicate-start failure. Acquired/released Lock for this diagnosis checkpoint. Existing session preserved; no new feature work or live provider calls.
 - 2026-11-14T18:28:57+04:00 codex-qa-doc: fetch/ff-only pull and clean baseline 5bb3835 verified, acquired released Lock, created requested QA guide and validated documented routes/controls. Explicit-path docs checkpoint/push releases Lock. No running app, credential, source config or owner file changed.
 - 2026-11-14T16:57:24+04:00 codex-portal: completed both requested upgrades, read-only review corrections and sample gates; documented service inventory and manual limits. Final explicit-path checkpoint/push releases Lock. No protected owner files, actual .env, SQL data, Docker, deploy, forbidden worktree or force push touched.
 - 2026-11-14T11:44:43+04:00 codex-reconciliation: final reviewed backend 380/6 skipped and both frontend gates passed. Env/report/eligibility fix ready for explicit-path checkpoint and push; releasing Lock in that checkpoint. Unimplemented requested product domains remain unchecked, not claimed complete.
