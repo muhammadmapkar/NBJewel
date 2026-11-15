@@ -1,4 +1,4 @@
-<!-- Role: Records the agreed business web portal design and future implementation steps; execution is not authorized. -->
+<!-- Role: Records the revised multi-business web portal design and future implementation steps; execution is not authorized. -->
 # Business web portals implementation plan
 
 > **Status: planning only. Do not implement until Muhammad explicitly authorizes it.**
@@ -6,173 +6,398 @@
 >
 > **For agentic workers:** After authorization, use the executing-plans skill for sequential implementation. Keep core implementation unified; use subagents only for isolated read-only review/verification if permitted by the current instructions.
 
-**Goal:** Give each retailer/wholesaler its own branded customer portal, managed from a Web Portal tab in ERP, using one shared NB JEWEL template.
+**Revision:** 2026-11-15 by claude-portal-plan. Incorporates review findings F1 to F17, each checked against the code at fcdf3a1 (section 0), and Muhammad's decision list D1 to D9 (section 1).
 
-**Architecture:** One shared application supports multiple isolated businesses. Each business owns its portal configuration, catalog and branches. Global customer identity is reused, while shopping data remains business-specific. Draft and published configuration are separate.
+**Goal:** Give each retailer/wholesaler its own branded customer portal, managed from a Web Portal entry in ERP, using one shared NB JEWEL template.
 
-**Stack:** Existing Angular standalone components/signals and .NET Web API; existing Sample repository for local verification; SQL changes prepared as reviewable files only.
+**Architecture:** One shared application serves many isolated businesses. Each request carries a trusted `BusinessContext` that selects that business's data partition. Customer identity is global; shopping state is per (customer, business). Portal configuration has a draft and a published revision.
 
-**Spec:** The agreed design and confirmed choices are recorded below from Muhammad's planning conversation on 2026-11-15. This is a self-contained plan, not a statement that the feature exists.
+**Stack:** Existing Angular standalone apps (ERP `frontend/`, storefront `customer-tryon/`) and .NET Web API. Sample repository for local verification. SQL changes prepared as reviewable files only.
 
-## 1. Confirmed choices
+**Labelling rule (AGENTS.md):** Every new table, record, route, flag, folder layout and slug named in this plan is **assumed** design, not existing NB Jewel structure. NB Jewel's real multi-business internals are unknown.
 
-| Decision | Agreed behavior |
+## 0. Review findings verification (code at fcdf3a1)
+
+| ID | Result | Evidence and correction |
+| --- | --- | --- |
+| F1 | verified, with correction | Singletons: `IItemRepository` (Program.cs:95, :99), `IItemImageAssetRepository` (:116, writes `links/item-{id}.json`), `FileProductPublicationStore` (:139, writes `publications/item-{id}.json`; registered only in Sample mode without a platform connection), `FileJewelryRepository` (:162). Correction: `StoreDirectory` is Scoped (:64), but it still reads one global path. Also singletons that capture the repository: `ItemCutoutPipeline` (:117), `IChatDataReader` (:123), `ChatTools` (:124). Global UNIQUE constraints in item_catalog_schema.sql: :22 Category.Name, :41 Store.Code, :50 Design.DesignCode, :59 Item.ItemCode, :102 Sku; also :28 Metal.Name and :36 Purity. MetalRate (:145) has no owner column. |
+| F2 | verified | IdentityData.cs:10-11 (single `AccountType`, global `AllStores`); PermissionGrant :21-25 and StoreGrant :27-31 have no business key. ErpBoundaryFilter.cs:50-52 and KnowledgeController.cs:21 check global grants/AllStores. AllStores staff are created by IdentitySetup.cs:81 (`--bootstrap-identity`, 11 permissions) and SampleIdentitySetup.cs:60 (8 permissions). The 11 permissions are string literals with no constants class. |
+| F3 | verified | `CustomerPortalRecord(Id, Json, Revision)` at IdentityData.cs:14-19, with a concurrency token. JSON shape `CustomerState(Name, Phone, Bag, Reservations)` at CustomerPortal.cs:7; `BagEntry(Id, Source)` at :5. CustomerPortalController.cs:25 requires `AccountType == "customer"`. Wishlist key at store.service.ts:22-24 is `nbjewel.wishlist.v2.${source}.${userId or guest}`, with no slug. |
+| F4 | verified, with correction | `PublicProduct` carries the full `ItemPrice` (PublicCatalogController.cs:19-21, :124). `metal-rates` is anonymous (:92; ErpBoundaryFilter.cs:37-38). Correction: website `AssistantTools.PublicItem` is a JsonObject (not a record) holding total price and currency (AssistantTools.cs:103-104). product.page.ts:237-238 and bag.page.ts:148-150 build `wa.me/?text=` with price and "Hello NB Jewel" and no number. catalog-api.models.ts:26-30 throws when price is missing. Bundled catalog.json holds price inputs that the browser turns into prices (catalog.models.ts:79). No price-hiding concept exists anywhere. |
+| F5 | verified, with correction | ERP serves on the default port 4200 (`ng serve`); the storefront uses `--port 4300`. Correction: staff and customers share one session cookie, `nbjewel.session` (SameSite=Strict, IdentitySetup.cs:32-36), plus CSRF cookie `nbjewel.csrf` and header `X-CSRF-TOKEN`. AccountType tells them apart. |
+| F6 | verified, with path correction | storefront-config.json has `"apiBaseUrl": null`. `storefront-catalog.json` is a build link (NbJewel.Api.csproj:22) to `customer-tryon/public/catalog/catalog.json`. Demo validation is at CustomerPortalController.cs:74-77. |
+| F7 | verified | StoreDirectory.cs:15-16 reads one `STOREFRONT_STORES_PATH`, falling back to `sample-data/store-directory.json`. `StoreLocation` has no business field. |
+| F8 | verified | `AssistantContext` (PlatformContracts.cs:8-9), owner hash and fingerprint (AssistantAccess.cs:95-97), `KnowledgeVersion` and `ProductPublication` (KnowledgeDatabase.cs:28, :30), `PlatformConversation` (PlatformDatabase.cs:6-16) and route `api/ai/{assistant}/conversations` have no business. Two fixed assistants (AiGateway.cs:21). |
+| F9 | verified, with correction | `api/jewelry` (JewelryController.cs:14): GET is anonymous; management needs `jewelry.manage` plus AllStores (ErpBoundaryFilter.cs:30, :50). Correction: `/jewelry-images/{file}` is an anonymous minimal API (Program.cs:199), not a static mount. ERP menu "Try-On Jewelry" points to `/owner/jewelry` (mock-data.ts:11). `OwnerPin.Check` is never called. |
+| F10 | verified | KnowledgeController.cs:61 has literal "Necklaces"/"Earrings". storefront-admin.service.ts:11-13 has `[3, 6]`. PublicCatalogPolicy.cs:8-10 is already name-based and is the reuse target. |
+| F11 | verified, with path correction | Routes are defined in `customer-tryon/src/app/app.config.ts:13-25` (no app.routes.ts). Root-absolute links include product-card.component.ts:16 and site-header.component.ts:23. `providedIn: 'root'` at catalog.service.ts:11 and store.service.ts:10. Reusable helpers exist: `CatalogService.linkParams` (:20) and `catalogContextGuard` (:59-64). home.page.ts and tryon.page.ts drop the context today. |
+| F12 | verified | The prior plan grants owner membership to an existing account and forbids hardcoded passwords, but defines no delivery. Precedent: run-sample-api.py prints runtime-generated credentials once. |
+| F13 | verified | No WhatsApp field exists in backend, sample-data or .env.example. |
+| F14 | applied | The prior plan listed per-product visibility. Removed. |
+| F15 | applied | Task A split into A1, A2, A3 (section 7). |
+| F16 | applied, with correction | Section 3. There are no Vision, StoreDirectory or SpotRates controllers: those routes live in PublicCatalogController and ItemImages `Analyze`. |
+| F17 | applied | Labelling rule above; new structures say "assumed". |
+
+## 1. Confirmed requirements and decisions
+
+### Confirmed requirements (unchanged)
+
+| Requirement | Behavior |
 | --- | --- |
-| Portal ownership | One portal per retailer/wholesaler business, covering multiple branches |
-| Hosting model | One shared NB JEWEL platform for many businesses |
-| Template | One maintained responsive template; editable content and section switches |
-| Layout freedom | Fixed section order; no drag-and-drop builder or alternate templates |
-| Wholesale v1 | Catalog and enquiries, without minimum quantities or trade pricing rules |
-| Customer identity | One platform login; separate bags, wishlists and reservations per business |
-| Business onboarding | NB JEWEL provisions businesses and owner access; no public business signup |
+| Platform | One shared NB JEWEL platform serving many retailer/wholesaler businesses |
+| Portal ownership | One branded portal per business, covering its branches |
+| Template | One fixed template; editable branding/content; section visibility only |
+| ERP editor | Sidebar "Web Portal" with draft, preview, publish, offline |
+| Wholesale v1 | Catalog and enquiries only; no trade pricing, no minimum quantities |
+| Customer identity | One customer login; separate bags, wishlists, reservations per business |
+| Onboarding | NB JEWEL provisions businesses and owner access; no public business signup |
 
-### ERP editor
-
-Add a **Web Portal** sidebar entry leading to these areas:
+### ERP editor areas
 
 | Area | Controls |
 | --- | --- |
-| Branding | Business name, logo and approved color presets |
-| Homepage | Banner image, headline, introduction and shop story |
-| Collections and products | Visible collections/products and featured designs |
-| Customer actions | Show prices; enable enquiries, try-on, bag and reservation requests |
-| Contact and branches | Contact details, WhatsApp number, opening hours and visible branches |
-| Preview and publication | Save draft, preview desktop/mobile, publish changes and take the portal offline |
+| Branding | Business name, logo, approved color preset |
+| Homepage | Banner image, headline, introduction, shop story |
+| Collections | Visible collections and featured designs (F14: no per-product visibility; ERP product publication stays the only product gate) |
+| Customer actions | Show prices; enable enquiries, try-on, bag, reservation requests |
+| Contact and branches | Phone, WhatsApp number (required when enquiries are on), email, opening hours, visible branches |
+| Preview and publication | Save draft, preview desktop/mobile, publish, take offline |
 
-Customers visit `/shops/{businessSlug}`. Branch selection stays within that business. Existing responsive components and product publication controls are reused.
+### Decision table
 
-## 2. Defaults and boundaries
+All nine are **proposed defaults** pending Muhammad's confirmation (section 9). Rule used: the simplest option that keeps every confirmed requirement.
 
-These are architectural defaults proposed in the agreed plan, not existing NB JEWEL business policy:
+| ID | Status | Proposed default | Why |
+| --- | --- | --- | --- |
+| D1 Tenancy | proposed | Per-business data partition behind a `BusinessContext`-resolved storage factory (assumed). Sample/file adapters use one folder per business. SQL adapter: v1 code refuses to start with more than one business; a prepared schema file records an assumed BusinessId-column layout for later review. | Current repositories and file stores stay unchanged inside a partition, so no query is rewritten. Overlapping IDs are safe by construction. SQL is not executable under current authorization anyway. |
+| D2 Staff | proposed | One business per staff account in v1 via `BusinessMembership(UserId unique, BusinessId, Role owner/staff)` (assumed). Existing grants and AllStores are read inside that membership. No global web grant remains; the NB JEWEL operator acts only through a host CLI command. | Minimal identity change. The operator role needs no web surface. Route shape `/api/businesses/{slug}/...` stays forward-compatible with multi-membership. |
+| D3 Staff can shop | proposed | No. Staff accounts keep receiving the existing 403 on customer routes; a staff member shops with a separate customer account. | `AccountType` is single-valued and the session cookie is shared. Mixing roles would widen the permission surface. |
+| D4 Hidden price mode | proposed | Hides price, breakdown, making, stone value, VAT, business metal rates and the rate header. Gross/net weight stay visible as product specification. | Weights are product facts, not trade prices. Hiding them too is a one-line change if Muhammad prefers. Trade-off: weight combined with the public market reference allows a rough metal-value estimate. |
+| D5 Bundled demo catalog | proposed | Kept on legacy unscoped URLs only (current `source=demo` behavior, labelled sample). `/shops/{slug}` portals are API-only with no bundled fallback. Legacy `source=erp` URLs redirect to `/shops/nb-jewel-demo`. | Retiring it now would bring back the empty-storefront problem (no_items.png), because publication requires manual approval. |
+| D6 Website assistant | proposed | Not exposed on portals in v1. `/api/ai/website` stays pinned to nb-jewel-demo and honors its price policy. | No customer chat UI exists yet (handoff), so this is the smallest safe scope. |
+| D7 Owner credentials | proposed | Provisioning attaches an existing staff account when present. Otherwise it creates one and prints a runtime-generated password once to the operator terminal, never logged, stored or committed. | Matches the existing run-sample-api.py precedent. A reset token would need SMTP or a new reset flow. |
+| D8 Shared registrable domain | proposed | Yes: ERP, storefront and API share one registrable domain in production (hostnames assumed). | Keeps SameSite=Strict cookies and the current CSRF design working for preview and customer sessions. Custom domains stay excluded. |
+| D9 Try-on module | proposed | The legacy `/api/jewelry`, `/jewelry-images` and ERP "Try-On Jewelry" menu belong to nb-jewel-demo only (members with `jewelry.manage`). Portal try-on for every business uses that business's approved product previews. | No new per-business jewelry storage, and the menu stays hidden for other businesses. |
 
-- Retailer preset: prices and the existing customer actions enabled. Wholesaler preset: prices hidden and enquiries enabled; try-on, bag and reservations off initially. Owners can change switches.
-- A new business starts offline. Its slug is unique and immutable in v1. Use `nb-jewel-demo` for the existing demo business.
-- Keep the current homepage section order and component designs. Allow branding/content changes and section visibility only; no HTML, JavaScript, custom CSS or arbitrary embeds.
-- Branding uploads reuse bounded PNG/JPG validation and local storage conventions. Logos/banners do not require the jewelry cutout pipeline.
-- Portal visibility never bypasses product eligibility, current-image approval or explicit product publication. Revocation remains immediate, even if the portal configuration is unchanged.
-- Store-specific catalogs and reservations continue to require actual available stock. Publishing a product does not manufacture inventory.
-- Price hiding is enforced in public responses and alternative access paths, not only CSS. Disabled customer actions are rejected by the backend, including requests from stale browser tabs.
-- Existing contact/WhatsApp links provide v1 enquiries. Do not introduce a new message-delivery service or claim an enquiry has been sent automatically.
-- Provider credentials remain backend configuration. This editor does not expose Gemini, metal-feed or other service keys.
-- Custom domains, payments, full wholesale ordering, self-service business signup and production provisioning are excluded.
+### Defaults and boundaries (kept from the prior plan; assumed policy, not NB Jewel policy)
+
+- Retailer preset: prices and existing actions on. Wholesaler preset: prices hidden, enquiries on; try-on, bag and reservations off. Owners can change the switches.
+- A new business starts offline. Slugs are unique and immutable. `nb-jewel-demo` is the existing demo business; `sample-wholesale` is the second sample fixture (assumed name).
+- Fixed section order. No HTML, JavaScript, custom CSS or embeds.
+- Branding uploads reuse bounded PNG/JPG validation; no cutout pipeline.
+- Portal settings never bypass product eligibility, current-image approval or explicit publication. Revocation stays immediate.
+- Store catalogs and reservations still require actual stock.
+- Price hiding and disabled actions are enforced server-side, including requests from stale tabs.
+- v1 enquiries are WhatsApp/contact links only; there is no message delivery service.
+- Provider keys never appear in the editor.
+- Excluded: custom domains, payments, wholesale ordering, self-service signup, production provisioning.
 
 ### Global constraints
 
-- Main checkout on `feature/customer-storefront`; follow the current AGENTS.md and handoff protocol when execution is authorized.
-- Preserve protected owner files, actual `.env` files and running user sessions.
+- Main checkout on `feature/customer-storefront`; AGENTS.md and handoff protocol apply.
+- Preserve protected owner files, `.env` files and running user sessions.
 - No SQL execution, Docker, deployment, destructive migration, worktree creation or force push.
-- Reuse the ERP shell/theme and customer components. Keep role comments on new files and no em-dashes in UI/docs.
-- Use sample-only verification with SQL connection settings unset. An implementation plan is not permission to apply its prepared SQL files.
+- Reuse the ERP shell/theme and customer components. Role comments on new files; no em-dashes in UI/docs.
+- Sample-only verification with SQL connection settings unset.
 
-## 3. Ownership, storage and interface contracts
+## 2. Tenancy and identity design
 
-### Business boundary
+### 2.1 Business registry (assumed)
 
-Introduce businesses and staff memberships. A trusted request-scoped `BusinessContext` supplies the business identity after resolving a public slug or checking authenticated membership. Never trust a browser-supplied business ID without that check.
+`Business(Id, Slug, Name, Kind retailer|wholesaler, CreatedAt)`. Sample mode reads `sample-data/businesses.json` (assumed), seeded with nb-jewel-demo and sample-wholesale. Slug format is `^[a-z0-9-]{3,40}$`, with reserved words `preview`, `api` and `assets` (assumed).
 
-Scope products, branches, stock, selling rates, image revisions, publication records, knowledge and conversation access to the owning business. The current global repository/storage registrations need replacement or business-aware dispatch. Sample instances, filesystem paths and caches must not share mutable business data. Generic market reference quotes may remain shared; business selling rates may not.
+### 2.2 BusinessContext resolution (request-scoped)
 
-Use business-qualified keys and relational constraints for business-owned data. Staff permissions and store grants are resolved within membership: **all stores means all branches in that business**, not the entire platform. `portal.manage` permits draft edits/preview; `portal.publish` permits publication/offline changes. Owners receive both.
+| Route family | Resolution rule | Failure |
+| --- | --- | --- |
+| Public shop `/api/shops/{slug}/...` | Slug to registry; portal must be online | Unknown or offline: identical 404, no catalog |
+| Customer shop `/api/customer/shops/{slug}/...` | Slug to registry plus `AccountType customer` | 404 or 403 |
+| ERP routes (existing unscoped) | Caller's single membership | No membership: 403 |
+| Portal editor `/api/businesses/{slug}/portal/...` | Slug must equal the caller's membership business | Mismatch: 404 |
+| Legacy unscoped public/customer/assistant/jewelry | Fixed to nb-jewel-demo | n/a |
 
-Global customer accounts remain separate from staff membership. Profile identity stays global; bags, reservations and local wishlist keys include customer ID plus business ID. Retailers cannot access another business's shopping activity.
+A business ID in a body or query string is never trusted. A missing context fails closed.
 
-### New interface groups
+### 2.3 Data partition (D1)
 
-| Interface | Responsibility |
+- `IBusinessStorage.For(businessId)` (assumed) returns that business's `IItemRepository`, `IItemImageAssetRepository`, `IProductPublicationStore`, `SampleItemIdAllocator`, `StoreDirectory`, portal store and knowledge store.
+- nb-jewel-demo adopts the existing roots in place: `sample-data/`, `ITEM_ASSET_STORAGE_PATH` and the current `STOREFRONT_STORES_PATH`. Other businesses use `{root}/businesses/{slug}/` (assumed layout). No files are copied or deleted.
+- Item, store, category and design IDs are local to a business. Every external reference is a (slug, id) pair: URLs, bag entries, featured items, preview routes and assets.
+- Singletons that hold a repository (`ItemCutoutPipeline`, `IChatDataReader`, `ChatTools`) receive the business repository per call. Every cache key includes BusinessId.
+- Market reference quotes (`SpotRates`) stay shared. Business metal rates are partitioned.
+- The per-business branch directory (F7) is validated at load: every directory entry's store ID must exist among that business's ERP stores, otherwise it is skipped with a logged warning.
+
+### 2.4 Staff and memberships (D2)
+
+- `BusinessMembership(UserId unique, BusinessId, Role)` (assumed).
+- `PermissionGrant`, `StoreGrant` and `AllStores` keep their keys and are read inside the membership. AllStores means all branches of that business.
+- New permissions: `portal.manage` (draft, assets, preview) and `portal.publish` (publish, offline). Role owner implies all 13 permissions in that business.
+- `ErpBoundaryFilter` requires AccountType erp plus membership plus permissions. `KnowledgeController.CanManage` uses the membership instead of the global AllStores. Default deny stays for unmapped actions, and each new controller action gets an explicit map entry.
+- `/api/auth/me` adds `business { slug, name, role }` for erp accounts.
+- Grant migration (Sample at startup, idempotent; SQL as a prepared file): every existing erp user gets an nb-jewel-demo membership. Bootstrap and sample staff become role owner, everyone else role staff. Existing permissions are unchanged.
+
+### 2.5 Customers (D3)
+
+- AccountType customer is unchanged. Profile (name, phone) stays global.
+- Shopping state moves to `CustomerShoppingState(UserId, BusinessId, Json, Revision)` (assumed) holding bag, reservations and revision.
+- Wishlist local key becomes `nbjewel.wishlist.v3.${slug}.${userId or guest}`.
+- One shared session cookie means one signed-in account per browser profile. This is documented in QA.
+
+### 2.6 Provisioning and owner credentials (D7)
+
+- CLI only (assumed flags): `dotnet run --project backend/NbJewel.Api -- --provision-business --slug <slug> --name <name> --kind retailer|wholesaler --owner-email <email>`.
+- Development and Sample only in v1, the same guard as `--bootstrap-identity`.
+- Creates the business offline with a preset draft. Attaches an existing staff account, or creates one and prints its generated password once.
+- Rejects duplicate, reserved or malformed slugs, and owner emails that already hold another membership.
+- No HTTP signup or provisioning route exists.
+
+## 3. Endpoint inventory (F16)
+
+M = membership business; L = fixed nb-jewel-demo; S = slug route. Every non-GET keeps the global antiforgery filter. Every negative test asserts both the status and that no other-business data appears in the body.
+
+### Existing routes
+
+| Verb and route | Permission today | Business rule after | Negative test |
+| --- | --- | --- | --- |
+| GET /api/items, /api/items/{id} | erp items.read, prices.read, status.read | M | B staff reading an ID that exists only in A gets 404; an overlapping ID returns B's values |
+| GET /api/items/{id}/stock, /variants, /price | erp items.read plus stock.read or prices.read | M | same as above |
+| POST /api/items/{id}/stock | erp stock.write plus StoreGrant | M; store must be in B | store ID valid only in A is rejected |
+| POST /api/items, PUT /api/items/{id}, PATCH /api/items/{id}/status | erp items.write or status.write plus AllStores | M; AllStores means all of B | B write leaves A's partition byte-identical |
+| GET, POST /api/items/{itemId}/image; POST /image/analyze, /image/review; GET /image/preview | erp item perms plus AllStores (review also needs knowledge.manage) | M | A revision ID returns 404 to B; B upload never lands in A's folder |
+| GET /api/categories, /api/designs | erp reference.read | M | returns only B rows |
+| GET /api/stores | erp reference.read, store-filtered | M | returns only B stores |
+| GET /api/metal-rates/latest | erp reference.read, prices.read | M | B gets B's rates only |
+| GET /api/stock/low | erp reference.read, stock.read | M | only B stock |
+| POST /api/chat | erp chat.read | M | B answer never names an A-only item |
+| GET, POST, PUT /api/ai/knowledge/documents[/{id}]; POST .../{id}/publish, /revoke | in-controller: erp plus global AllStores plus knowledge.manage | M; AllStores in the membership | A owner cannot read or publish B documents; customer gets 403 |
+| POST /api/ai/knowledge/products/{itemId}/publish, /revoke; GET .../products/{itemId} | same | M; category check through PublicCatalogPolicy (F10) | A owner publishing an overlapping ID changes only A |
+| POST, GET, DELETE /api/ai/erp/conversations[...] | erp chat.read; owner hash | M; BusinessId added to owner hash and fingerprint | conversation created in A is unreadable by B and after a membership change |
+| POST, GET, DELETE /api/ai/website/conversations[...] | anonymous visitor | L (D6) | tools never return sample-wholesale items; price omitted when the demo hides prices |
+| GET /api/jewelry | anonymous | L (D9) | n/a, demo data only |
+| GET /api/jewelry/all; POST /api/jewelry; PATCH /{id}/active; DELETE /{id} | erp jewelry.manage plus AllStores | M must be nb-jewel-demo | sample-wholesale owner gets 403 |
+| GET /api/storefront/products, /products/{id}, /products/{id}/preview, /metal-rates, /stores, /spot-rates | anonymous (named exceptions) | L; demo portal policy applies (spot-rates stays global market data) | never returns sample-wholesale items; `businessId`/`slug` query values ignored |
+| GET, PUT /api/customer/profile | customer | none (global) | staff gets 403 |
+| POST /api/customer/bag; DELETE /api/customer/bag/{source}/{productId}; POST /api/customer/reservations | customer | L | entries land only in the nb-jewel-demo state |
+| GET /api/auth/csrf; POST /register, /login, /confirm-email, /resend-verification, /logout | anonymous plus CSRF | none | register never creates an erp account or a membership |
+| GET /api/auth/me | authenticated | adds membership business for erp | customer response has no business |
+| GET /jewelry-images/{file} | anonymous minimal API | L | a file name belonging to another business returns 404 |
+| GET /health/live, /health/ready | anonymous minimal API | none | body contains no business data |
+
+### New routes (all assumed)
+
+| Verb and route | Permission | Business rule | Negative test |
+| --- | --- | --- | --- |
+| GET /api/shops/{slug} (published portal config) | anonymous | S, online | offline and unknown return the same 404 |
+| GET /api/shops/{slug}/products, /products/{id}, /products/{id}/preview, /stores, /metal-rates | anonymous; price policy | S, online | overlapping ID resolves to the slug's business; hidden mode has null price and empty rates |
+| GET /api/shops/{slug}/assets/{assetId} | anonymous | S; asset referenced by the published revision | draft-only asset gets 404 |
+| GET /api/customer/shops/{slug}/state; POST .../bag; DELETE .../bag/{productId}; POST .../reservations | customer; current action switches | S | disabled action from a stale tab gets 409 (assumed code); store ID from another business rejected; staff gets 403 |
+| GET, PUT /api/businesses/{slug}/portal/draft | erp portal.manage, expected revision | M equals slug | other slug 404; customer 403; missing CSRF 400; stale revision 409 |
+| POST /api/businesses/{slug}/portal/assets; GET .../assets/{id} | erp portal.manage | M | oversize or non-PNG/JPG rejected; other business's asset ID 404 |
+| GET /api/businesses/{slug}/portal/preview (draft config plus products) | erp portal.manage; `Cache-Control: no-store`, noindex | M | anonymous 401; `preview=true` on public routes ignored |
+| POST /api/businesses/{slug}/portal/publish, /offline | erp portal.publish, expected revision | M | manage-only staff 403; invalid draft leaves the live revision byte-identical |
+| CLI `--provision-business` | host operator | n/a | POST /api/businesses returns 404 or 405 |
+
+## 4. Price-hiding matrix
+
+| Surface | Prices shown | Prices hidden (D4) | Enforcement and test |
+| --- | --- | --- | --- |
+| Public product list/detail DTO | full `ItemPrice` | `price: null`; weights kept | server projection; JSON has no total, making, rate, stone or VAT values |
+| Product preview image | unchanged | unchanged | n/a |
+| Business rates `/api/shops/{slug}/metal-rates` | dated rates | empty list plus `pricesHidden: true` | server |
+| Legacy `/api/storefront/metal-rates` | demo policy | demo policy | server |
+| Market reference `/api/storefront/spot-rates` | rendered | section not rendered; endpoint stays global market data (not business pricing) | client section switch |
+| Website assistant | demo only, total price | demo only, price omitted | AssistantTools reads the demo's published policy |
+| ERP item APIs and ERP assistant | unchanged for authorized staff | unchanged | existing permissions |
+| Enquiry text | business name, product name/code, portal link, price; `wa.me/{published WhatsApp}` | same without price | client builds from the published config; button absent when enquiries are off |
+| Bag and reservation responses | no price fields today | no price fields | keep; bag total hidden client-side |
+| Client model | `price` present | `price` optional; mapper accepts null only when the shop config says `pricesHidden`, otherwise throws as today | catalog-api.models.ts unit tests |
+| Bundled demo catalog | legacy URLs only | never under `/shops` | route test |
+| Stale tab | n/a | server re-reads the published policy on every request | HTTP test after publishing a switch change |
+
+## 5. Draft, preview and publish
+
+Stored data (assumed):
+- `PortalDraft(BusinessId, Revision, SettingsJson, UpdatedBy, UpdatedAt)`
+- `PortalPublication(BusinessId, Revision, SettingsJson, PublishedBy, PublishedAt)`
+- `PortalState(BusinessId, Online)`
+- Sample storage: atomic JSON files in the business partition.
+
+Settings content: branding, homepage text and assets, fixed section switches, visible collection names, featured item IDs (max 12, assumed), action switches, contact, and visible branch IDs. Collection names come from the business's published products (`StorefrontMetadata.Collection`).
+
+Server rules:
+1. Draft save requires `portal.manage` and an expected revision; a mismatch returns 409 and preserves the other editor's work. Draft may be incomplete but must be well-typed, with text lengths bounded and no HTML.
+2. Publish requires `portal.publish` and the expected draft revision. Full validation: name present; color from the preset list; every asset, branch and featured item belongs to the business; every featured item is currently published and eligible; WhatsApp in E.164 format whenever enquiries are on (F13); at least one visible branch whenever reservations are on.
+3. Publish writes the new publication atomically (temp file and rename) and sets the portal online. Any failure leaves the previous publication and state untouched.
+4. Offline requires `portal.publish`, keeps the publication and makes public reads return 404.
+5. Revoked or unpublished products drop from rendering immediately, with no republish needed. Product publication remains the only product gate (F14).
+6. Draft assets are served only through the authenticated editor route. Public asset reads require a reference from the current publication.
+7. An audit line (business, actor ID, action, revision, time; no secrets) is appended per save, publish and offline.
+8. Preview (F5): ERP opens `{storefrontBaseUrl}/shops/{slug}/preview` (assumed nonsecret ERP config key). That storefront route reads `GET /api/businesses/{slug}/portal/preview` with the staff session cookie; this works under D8 same-site. The response is `no-store` and noindex. Preview renders the same template with actions disabled. Customer mutation endpoints already reject staff AccountType, and no `preview` flag on public routes grants draft access.
+
+## 6. Compatibility, legacy mapping and data migration
+
+| Legacy | v1 behavior |
 | --- | --- |
-| Operator provisioning command | Create a business, reserve its slug and grant an existing staff account owner membership; no public signup endpoint |
-| Protected ERP portal API | Read/save draft, upload branding assets, authenticated preview, publish a revision, take portal offline |
-| Public shop API | Resolve the published business portal and its catalog/images/stores by slug |
-| Business-scoped customer API | Apply customer ownership and current published action/price policy for bag/reservations |
+| `/`, `/shop`, `/p/:id`, `/bag`, `/wishlist`, `/reserved`, `/try/:id`, `/stores`, `/profile` with `source=demo` or no API config | Unchanged bundled demo (D5), labelled sample; shopping state counts as nb-jewel-demo |
+| Same paths with `source=erp` | Redirect to `/shops/nb-jewel-demo/...`, preserving product ID, `store` and try-on `parts` |
+| `/api/storefront/*` | Thin alias for nb-jewel-demo (L) |
+| `/api/customer/bag`, `/api/customer/reservations` | Alias to nb-jewel-demo shopping state |
+| `/api/jewelry`, `/jewelry-images`, ERP `/owner/jewelry` | nb-jewel-demo only (D9) |
+| `/api/ai/website` | nb-jewel-demo only (D6) |
 
-Use existing cookie/CSRF authentication. Draft writes and publication carry an expected revision; conflicting edits return 409 without discarding another editor's work. The public DTO contains published customer-facing fields only.
+Data migration (idempotent; no deletion; SQL as prepared files only):
+- **Customer rows:** read-time migration in `CustomerPortal`. When a `CustomerPortalRecord` still holds bag or reservations and no nb-jewel-demo `CustomerShoppingState` exists, move them into it and keep name/phone as the global profile. Both writes go in one save with revision checks. Prepared SQL backfill file (assumed name `docs/business-portal-schema.sql`).
+- **Publications and assets:** nb-jewel-demo adopts the existing `publications/`, `links/`, revision folders and ID reservations in place. Nothing is copied into other businesses.
+- **nb-jewel-demo portal:** seeded with a retailer-preset publication, online, so the legacy API keeps working. Assumed content, editable later.
+- **Staff:** membership migration per 2.4.
+- **Wishlist:** on first load the storefront copies `nbjewel.wishlist.v2.{source}.{user}` into the nb-jewel-demo v3 key and leaves v2 in place.
+- **Sample identity:** in-memory and reset on restart, so its migration is exercised by tests, not by persisted data.
 
-Portal settings include branding/content, section switches, collection/product visibility, featured product IDs, action/price switches, contact details and selected branch IDs. Every referenced product, branch and uploaded asset must belong to the business.
+## 7. Ordered tasks
 
-Save draft changes separately from a published snapshot. Publish validates the complete draft and atomically switches the published revision. A failed publish leaves the current live revision intact. Unknown/offline shops expose no catalog and never fall back to another business or bundled demo data.
+All tasks are **pending and unauthorized**. Each task follows the same loop: write failing tests, record the RED log, apply the minimal implementation, run the affected suites, update the handoff, checkpoint by explicit path, push.
 
-Preview uses the same storefront renderer via authenticated, non-cacheable draft endpoints. It is read-only and cannot submit shopping actions. A public `preview=true` parameter must never grant draft access.
+**Commands (from README/handoff):**
+- **Backend:** run inside the README verification wrapper (strips CONNECTION/SQL variables, `Repository__Provider=Sample`) with `CUTOUT_PYTHON_PATH=/tmp/nbjewel-cutout-runtime-venv/bin/python`:
+  - `dotnet build backend/NbJewel.Api --no-restore`
+  - `dotnet test backend/NbJewel.Api.Tests --no-restore`
+  - focused runs add `--filter "FullyQualifiedName~<Class>"` (test class names below are assumed).
+- **ERP:**
+  - `npm --prefix frontend test`
+  - `(cd frontend && npx tsc --noEmit -p tsconfig.app.json)`
+  - `NG_BUILD_MAX_WORKERS=2 npm --prefix frontend run build`
+- **Storefront:** the same three commands with `customer-tryon`.
+- **Always:** `git diff --check -- <paths>`. No lint target exists; report it as absent.
 
-### Compatibility
+### A1. Business context and memberships
+- **Depends on:** none.
+- **Touchpoints:** new `backend/NbJewel.Api/Businesses/` (registry, BusinessContext, membership, provisioning CLI); Identity/IdentityData.cs, IdentitySetup.cs, SampleIdentitySetup.cs, ErpBoundaryFilter.cs; KnowledgeController.cs `CanManage`; AuthController `me`; Program.cs; sample-data/businesses.json; prepared SQL file.
+- [ ] RED (`BusinessContextTests`, `BusinessMembershipHttpTests`, `ProvisioningCommandTests`):
+  - staff without membership gets 403
+  - slug mismatch gets 404
+  - AllStores covers only the member business
+  - customers never resolve an erp business
+  - CLI rejects duplicate/reserved slugs and second memberships, and never writes the password to logs or files
+  - no HTTP provisioning route
+  - existing staff migrate to nb-jewel-demo
+- [ ] Implement the minimum. Add `portal.manage` and `portal.publish`.
+- [ ] Full backend build/test green.
 
-Preserve existing behavior within the default demo business. Map legacy storefront URLs/APIs to that business only, including `shop?source=erp`; never leave an unscoped endpoint that aggregates all businesses. Preserve source, business and branch context across product links, try-on piece/design changes, authentication resume and refresh.
+### A2. Data isolation
+- **Depends on:** A1.
+- **Touchpoints:** Program.cs registrations; Repositories (factory, SampleItemRepository, SampleItemIdAllocator, FileItemImageAssetRepository); Knowledge (FileProductPublicationStore, KnowledgeService); Jewelry (ItemCutoutPipeline, FileJewelryRepository demo pin); Storefront/StoreDirectory.cs; Chat (ChatTools, ChatDataReader); Platform (AssistantAccess owner/fingerprint, AssistantTools); PublicCatalogController; KnowledgeController.cs:61 to PublicCatalogPolicy; frontend storefront-admin.service.ts `[3, 6]` to name-based (F10).
+- [ ] RED (`BusinessIsolationHttpTests`, two businesses with overlapping item, store and category IDs). Every existing-route row in section 3 gets its negative test, including uploads, publications, caches, chat and assistant conversations. Branch directory validation is covered. ERP spec: eligibility by category name.
+- [ ] Implement the partition factory. Convert the singletons; nb-jewel-demo adopts the existing roots; SQL mode fails closed with more than one business.
+- [ ] Backend full green. ERP test/typecheck/build green.
 
-Prepare SQL ownership/configuration migrations and legacy-file import instructions as files. Existing sample assets/publications must be assigned explicitly to the default demo business, not copied into every new business. Do not apply migrations as part of this plan's documentation task.
+### A3. Customer data
+- **Depends on:** A1, A2.
+- **Touchpoints:** Storefront/CustomerPortal.cs; IdentityData.cs (new state record); CustomerPortalController.cs (new shop-scoped routes and legacy aliases; demo validation kept for legacy only); customer-tryon catalog/store.service.ts (v3 wishlist key and copy); prepared SQL.
+- [ ] RED (`CustomerShoppingStateTests`, storefront store.service spec):
+  - the same customer has separate bags in two businesses
+  - a legacy row migrates once into nb-jewel-demo
+  - concurrent revision conflict
+  - reservation store from another business rejected
+  - staff 403
+  - wishlist v2 to v3 copy
+- [ ] Implement. Run backend full suite and storefront test/typecheck/build.
 
-## 4. Future implementation tasks
+### B. Portal configuration lifecycle
+- **Depends on:** A1 to A3.
+- **Touchpoints:** new Businesses/Portal store and service; new `PortalController` (assumed) with explicit ErpBoundaryFilter entries; branding upload reusing bounded PNG/JPG checks.
+- [ ] RED (`PortalLifecycleHttpTests`), one test per server rule in section 5:
+  - 409 on a stale revision
+  - failed publish leaves live byte-identical
+  - WhatsApp required with enquiries
+  - foreign featured item, branch or asset rejected
+  - revoked featured item drops out
+  - draft asset not public
+  - offline 404
+  - audit lines written
+- [ ] Implement. Backend full green.
 
-All tasks below are **pending and unauthorized** until Muhammad gives the go-ahead. Each authorized task uses a failing regression test, minimal implementation, affected checks and an explicit-path checkpoint/push.
+### C1. Public shop API and price hiding
+- **Depends on:** B.
+- **Touchpoints:** new `ShopsController` (assumed) or extension of PublicCatalogController; legacy `/api/storefront/*` alias; customer action enforcement; AssistantTools demo policy.
+- [ ] RED (`ShopPublicHttpTests`, `PriceHidingHttpTests`): every row in section 4 that has server enforcement; unknown and offline return the same 404; stale-tab action rejected.
+- [ ] Implement. Backend full green.
 
-### Task A: business identity and repository isolation
+### C2. Storefront business routes
+- **Depends on:** C1.
+- **Touchpoints:** customer-tryon app.config.ts (`/shops/:slug` parent with child routes, legacy redirects); new link helper extending `CatalogService.linkParams`; CatalogService/StoreService reset on slug change; config/models (optional price, `pricesHidden`); header/home/contact templates (branding, sections); product.page.ts and bag.page.ts enquiry text; home.page.ts and tryon.page.ts context fixes.
+- [ ] RED (route and service specs):
+  - switching slug clears all prior catalog, bag and wishlist state with no stale data
+  - every link stays under the current slug
+  - hidden mode renders no price
+  - enquiry uses the published number and name
+  - legacy `source=erp` redirect keeps product and store
+  - offline shop shows the unavailable page with no fallback
+- [ ] Implement. Storefront test/typecheck/build green.
 
-**Touchpoints:** backend Identity, Repositories, Jewelry, Knowledge, Platform and Program composition. Add a focused Businesses module and sample fixtures; prepare SQL files.
+### D. ERP Web Portal editor and preview
+- **Depends on:** B (APIs), C2 (preview route).
+- **Touchpoints:** frontend core/mock/mock-data.ts (add "Web Portal"; show "Try-On Jewelry" only for nb-jewel-demo members); app.config.ts route; new `frontend/src/app/features/web-portal/` and its API service; nonsecret storefront base URL config; customer-tryon `/shops/:slug/preview` route.
+- [ ] RED (component and service specs):
+  - owner versus staff (manage-only cannot publish)
+  - fixed section switches only
+  - WhatsApp validation message
+  - 409 reload-and-keep flow
+  - preview opens the storefront URL
+  - preview disables actions
+- [ ] Implement with existing ERP components. Run ERP and storefront test/typecheck/build.
 
-**Produces:** business registry, memberships, scoped permissions and `BusinessContext`; isolated repository, asset and publication access.
+### E. Two-business QA and release gate
+- **Depends on:** all.
+- [ ] Read-only review of every section 3 row, legacy alias and cache. Fix material findings, each with a regression test.
+- [ ] Run all six gates: backend build/test, ERP test/build, storefront test/build, plus both typechecks.
+- [ ] Sample browser demonstration:
+  - two branded businesses
+  - hidden-price wholesaler
+  - the existing upload, review, publish, edit and revoke flow inside nb-jewel-demo
+  - preview versus live
+  - offline
+  - one customer with two separate bags
+- [ ] Extend docs/QA_TEST.md. Record prepared SQL and its limits. Update the handoff, checkpoint, push, release the Lock. No deploy, no SQL.
 
-- [ ] Add two-business tests using overlapping local product/store IDs. A staff account in A must not read/write B by changing routes, request bodies or asset IDs.
-- [ ] Implement membership resolution and business-qualified access across existing API and assistant paths, including background jobs and cached data.
-- [ ] Seed a default demo business plus an independent sample business. Prepare reviewed backfill/constraint changes without opening SQL connections.
-- [ ] Verify the isolation tests and existing backend suite before adding editor routes.
+## 8. Acceptance tests per risk
 
-### Task B: provisioning and portal configuration lifecycle
+| Risk | Proof | Task |
+| --- | --- | --- |
+| Cross-business access by route, body, asset ID, cache, chat or assistant | Overlapping-ID negative test for every section 3 row | A2, E |
+| Staff escaping their business, or a global grant surviving | Membership tests; no HTTP provisioning; AllStores bounded | A1 |
+| Customer state bleeding between businesses or lost in migration | Two-bag test; one-time legacy migration test; wishlist v3 copy | A3 |
+| Hidden prices leaking through DTO, rates, assistant, enquiry text or client | Section 4 HTTP and spec tests | C1, C2 |
+| Draft or private assets visible publicly; preview flag abuse | Guest preview 401; draft asset 404; `preview=true` ignored | B, D |
+| Stale tab bypassing a disabled action | Publish a switch off, then the old request is rejected | C1 |
+| Lost shop context or stale data on slug change | Slug-switch and link-helper specs; legacy redirect keeps product/store | C2 |
+| Enquiry with no destination | Publish blocked without WhatsApp when enquiries are on | B |
+| Try-on module leaking across businesses | Non-demo owner 403 on jewelry management; image 404 | A2 |
+| Regression of the existing demo | Legacy URLs and APIs behave as before for nb-jewel-demo; full suites green | E |
 
-**Touchpoints:** new backend Businesses/Storefront configuration services, protected controller and scoped persistence; backend tests.
+Acceptance needs all of the following:
+- two businesses running the same template independently
+- unpublished edits staying private
+- published changes affecting only the owning shop
+- correct product and stock eligibility
+- global login with separate shopping state per business
+- all regression, build and browser checks passing
 
-**Consumes:** Task A's trusted business context and permissions.
-**Produces:** provisioning command, versioned draft/published configuration, branding asset ownership and audit events.
+Prepared SQL alone is not evidence of production readiness.
 
-- [ ] Test duplicate slugs, owner-only access, cross-business asset references, stale revisions, failed publication and offline public reads.
-- [ ] Implement operator provisioning without public business signup. Do not create hardcoded passwords or send invitation emails implicitly.
-- [ ] Implement draft save, atomic publication/offline state and bounded branding uploads. Audit business ID, actor and revision without secrets.
-- [ ] Verify new lifecycle tests and the backend suite.
+## 9. Decisions Muhammad must confirm
 
-### Task C: business-specific storefront and customer data
+1. D1: per-business partition via a storage factory; SQL refuses multi-business until a reviewed BusinessId-column schema is applied.
+2. D2: one business per staff account; operator is CLI-only; no global web grants.
+3. D3: staff cannot shop with their staff login.
+4. D4: hidden mode hides price, breakdown and business rates, but keeps weights. Alternative: also hide weights.
+5. D5: bundled demo kept on legacy URLs only; portals API-only; `source=erp` redirects to `/shops/nb-jewel-demo`.
+6. D6: website assistant not on portals; pinned to nb-jewel-demo.
+7. D7: attach an existing account, or print a generated password once to the operator terminal.
+8. D8: ERP, storefront and API on one registrable domain in production.
+9. D9: legacy try-on module is nb-jewel-demo only; portals use approved product previews.
+10. Assumed names: `nb-jewel-demo`, `sample-wholesale`, reserved slugs, 409 for disabled actions, max 12 featured items, E.164 WhatsApp format.
 
-**Touchpoints:** existing public catalog/customer controllers; customer app routing, config, catalog, session and store services; template components.
-
-**Consumes:** business context, published portal settings and existing product approval/publication checks.
-**Produces:** `/shops/{businessSlug}` routes, business-specific public/customer APIs and reusable configurable template.
-
-- [ ] Test unknown/offline shops, hidden products/prices, stale-tab actions and absence of cross-business fallback.
-- [ ] Apply the published settings to homepage/header/contact/navigation and public product projections. Maintain one shared layout.
-- [ ] Scope bags/wishlists/reservations and preserve business/branch context through login resume, reload and try-on navigation.
-- [ ] Add compatibility mapping for the default demo business. Verify backend and customer tests/typecheck/build.
-
-### Task D: ERP Web Portal editor and authenticated preview
-
-**Touchpoints:** existing sidebar menu in `frontend/src/app/core/mock/mock-data.ts`; a new frontend Web Portal feature and API service; shared customer renderer/preview entry.
-
-**Consumes:** Task B's protected APIs and Task C's shared renderer.
-**Produces:** working business-owned editor, draft preview and explicit publish/offline controls.
-
-- [ ] Test owner permissions, fixed section switches, validation, 409 recovery and draft/live separation.
-- [ ] Implement all editor areas listed in section 1 using existing ERP components. Product visibility/featured choices select business-owned eligible products; image approval remains in the existing item workflow.
-- [ ] Add desktop/mobile preview with authenticated draft reads, no public draft exposure and no customer mutations.
-- [ ] Verify ERP tests/typecheck/build and compare preview to the live template after publishing.
-
-### Task E: two-business QA and release gate
-
-**Produces:** completed acceptance evidence, updated setup/QA documentation and reviewed schema files. No production rollout is implicit.
-
-- [ ] Run a read-only review of all business boundaries, legacy endpoints and shared caches; fix material findings with regressions.
-- [ ] Run backend sample tests/build and both Angular suites, strict typechecks and production builds. Run lint only if configured; report absence honestly.
-- [ ] Demonstrate two differently branded businesses, isolated data and the existing ERP upload → review → publish → edit → revoke flow.
-- [ ] Extend `docs/QA_TEST.md` with owner/other-business/customer checks, draft versus live checks and offline behavior.
-- [ ] Record migration requirements and validation limits; update the sole handoff file, checkpoint/push and release the lock. Do not deploy or run SQL.
-
-## 5. Review focus and acceptance
-
-| Risk | Required proof / owning task |
-| --- | --- |
-| Cross-business access through legacy routes, assistants, files or cache | A/C: overlapping-ID negative tests and no global fallback |
-| Hidden prices leaking through direct detail, rates, breakdown or assistant responses | C: inspect every public projection; ERP authorized pricing remains available |
-| Draft/private branding visible publicly | B/D: guest preview denied; draft assets/config not publicly exposed before publication |
-| Old browser state bypassing newly disabled actions | C: backend rejects action using current published policy |
-| Losing shop context during login, navigation or reload | C/E: original business, product and branch survive every transition |
-
-Acceptance requires two businesses using the same template independently; unpublished edits staying private; published changes affecting only the owning shop; correct product and stock eligibility; global login with separate business shopping state; and passing regression/build/browser checks. Prepared SQL alone is not evidence of production persistence or deployment readiness.
-
-## 6. Execution hold
+## 10. Execution hold
 
 **Current authorization is limited to saving this plan. Implementation has not started.**
 
