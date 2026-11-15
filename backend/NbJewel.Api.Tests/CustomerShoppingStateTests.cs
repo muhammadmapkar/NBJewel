@@ -64,6 +64,11 @@ public sealed class CustomerShoppingStateTests
         await File.WriteAllBytesAsync(Path.Combine(path, "preview.png"), bytes); var hash = Convert.ToHexString(SHA256.HashData(bytes));
         await partition.Assets.SaveAsync(new(7, revision, hash, hash, "ready", "approved", "open", 64, 64, DateTimeOffset.UtcNow), default);
         await partition.Publications.SaveAsync(new() { ItemId = 7, Published = true, AssetRevisionId = revision }, "test", default);
+        var portals = factory.Services.GetRequiredService<PortalStore>();
+        await portals.ChangeAsync(registry.Find(slug)!, doc => {
+            var enabled = doc.Draft with { Revision = doc.Draft.Revision + 1, Settings = doc.Draft.Settings with { Enquiries = false, Bag = true, Reservations = true } };
+            return Task.FromResult(doc with { Draft = enabled, Publication = enabled, Online = true });
+        }, default);
     }
     [Fact]
     public async Task OneCustomerHasSeparateBagsAndForeignStoreReservationsAreRejected()

@@ -8,7 +8,7 @@ using NbJewel.Api.Repositories;
 
 namespace NbJewel.Api.Platform;
 
-public sealed class AssistantTools(IPermissionAdapter permissions, IItemRepository repository, IKnowledgeRetriever knowledge, IPublicationReader publications, BusinessMemberships? memberships = null, BusinessContext? business = null) : IAssistantTools
+public sealed class AssistantTools(IPermissionAdapter permissions, IItemRepository repository, IKnowledgeRetriever knowledge, IPublicationReader publications, BusinessMemberships? memberships = null, BusinessContext? business = null, PortalPolicy? portals = null) : IAssistantTools
 {
     private static readonly Dictionary<string, string[]> Required = new()
     {
@@ -105,7 +105,11 @@ public sealed class AssistantTools(IPermissionAdapter permissions, IItemReposito
     }
     private async Task<JsonObject> PublicItem(Item item, CancellationToken ct)
     {
-        var price = await repository.GetPriceAsync(item.Id, ct);
-        return new JsonObject { ["id"] = item.Id, ["code"] = item.Code, ["name"] = item.Name, ["categoryId"] = item.CategoryId, ["metalType"] = item.MetalType, ["purity"] = item.Purity, ["imageUrl"] = item.ImageUrl, ["price"] = price?.TotalPrice, ["currency"] = price?.Currency };
+        var settings = portals is null ? null : await portals.SettingsAsync(ct);
+        if (portals is not null && settings is null) throw new KeyNotFoundException();
+        var price = settings?.ShowPrices == false ? null : await repository.GetPriceAsync(item.Id, ct);
+        var result = new JsonObject { ["id"] = item.Id, ["code"] = item.Code, ["name"] = item.Name, ["categoryId"] = item.CategoryId, ["metalType"] = item.MetalType, ["purity"] = item.Purity, ["imageUrl"] = item.ImageUrl, ["price"] = price?.TotalPrice, ["currency"] = price?.Currency };
+        if (settings?.ShowPrices == false) { result.Remove("price"); result.Remove("currency"); }
+        return result;
     }
 }

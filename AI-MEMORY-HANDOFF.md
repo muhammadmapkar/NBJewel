@@ -3,10 +3,11 @@
 
 ## Lock
 - Agent: codex-portal-impl.
-- Since: 2026-11-15T22:05:32+04:00
+- Since: 2026-11-15T22:22:10+04:00
 - Status: held for authorized business portal tasks step 0, A1, A2, A3, B, C1, C2, D and E.
 
 ## Branch and last commit
+- Portal B: 045f59b (pushed); C1 predecessor verified. C1 is the next checkpoint containing this handoff.
 - Portal A3: 7910eba (pushed); B predecessor verified. B is the next checkpoint containing this handoff.
 - Portal A2: 7c12971 (pushed); A3 predecessor verified. A3 is the next checkpoint containing this handoff.
 - Portal A1: 947e4c1 (pushed); A2 predecessor verified at this hash. A2 is the next checkpoint containing this handoff.
@@ -54,6 +55,7 @@ Origin reconciliation, forensic audit and reproduced assistant visibility repair
 
 
 ## Done
+- C1: scoped catalog/store/rate/preview reads share publication checks with demo aliases. Hidden prices are null/omitted server-side, rates empty, assistant prose has no price. Website conversation fingerprints include live policy so old price-bearing history is denied after a policy change; deletion still works. Current customer action and branch settings reject stale requests.
 - B: fixed assumed settings, expected draft revisions, full publication validation and one atomic envelope for draft/publication/online state/audit. Private assets require portal.manage; public assets require live references. Preview is authenticated, no-store/noindex; revoked product evidence drops immediately.
 - A3: one-row v2 customer profile/shops JSON upgrades v1 once, retains ERP history and drops unresolvable demo entries. Shop bags/reservations are independent, revision conflicts preserved, first-write collision maps to conflict. Wishlist v3 copies only v2.erp, with stale response and sign-in-intent guards.
 - A2: demo roots adopted in place; Sample wholesale fixture overlaps item/category/store/design IDs. ERP reads/writes/images/knowledge/conversations/chat stay in the member partition; public/website/jewelry aliases stay pinned to demo. SQL adapters resolve offline and reject a second registered business before reads.
@@ -102,8 +104,9 @@ Origin reconciliation, forensic audit and reproduced assistant visibility repair
 - [x] A2: business storage factory, immutable request binding, SQL startup guard, partitioned catalog/assets/publications/knowledge and assistant ownership; overlapping-ID regressions passed.
 - [x] A3: versioned customer JSON in existing row, per-shop shopping routes and ERP-only v2 wishlist copy.
 - [x] B: validated drafts, private assets, authenticated preview and atomic publication/offline/audit.
-- [ ] C1: public shop catalog, complete price projection and stale-tab action enforcement.
-- [ ] C1, C2, D, E: execute in order with per-task gates/commits/push; independent review pending for Claude.
+- [x] C1: scoped public catalog, hidden price/rates/assistant projections, stale action rejection and website-history policy binding.
+- [ ] C2: shop routes, context-safe links/state, published branding/actions and enquiries.
+- [ ] C2, D, E: execute in order with per-task gates/commits/push; independent review pending for Claude.
 - [x] ERP Vision endpoint, editable rendered-preview auto-fill and protected revision/auth tests.
 - [x] Customer profile/bag/reservation backend and opt-in Sample customer identity.
 - [x] Public store directory/filter/map and optional Gold/Silver/Platinum market reference adapter.
@@ -133,6 +136,7 @@ Historical phase-2 checklist:
 - [x] After task 9: sequential read-only lead review completed; all findings corrected with regressions and affected suites/builds passing. Stop and wait for Muhammad.
 
 ## Blockers and decisions
+- C1 decision: website history is conservatively invalidated on any new portal publication revision, preserving owned deletion. Customer state fixtures explicitly enable wholesale bag/reservations; the real wholesale preset stays offline and actions off. Public preview flags never authorize draft reads.
 - B ruling: demo seed disables enquiries until Muhammad supplies a real WhatsApp destination, since none exists and a number must not be invented. Wholesale drafts remain offline/incomplete until configured. Audit entries commit in the same atomic envelope as publication/state; retained filesystem lock coordinates writers.
 - A2 assumed storage: per-host Sample knowledge DB for other businesses; existing demo knowledge provider preserved. Unseeded businesses start with empty catalog/reference lists, never demo fallback. Request binding is immutable; changed membership fails closed. Conversation hashes now include business, so older transcripts may require a new conversation after activation. SQL remains one business and no existing table/UNIQUE change.
 - A1 ruling: owner implies all 13 permissions as approved; restricted-grant test fixtures explicitly use staff roles, even with AllStores. Stored sample grants stay unchanged. Sample provisioning keeps its new host running because identities/memberships reset on restart; generated passwords are terminal-only. No existing service was touched.
@@ -195,6 +199,7 @@ Historical phase-2 checklist:
 - No questions to owner. Choose conservative sample-only behavior and log assumptions. Accounts, chatbot, locator are later phases.
 
 ## Files touched
+- C1: PortalPolicy.cs, Program/BusinessBoundary, PublicCatalogController/PortalController/CustomerPortalController, AssistantAccess/Tools/Contracts/GroundedAnswer; PriceHidingHttpTests, ShopPublicHttpTests and three isolated test fixtures; plan and handoff.
 - B: Businesses/PortalSettings.cs, PortalStore.cs, PortalService.cs; Controllers/PortalController.cs and ShopsController.cs; Program.cs, ErpBoundaryFilter.cs, PortalLifecycleHttpTests.cs; plan and handoff.
 - A3: CustomerPortal.cs, CustomerPortalController.cs, BusinessBoundary.cs, CustomerShoppingStateTests.cs, customer store.service.ts and new spec; plan and handoff. No SQL schema or owner file change.
 - A2: Businesses/BusinessStorage.cs, BusinessBoundary.cs, BusinessContext.cs; Program, SampleItemRepository, csproj, StoreDirectory, ErpBoundaryFilter, KnowledgeController, AssistantAccess/Tools/Contracts; BusinessIsolationHttpTests, BusinessSqlBoundaryTests, BusinessContextTests and two test fixtures; eight sample-wholesale JSON fixtures; plan and handoff.
@@ -223,6 +228,7 @@ Historical phase-2 checklist:
 - Pre-existing owner changes preserved, excluded from staging: PROGRESS.md, docs/run-guide.md, customer-tryon/package-lock.json; untracked browser security plan, old proof image, pasted jewelry image.
 
 ## Test commands and last results
+- C1 RED: 3 failures for price policy/history/stale actions (/tmp/nbjewel-C1-red.log); hidden assistant price label separately RED/GREEN. Final clean backend 446 passed/7 SQL skipped/0 failed, build 0 warnings/errors, focused 20 passed, static passed (/tmp/nbjewel-C1-{final-focused,full,build,static}.log). Importer/SQL DI regressions included; frontend unchanged.
 - B RED: 6 missing-route failures (/tmp/nbjewel-B-red.log). Final clean backend 441 passed/7 SQL skipped/0 failed, build 0 warnings/errors (/tmp/nbjewel-B-{full,build}.log); focused 10 passed and static checks passed. Includes importer/SQL DI regression; no frontend changes or SQL execution.
 - A3 RED: 3 backend failures (missing routes/demo entries) and 2 wishlist failures (missing selectShop); first-write duplicate race separately reproduced. Final clean backend 434 passed/7 SQL skipped/0 failed, build 0 warnings/errors (/tmp/nbjewel-A3-final-{backend,build}.log); focused 12 passed; storefront 77 passed, typecheck exit 0 and escalated build passed (/tmp/nbjewel-A3-storefront-build-escalated.log). Static checks passed; importer and SQL DI regressions included.
 - A2: overlapping-ID RED 6 failures (/tmp/nbjewel-A2-red.log), mid-request rebind and empty-catalog RED reproduced. Final clean backend 429 passed/7 SQL skipped/0 failed, build 0 warnings/errors; logs /tmp/nbjewel-A2-final-{focused2,full,build,static}.log. ERP 74 passed, typecheck passed, build passed after approved sandbox retry (/tmp/nbjewel-A2-erp-build-escalated.log). Importer and SQL DI regressions included; no SQL executed.
@@ -291,6 +297,7 @@ Historical phase-2 checklist:
 - Real browser CORS and cookies.
 
 ## Agent log (newest first)
+- 2026-11-15T22:22:10+04:00 codex-portal-impl: C1 complete, 446 backend passed/7 SQL skipped, build/static green; root reviewed all helper fixture diffs. Checkpoint/push before C2; independent review pending.
 - 2026-11-15T22:05:32+04:00 codex-portal-impl: B lifecycle complete, backend 441/7 SQL skipped and build/static passed. Seed, atomic audit, permission and preview decisions reviewed by root. Checkpoint/push before C1; independent review pending.
 - 2026-11-15T21:55:45+04:00 codex-portal-impl: A3 complete and verified after resumption; helper available again. Backend 434/7 skipped, storefront 77/typecheck/build, static gates passed. Explicit checkpoint/push before B; no SQL/runtime service action.
 - 2026-11-15T21:51:09+04:00 codex-portal-impl: continue verified branch/upstream HEAD 7c12971 and unchanged A3 work; fetch/ff-only pull passed, own stale Lock renewed. Routine helper exhausted its usage allowance; root resumes direct verification, with no application/service or SQL action.

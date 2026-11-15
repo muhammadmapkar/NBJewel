@@ -71,7 +71,7 @@ public partial class PlatformConversationTests
         {
             builder.UseEnvironment("Development");
             builder.ConfigureAppConfiguration((_, c) => c.AddInMemoryCollection(new Dictionary<string, string?> {
-                ["NBJEWEL_IDENTITY_CONNECTION"] = "", ["Repository:Provider"] = "Sample", ["GEMINI_MODEL"] = "test", ["AiPlatform:AssistantRequestsPerMinute"] = AssistantLimit.ToString(), ["AiPlatform:DailyReservedTokenBudget"] = DailyTokenBudget.ToString(), ["JEWELRY_STORAGE_PATH"] = Path.Combine(Path.GetTempPath(), "conv-" + name), ["Assistants:website:Instructions"] = WebsiteInstructions
+                ["NBJEWEL_IDENTITY_CONNECTION"] = "", ["Repository:Provider"] = "Sample", ["BUSINESS_STORAGE_PATH"] = Path.Combine(Path.GetTempPath(), "nbjewel-policy-" + name), ["GEMINI_MODEL"] = "test", ["AiPlatform:AssistantRequestsPerMinute"] = AssistantLimit.ToString(), ["AiPlatform:DailyReservedTokenBudget"] = DailyTokenBudget.ToString(), ["JEWELRY_STORAGE_PATH"] = Path.Combine(Path.GetTempPath(), "conv-" + name), ["Assistants:website:Instructions"] = WebsiteInstructions
             }));
             builder.ConfigureTestServices(s => {
                 s.RemoveAll<JewelryStorageOptions>(); s.AddSingleton(new JewelryStorageOptions(Path.Combine(Path.GetTempPath(), "conv-images-" + name), Path.Combine(SampleRepositoryFactory.FindRoot(), "sample-data", "jewelry")));

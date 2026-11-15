@@ -22,7 +22,7 @@ public static class GroundedAnswer
                 if (row is null) continue;
                 string Field(string key, int limit = 200) { var value = row[key]?.ToString() ?? ""; return value.Length > limit ? value[..limit] : value; }
                 if (source.Tool == "search_knowledge") lines.Add($"Approved knowledge excerpt, {Field("title")}: \"{Field("text", 1000)}\"");
-                else lines.Add($"ID: {Field("id")}; Name: {Field("name")}; Metal: {Field("metalType")}; Purity: {Field("purity")}; Price: {Field("price")} {Field("currency")}");
+                else { var price = row["price"] is null ? "" : $"; Price: {Field("price")} {Field("currency")}"; lines.Add($"ID: {Field("id")}; Name: {Field("name")}; Metal: {Field("metalType")}; Purity: {Field("purity")}{price}"); }
                 break;
             }
         }

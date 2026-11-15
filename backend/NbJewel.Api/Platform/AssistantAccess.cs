@@ -12,7 +12,7 @@ using NbJewel.Api.Identity;
 namespace NbJewel.Api.Platform;
 
 public sealed class AssistantAccess(IPermissionAdapter permissions, IDataProtectionProvider protection,
-    AssistantRegistry registry, IWebHostEnvironment environment, BusinessMemberships? memberships = null, BusinessContext? business = null)
+    AssistantRegistry registry, IWebHostEnvironment environment, BusinessMemberships? memberships = null, BusinessContext? business = null, PortalPolicy? portals = null)
 {
     private readonly IDataProtector visitor = protection.CreateProtector("nbjewel.ai.visitor.v1");
     public async Task<AssistantContext> ResolveAsync(string assistant, HttpContext http, CancellationToken ct)
@@ -33,7 +33,7 @@ public sealed class AssistantAccess(IPermissionAdapter permissions, IDataProtect
                     account.AllStores, registry.Get(assistant).KnowledgeCollections.ToArray(), BusinessId: member?.Slug ?? BusinessRegistry.DemoSlug);
             }
             // An ERP account visiting the website receives exactly the public customer context.
-            return new(assistant, account.Id, "customer", [], [], false, registry.Get(assistant).KnowledgeCollections.ToArray());
+            return await PublicContext(new(assistant, account.Id, "customer", [], [], false, registry.Get(assistant).KnowledgeCollections.ToArray()), ct);
         }
         if (assistant == "erp") throw new AssistantDeniedException();
         string? id = null;
@@ -51,8 +51,8 @@ public sealed class AssistantAccess(IPermissionAdapter permissions, IDataProtect
                 SameSite = SameSiteMode.Strict, Path = "/api/ai/website", MaxAge = TimeSpan.FromDays(7), IsEssential = true
             });
         }
-        return new(assistant, "visitor:" + id, "visitor", [], [], false, registry.Get(assistant).KnowledgeCollections.ToArray(),
-            AddressKey(http.Connection.RemoteIpAddress));
+        return await PublicContext(new(assistant, "visitor:" + id, "visitor", [], [], false, registry.Get(assistant).KnowledgeCollections.ToArray(),
+            AddressKey(http.Connection.RemoteIpAddress)), ct);
     }
 
     // Network key for abuse limits. RemoteIpAddress is already the real client address when the request came through a trusted proxy.
@@ -87,10 +87,10 @@ public sealed class AssistantAccess(IPermissionAdapter permissions, IDataProtect
 
     public async Task<AssistantContext> RefreshAsync(AssistantContext context, CancellationToken ct)
     {
-        if (context.AccountType == "visitor") return context;
+        if (context.AccountType == "visitor") return await PublicContext(context, ct);
         var account = await permissions.ResolveAsync(context.SubjectId, ct);
         if (account is null) throw new AssistantDeniedException();
-        if (context.AssistantId == "website") return context;
+        if (context.AssistantId == "website") return await PublicContext(context, ct);
         var member = memberships is null ? null : await memberships.ResolveAsync(account, ct);
         if (memberships is not null && (member is null || member.Slug != context.BusinessId)) throw new AssistantDeniedException();
         if (member is not null) account = BusinessMemberships.Effective(account, member);
@@ -98,8 +98,14 @@ public sealed class AssistantAccess(IPermissionAdapter permissions, IDataProtect
         return context with { Permissions = account.Permissions, StoreIds = account.StoreIds, AllStores = account.AllStores };
     }
 
+    private async Task<AssistantContext> PublicContext(AssistantContext context, CancellationToken ct)
+    {
+        if (portals is null) return context;
+        var stamp = await portals.PublicStampAsync(ct) ?? throw new KeyNotFoundException();
+        return context with { PublicPolicyVersion = stamp };
+    }
     public static string Hash(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
     public static string Owner(AssistantContext c) => Hash(c.BusinessId + ":" + c.AssistantId + ":" + c.AccountType + ":" + c.SubjectId);
     public static string Fingerprint(AssistantContext c) => Hash(c.BusinessId + ":" + c.AccountType + ":" + c.AllStores + ":" +
-        string.Join(',', c.Permissions.Order()) + ":" + string.Join(',', c.StoreIds.Order()) + ":" + string.Join(',', (c.KnowledgeCollections ?? []).Order()));
+        string.Join(',', c.Permissions.Order()) + ":" + string.Join(',', c.StoreIds.Order()) + ":" + string.Join(',', (c.KnowledgeCollections ?? []).Order()) + ":" + c.PublicPolicyVersion);
 }

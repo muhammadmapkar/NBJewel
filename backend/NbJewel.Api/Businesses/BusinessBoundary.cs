@@ -17,7 +17,7 @@ public static class BusinessBoundary
         }
         else
         {
-            var slug = controller is "Shops" or "CustomerShops" or "CustomerPortal" ? http.Request.RouteValues["slug"]?.ToString() : null;
+            var slug = controller is "Shops" or "PublicCatalog" or "CustomerShops" or "CustomerPortal" ? http.Request.RouteValues["slug"]?.ToString() : null;
             if (!business.ResolvePublic(slug ?? BusinessRegistry.DemoSlug)) { http.Response.StatusCode = 404; return; }
         }
         await next(http);

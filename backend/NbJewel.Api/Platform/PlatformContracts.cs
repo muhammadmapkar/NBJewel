@@ -7,7 +7,7 @@ using NbJewel.Api.Models;
 namespace NbJewel.Api.Platform;
 
 public sealed record AssistantContext(string AssistantId, string SubjectId, string AccountType,
-    string[] Permissions, int[] StoreIds, bool AllStores, string[]? KnowledgeCollections = null, string? ClientAddress = null, string BusinessId = BusinessRegistry.DemoSlug)
+    string[] Permissions, int[] StoreIds, bool AllStores, string[]? KnowledgeCollections = null, string? ClientAddress = null, string BusinessId = BusinessRegistry.DemoSlug, string? PublicPolicyVersion = null)
 {
     // ClientAddress is the server-derived network key of an anonymous caller. It is never part of the access fingerprint.
     public bool Has(string permission) => AccountType == "erp" && Permissions.Contains(permission);

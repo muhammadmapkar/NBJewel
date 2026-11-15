@@ -99,6 +99,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<BusinessStorage>();
 builder.Services.AddSingleton<PortalStore>();
 builder.Services.AddScoped<PortalService>();
+builder.Services.AddScoped<PortalPolicy>();
 builder.Services.AddTransient<IItemRepository>(sp => sp.GetRequiredService<BusinessStorage>().For(BusinessStorage.Current(sp)).Items);
 // Durable ERP item preview revisions use the existing Python cutout script, never a new removal engine.
 builder.Services.AddSingleton(services =>

@@ -3,6 +3,7 @@
 
 using Microsoft.AspNetCore.Mvc;
 using NbJewel.Api.Models;
+using NbJewel.Api.Businesses;
 using NbJewel.Api.Jewelry;
 using NbJewel.Api.Platform;
 using NbJewel.Api.Repositories;
@@ -12,9 +13,11 @@ namespace NbJewel.Api.Controllers;
 
 [ApiController]
 [Route("api/storefront")]
+[Route("api/shops/{slug}")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public sealed class PublicCatalogController(IItemRepository items, IPublicationReader publications, IItemImageAssetRepository assets, ItemCutoutPipeline previews, StoreDirectory stores) : ControllerBase
+public sealed class PublicCatalogController(IItemRepository items, IPublicationReader publications, IItemImageAssetRepository assets, ItemCutoutPipeline previews, StoreDirectory stores, PortalPolicy policy) : ControllerBase
 {
+    private EmptyResult Missing() { Response.StatusCode = 404; return new EmptyResult(); }
     // Explicit DTO prevents ERP status, hallmark IDs, design links, stock and store fields leaking.
     public sealed record PublicProduct(int Id, string Code, string Name, string Category,
         string MetalType, string Purity, decimal GrossWeight, decimal NetWeight,
@@ -26,7 +29,7 @@ public sealed class PublicCatalogController(IItemRepository items, IPublicationR
     [HttpGet("stores")]
     public async Task<IActionResult> GetStores(CancellationToken ct)
     {
-        try { return Ok(await stores.ReadAsync(ct)); }
+        try { var settings = await policy.SettingsAsync(ct); if (settings is null) return Missing(); return Ok((await stores.ReadAsync(ct)).Where(x => int.TryParse(x.Location.Id, out var id) && settings.VisibleBranchIds.Contains(id)).ToArray()); }
         catch (Exception e) when (e is not OperationCanceledException) { return StatusCode(503); }
     }
 
@@ -38,12 +41,13 @@ public sealed class PublicCatalogController(IItemRepository items, IPublicationR
             return BadRequest("Invalid catalog query or paging.");
         try
         {
+            var settings = await policy.SettingsAsync(cancellationToken); if (settings is null) return Missing();
             var published = await publications.PublishedItemRevisionsAsync(cancellationToken);
             if (published.Count > 10000) return StatusCode(503);
             var categories = await PublicCatalogPolicy.AllowedCategoriesAsync(items, cancellationToken);
             IReadOnlySet<int>? storeItems = null;
             if (storeId.HasValue) {
-                if (!(await stores.ReadAsync(cancellationToken)).Any(x => x.Location.Source == "erp" && x.Location.Id == storeId.Value.ToString())) return BadRequest("Unknown store.");
+                if (!settings.VisibleBranchIds.Contains(storeId.Value) || !(await stores.ReadAsync(cancellationToken)).Any(x => x.Location.Source == "erp" && x.Location.Id == storeId.Value.ToString())) return BadRequest("Unknown store.");
                 storeItems = await stores.AvailableItemIdsAsync(storeId.Value, cancellationToken);
             }
             var matches = new List<Item>();
@@ -63,7 +67,7 @@ public sealed class PublicCatalogController(IItemRepository items, IPublicationR
             var products = new List<PublicProduct>();
             foreach (var item in shown)
             {
-                var product = await PublicItem(item, categories[item.CategoryId], published[item.Id], cancellationToken);
+                var product = await PublicItem(item, categories[item.CategoryId], published[item.Id], cancellationToken, settings.ShowPrices);
                 if (product is null) return StatusCode(503); // Refresh a coherent snapshot after a concurrent replacement.
                 products.Add(product);
             }
@@ -78,12 +82,13 @@ public sealed class PublicCatalogController(IItemRepository items, IPublicationR
         if (id < 1) return NotFound();
         try
         {
+            var settings = await policy.SettingsAsync(cancellationToken); if (settings is null) return Missing();
             var published = await publications.PublishedItemRevisionsAsync(cancellationToken);
             if (!published.ContainsKey(id)) return NotFound();
             var item = await items.GetItemAsync(id, cancellationToken);
             var categories = await PublicCatalogPolicy.AllowedCategoriesAsync(items, cancellationToken);
             if (item is null || !PublicCatalogPolicy.Allows(item, categories)) return NotFound();
-            var product = await PublicItem(item, categories[item.CategoryId], published[id], cancellationToken);
+            var product = await PublicItem(item, categories[item.CategoryId], published[id], cancellationToken, settings.ShowPrices);
             return product is null ? NotFound() : Ok(product);
         }
         catch (Exception error) when (error is not OperationCanceledException) { return StatusCode(503); }
@@ -95,6 +100,8 @@ public sealed class PublicCatalogController(IItemRepository items, IPublicationR
         if (metal?.Length > 50) return BadRequest("Invalid metal filter.");
         try
         {
+            var settings = await policy.SettingsAsync(cancellationToken); if (settings is null) return Missing();
+            if (!settings.ShowPrices) return Ok(new { pricesHidden = true, rates = Array.Empty<MetalRate>() });
             var rates = await items.GetLatestRatesAsync(cancellationToken);
             return Ok(rates.Where(x => PublicCatalogPolicy.AllowedMetal(x.MetalType) &&
                 (string.IsNullOrWhiteSpace(metal) || x.MetalType.Equals(metal, StringComparison.OrdinalIgnoreCase))).ToArray());
@@ -107,6 +114,7 @@ public sealed class PublicCatalogController(IItemRepository items, IPublicationR
     {
         try
         {
+            if (await policy.SettingsAsync(ct) is null) return Missing();
             var published = await publications.PublishedItemRevisionsAsync(ct);
             if (!published.TryGetValue(id, out var revision) || revision is null || (v is not null && v != revision)) return NotFound();
             var item = await items.GetItemAsync(id, ct);
@@ -116,13 +124,15 @@ public sealed class PublicCatalogController(IItemRepository items, IPublicationR
         catch (Exception e) when (e is not OperationCanceledException) { return StatusCode(503); }
     }
 
-    private async Task<PublicProduct?> PublicItem(Item item, string category, string? revision, CancellationToken ct)
+    private async Task<PublicProduct?> PublicItem(Item item, string category, string? revision, CancellationToken ct, bool showPrices)
     {
         var asset = await assets.GetAsync(item.Id, ct);
         if (revision is null || asset is not { State: "ready", QualityReview: "approved" } || asset.RevisionId != revision) return null;
+        var prefix = policy.IsPreview ? $"/api/businesses/{policy.Business.Slug}/portal/products"
+            : Request.RouteValues.ContainsKey("slug") ? $"/api/shops/{policy.Business.Slug}/products" : "/api/storefront/products";
         return new(item.Id, item.Code, item.Name, category, item.MetalType, item.Purity,
-            item.GrossWt, item.NetWt, item.ImageUrl, item.Storefront, await items.GetPriceAsync(item.Id, ct),
-            asset is null ? null : $"/api/storefront/products/{item.Id}/preview?v={asset.RevisionId}",
+            item.GrossWt, item.NetWt, item.ImageUrl, item.Storefront, showPrices ? await items.GetPriceAsync(item.Id, ct) : null,
+            asset is null ? null : $"{prefix}/{item.Id}/preview?v={asset.RevisionId}",
             asset is { Width: > 0 } ? (decimal)asset.Height / asset.Width : null);
     }
 }

@@ -5,7 +5,7 @@ using NbJewel.Api.Businesses;
 using NbJewel.Api.Jewelry;
 namespace NbJewel.Api.Controllers;
 [ApiController, Route("api/businesses/{slug}/portal"), ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public sealed class PortalController(BusinessContext context, PortalStore store, PortalService service) : ControllerBase
+public sealed class PortalController(BusinessContext context, PortalStore store, PortalService service, PortalPolicy policy) : ControllerBase
 {
     public sealed record DraftInput(long Revision, PortalSettings Settings);
     public sealed record RevisionInput(long Revision);
@@ -47,10 +47,11 @@ public sealed class PortalController(BusinessContext context, PortalStore store,
     public Task<IActionResult> Preview(CancellationToken ct, int page = 1) => Execute(async () => {
         Response.Headers["X-Robots-Tag"] = "noindex, nofollow";
         var draft = (await store.ReadAsync(Business, ct)).Draft;
+        policy.UsePreview(draft);
         var products = await Catalog().GetProducts(null, null, page, 100, ct);
         if (products.Result is not OkObjectResult ok) return products.Result ?? StatusCode(503);
         return Ok(new { draft.Revision, draft.Settings, preview = true, products = ok.Value });
     });
     [HttpGet("products/{id:int}/preview")]
-    public Task<IActionResult> ProductPreview(int id, string? v, CancellationToken ct) => Catalog().GetPreview(id, v, ct);
+    public async Task<IActionResult> ProductPreview(int id, string? v, CancellationToken ct) { policy.UsePreview((await store.ReadAsync(Business, ct)).Draft); return await Catalog().GetPreview(id, v, ct); }
 }

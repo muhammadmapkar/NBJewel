@@ -322,8 +322,8 @@ All tasks are **authorized, pending implementation**, in the stated order after 
 ### C1. Public shop API and price hiding
 - **Depends on:** B.
 - **Touchpoints:** new `ShopsController` (assumed) or extension of PublicCatalogController; legacy `/api/storefront/*` alias; customer action enforcement; AssistantTools demo policy.
-- [ ] RED (`ShopPublicHttpTests`, `PriceHidingHttpTests`): every row in section 4 that has server enforcement; unknown and offline return the same 404; stale-tab action rejected.
-- [ ] Implement. Backend full green.
+- [x] RED (`ShopPublicHttpTests`, `PriceHidingHttpTests`): every row in section 4 that has server enforcement; unknown and offline return the same 404; stale-tab action rejected.
+- [x] Implement. Backend full green.
 
 ### C2. Storefront business routes
 - **Depends on:** C1.

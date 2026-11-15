@@ -48,7 +48,7 @@ public class LegacyChatEndToEndTests
             builder.UseEnvironment("Development");
             builder.ConfigureAppConfiguration((_, c) => c.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["NBJEWEL_IDENTITY_CONNECTION"] = "", ["Repository:Provider"] = "Sample", ["GEMINI_MODEL"] = "test",
+                ["NBJEWEL_IDENTITY_CONNECTION"] = "", ["Repository:Provider"] = "Sample", ["BUSINESS_STORAGE_PATH"] = Path.Combine(Path.GetTempPath(), "nbjewel-policy-" + name), ["GEMINI_MODEL"] = "test",
                 ["JEWELRY_STORAGE_PATH"] = Path.Combine(Path.GetTempPath(), "legacy-" + name)
             }));
             builder.ConfigureTestServices(s =>

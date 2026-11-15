@@ -13,19 +13,25 @@ using NbJewel.Api.Repositories;
 using NbJewel.Api.Storefront;
 namespace NbJewel.Api.Controllers;
 [ApiController, Authorize, Route("api/customer"), ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public sealed class CustomerPortalController(IPermissionAdapter permissions, CustomerPortal portal, StoreDirectory stores, IItemRepository items, IPublicationReader publications, BusinessContext business) : ControllerBase
+public sealed class CustomerPortalController(IPermissionAdapter permissions, CustomerPortal portal, StoreDirectory stores, IItemRepository items, IPublicationReader publications, BusinessContext business, PortalPolicy policy) : ControllerBase
 {
     private string Slug => business.Business?.Slug ?? throw new InvalidOperationException("Business context is missing.");
     public sealed record ProfileInput([Required, MaxLength(100)] string Name, [MaxLength(30)] string Phone);
     public sealed record BagInput([Required, MaxLength(100)] string Id, [Required, RegularExpression("^(demo|erp)$")] string Source);
     public sealed record ReserveInput([Required, MaxLength(36)] string RequestId, [Required, MaxLength(60)] string StoreId, [Required, RegularExpression("^(demo|erp)$")] string Source, [Required, MaxLength(100)] string Name, [Required, MaxLength(30)] string Phone, DateOnly Date, [Required, MinLength(1), MaxLength(50)] string[] Items);
-    private async Task<IActionResult> Owned(Func<string, Task<IActionResult>> action, CancellationToken ct)
+    private async Task<IActionResult> Owned(Func<string, Task<IActionResult>> action, CancellationToken ct, string? operation = null)
     {
         var id = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (id is null) return Unauthorized();
         var account = await permissions.ResolveAsync(id, ct);
         if (account?.AccountType != "customer") return Forbid();
-        try { return await action(id); }
+        try {
+            if (operation is not null) {
+                var settings = await policy.SettingsAsync(ct); if (settings is null) { Response.StatusCode = 404; return new EmptyResult(); }
+                if ((operation == "bag" && !settings.Bag) || (operation == "reservations" && !settings.Reservations)) return Conflict(new { message = "This shop action is currently unavailable. Refresh the portal." });
+            }
+            return await action(id);
+        }
         catch (DbUpdateConcurrencyException) { return Conflict(new { message = "Your account changed in another tab. Refresh and try again." }); }
         catch (Exception e) when (e is DbUpdateException or InvalidOperationException or IOException or JsonException or AssistantUnavailableException)
         { return StatusCode(503, new { message = "Customer services are unavailable. Please try again." }); }
@@ -47,13 +53,13 @@ public sealed class CustomerPortalController(IPermissionAdapter permissions, Cus
         var (row, state) = await portal.ReadAsync(id, ct, Slug);
         if (!state.Bag.Contains(new(input.Id, input.Source))) { if (state.Bag.Count >= 50) return BadRequest(new { message = "Your bag is full." }); state.Bag.Add(new(input.Id, input.Source)); }
         await portal.SaveAsync(id, row, state, ct, Slug); return Ok(state);
-    }, ct);
+    }, ct, "bag");
     [HttpDelete("bag/{source}/{productId}")]
     [HttpDelete("/api/customer/shops/{slug}/bag/{productId}")]
     public Task<IActionResult> Remove(string? source, string productId, CancellationToken ct) => Owned(async id => {
         var (row, state) = await portal.ReadAsync(id, ct, Slug); state.Bag.RemoveAll(x => x.Id == productId && x.Source == (source ?? "erp"));
         await portal.SaveAsync(id, row, state, ct, Slug); return Ok(state);
-    }, ct);
+    }, ct, "bag");
     [HttpPost("reservations")]
     [HttpPost("/api/customer/shops/{slug}/reservations")]
     public Task<IActionResult> Reserve(ReserveInput input, CancellationToken ct) => Owned(async id => {
@@ -64,6 +70,8 @@ public sealed class CustomerPortalController(IPermissionAdapter permissions, Cus
             if (existing.StoreId != input.StoreId || existing.Source != input.Source || existing.Date != input.Date.ToString("yyyy-MM-dd") || existing.Name != input.Name.Trim() || existing.Phone != input.Phone.Trim() || !existing.Items.Order().SequenceEqual(input.Items.Order())) return Conflict();
             return Ok(state);
         }
+        var settings = await policy.SettingsAsync(ct);
+        if (settings is null || !int.TryParse(input.StoreId, out var visibleStore) || !settings.VisibleBranchIds.Contains(visibleStore)) return BadRequest(new { message = "Choose an available store." });
         var store = (await stores.ReadAsync(ct)).FirstOrDefault(x => x.Location.Id == input.StoreId && x.Location.Source == input.Source);
         if (store is null) return BadRequest(new { message = "Choose an available store." });
         var bag = state.Bag.Where(x => x.Source == input.Source && input.Items.Contains(x.Id)).ToArray();
@@ -75,7 +83,7 @@ public sealed class CustomerPortalController(IPermissionAdapter permissions, Cus
         state.Reservations.Insert(0, new("NBJ-" + Guid.NewGuid().ToString("N")[..10].ToUpperInvariant(), input.RequestId, input.Name.Trim(), input.Phone.Trim(), store.Location.Name, input.StoreId, input.Source, input.Date.ToString("yyyy-MM-dd"), bag.Select(x => x.Id).ToArray(), DateTimeOffset.UtcNow));
         state.Bag.RemoveAll(x => x.Source == input.Source && input.Items.Contains(x.Id)); state = state with { Name = input.Name.Trim(), Phone = input.Phone.Trim() };
         await portal.SaveAsync(id, row, state, ct, Slug); return Ok(state);
-    }, ct);
+    }, ct, "reservations");
     private async Task<bool> ProductExists(string id, string source, CancellationToken ct)
     {
         if (source != "erp" || !int.TryParse(id, out var number) || !(await publications.PublishedItemIdsAsync(ct)).Contains(number)) return false;
