@@ -295,14 +295,14 @@ All tasks are **authorized, pending implementation**, in the stated order after 
 ### A3. Customer data
 - **Depends on:** A1, A2.
 - **Touchpoints:** Storefront/CustomerPortal.cs; IdentityData.cs (existing CustomerPortalRecord and Revision); CustomerPortalController.cs (shop-scoped routes and legacy aliases; no demo validation or bundled catalog); customer-tryon catalog/store.service.ts (v3 wishlist key and copy); prepared SQL.
-- [ ] RED (`CustomerShoppingStateTests`, storefront store.service spec):
+- [x] RED (`CustomerShoppingStateTests`, storefront store.service spec):
   - the same customer has separate bags in two businesses
   - a legacy row migrates once into nb-jewel-demo
   - concurrent revision conflict
   - reservation store from another business rejected
   - staff 403
   - wishlist v2 to v3 copy
-- [ ] Implement the SQL-safe single-row JSON upgrade from 2.5 and 6. Run backend full suite and storefront test/typecheck/build.
+- [x] Implement the SQL-safe single-row JSON upgrade from 2.5 and 6. Run backend full suite and storefront test/typecheck/build.
 
 ### B. Portal configuration lifecycle
 - **Depends on:** A1 to A3.
