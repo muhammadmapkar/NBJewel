@@ -222,6 +222,7 @@ Stored data (assumed):
 - `PortalDraft(BusinessId, Revision, SettingsJson, UpdatedBy, UpdatedAt)`
 - `PortalPublication(BusinessId, Revision, SettingsJson, PublishedBy, PublishedAt)`
 - `PortalState(BusinessId, Online)`
+- Demo seed enquiries are off until a real WhatsApp destination is configured (assumed safe compatibility default). Audit entries are committed in the same atomic document as publication and online state.
 - Assumed v1 storage in both Sample and SQL modes: atomic JSON/files for portal drafts, publications, online state, assets and audit under the business partition root. No new SQL table is required. Publication and online state are committed together atomically.
 
 Settings content: branding, homepage text and assets, fixed section switches, visible collection names, featured item IDs (max 12, assumed), action switches, contact, and visible branch IDs. Collection names come from the business's published products (`StorefrontMetadata.Collection`).
@@ -307,7 +308,7 @@ All tasks are **authorized, pending implementation**, in the stated order after 
 ### B. Portal configuration lifecycle
 - **Depends on:** A1 to A3.
 - **Touchpoints:** new Businesses/Portal store and service; new `PortalController` (assumed) with explicit ErpBoundaryFilter entries; branding upload reusing bounded PNG/JPG checks.
-- [ ] RED (`PortalLifecycleHttpTests`), one test per server rule in section 5:
+- [x] RED (`PortalLifecycleHttpTests`), one test per server rule in section 5:
   - 409 on a stale revision
   - failed publish leaves live byte-identical
   - WhatsApp required with enquiries
@@ -316,7 +317,7 @@ All tasks are **authorized, pending implementation**, in the stated order after 
   - draft asset not public
   - offline 404
   - audit lines written
-- [ ] Implement. Backend full green.
+- [x] Implement. Backend full green.
 
 ### C1. Public shop API and price hiding
 - **Depends on:** B.

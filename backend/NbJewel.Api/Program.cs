@@ -97,6 +97,8 @@ builder.Services.AddCors(options =>
 var provider = string.IsNullOrWhiteSpace(builder.Configuration["Repository:Provider"]) ? "Sample" : builder.Configuration["Repository:Provider"]!;
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<BusinessStorage>();
+builder.Services.AddSingleton<PortalStore>();
+builder.Services.AddScoped<PortalService>();
 builder.Services.AddTransient<IItemRepository>(sp => sp.GetRequiredService<BusinessStorage>().For(BusinessStorage.Current(sp)).Items);
 // Durable ERP item preview revisions use the existing Python cutout script, never a new removal engine.
 builder.Services.AddSingleton(services =>

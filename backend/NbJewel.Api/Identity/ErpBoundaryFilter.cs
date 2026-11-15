@@ -15,6 +15,8 @@ public sealed class ErpBoundaryFilter(BusinessContext business) : IAsyncAuthoriz
         action.TryGetValue("action", out var name);
         string[] required = (controller, name) switch
         {
+            ("Portal", "Publish" or "Offline") => ["portal.publish"],
+            ("Portal", "Draft" or "SaveDraft" or "UploadAsset" or "GetAsset" or "Preview" or "ProductPreview") => ["portal.manage"],
             ("ItemImages", "Review") => ["items.read", "items.write", "prices.read", "status.read", "knowledge.manage"],
             ("ItemImages", "Upload" or "Analyze") => ["items.read", "items.write", "prices.read", "status.read"],
             ("ItemImages", _) => ["items.read", "prices.read", "status.read"],
@@ -35,6 +37,7 @@ public sealed class ErpBoundaryFilter(BusinessContext business) : IAsyncAuthoriz
         {
             // These endpoints perform their own identity/resource checks, or are explicitly public.
             if (controller is "CustomerPortal" or "Auth" or "Knowledge" or "AiConversations" || (controller == "Jewelry" && name == "GetActive")) return;
+            if (controller == "Shops" && HttpMethods.IsGet(context.HttpContext.Request.Method) && name is "Get" or "GetAsset") return;
             if (controller == "PublicCatalog" && HttpMethods.IsGet(context.HttpContext.Request.Method) &&
                 name is "GetStores" or "GetSpotRates" or "GetProducts" or "GetProduct" or "GetMetalRates" or "GetPreview") return;
             context.Result = new ForbidResult();
