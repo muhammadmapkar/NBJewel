@@ -2,9 +2,9 @@
 # AI memory handoff
 
 ## Lock
-- Agent: codex-port-diagnosis.
-- Since: 2026-11-15T14:41:25+04:00
-- Status: released in the startup-conflict diagnosis checkpoint.
+- Agent: codex-portal-plan.
+- Since: 2026-11-15T14:49:09+04:00
+- Status: released in the plan-only documentation checkpoint; implementation is not authorized.
 
 ## Branch and last commit
 - Startup diagnosis predecessor: `11b3f14973519f76e63a705507e66539a1b94755`; matched HEAD and handoff snapshot after fetch and ff-only pull.
@@ -33,6 +33,9 @@
 - Snapshot commit: the commit containing this handoff; resolve with `git log -1 --format=%H -- AI-MEMORY-HANDOFF.md`. Compare it with HEAD on the next start. A literal self-referencing commit hash cannot be recorded inside the same commit.
 
 ## Current goal
+Save-only request completed: docs/superpowers/plans/2026-11-15-business-web-portals.md records the agreed multi-business Web Portal design. STOP: Muhammad explicitly said not to implement yet. Await explicit implementation authorization; do not resume its unchecked tasks automatically.
+
+Previous completed goal:
 The two authorized ERP Vision/customer portal upgrades are implemented and sample-verified. See docs/portal-upgrades.md for exact key inventory, current behavior, startup commands, file list and manual boundaries. Await Muhammad's real-device/provider validation. Historical prior-phase deferrals below do not override this newly completed scope.
 
 Prior goal:
@@ -40,6 +43,7 @@ Origin reconciliation, forensic audit and reproduced assistant visibility repair
 
 
 ## Done
+- Saved the business Web Portal plan only: confirmed ownership/template/wholesale/global-login/provisioning choices, isolation requirements, draft/preview/publish behavior, staged tasks and acceptance tests. No implementation performed.
 - Startup conflict diagnosed: existing main-checkout NbJewel.Api PID 81558 owns localhost:5155 and public products returned HTTP 200. Second launcher cannot bind the same port. Existing process left running to preserve its in-memory session; no application change needed.
 - QA guide: docs/QA_TEST.md documents exact startup/login retrieval, a new-item fixture, source=erp catalog links, manual publication/edit/revoke checks, separate browser sessions, inventory limitations and troubleshooting. No real credential recorded; proposed customer credentials are explicitly test-only and require signup.
 - Portal upgrade: secure exact-revision Gemini Vision suggestions with dedicated/shared key fallback and editable ERP auto-fill/regenerate; no automatic save/approval/publication. Customer cookie/CSRF auth gates and resumed intents, owned profile/bag/request persistence, device/account wishlist, public map/store catalogs, mobile/desktop navigation, separate live market reference provider and honest sample/freshness states. Prepared SQL file only.
@@ -70,6 +74,7 @@ Origin reconciliation, forensic audit and reproduced assistant visibility repair
 - Setup files written: replaced stale handoff statements, added the handoff protocol to AGENTS.md, and added Claude/Copilot routing instructions. Validation passed; setup pushed as `d44c748`.
 
 ## Next steps (ordered checklist)
+- [ ] Wait for Muhammad's explicit authorization before implementing the business Web Portal plan. Saving this plan does not authorize execution.
 - [x] ERP Vision endpoint, editable rendered-preview auto-fill and protected revision/auth tests.
 - [x] Customer profile/bag/reservation backend and opt-in Sample customer identity.
 - [x] Public store directory/filter/map and optional Gold/Silver/Platinum market reference adapter.
@@ -154,6 +159,7 @@ Historical phase-2 checklist:
 - No questions to owner. Choose conservative sample-only behavior and log assumptions. Accounts, chatbot, locator are later phases.
 
 ## Files touched
+- Plan-only task: docs/superpowers/plans/2026-11-15-business-web-portals.md and AI-MEMORY-HANDOFF.md only.
 - Startup diagnosis: AI-MEMORY-HANDOFF.md only. No application, owner file, secret, provider or running process modified.
 - QA documentation task: docs/QA_TEST.md and AI-MEMORY-HANDOFF.md only.
 - Current portal task: exact created/updated paths are listed in docs/portal-upgrades.md. Includes new backend JewelryVision/CustomerPortal/StoreDirectory/SpotRates and tests; ERP storefront-panel/service; customer auth/map/profile/navigation/catalog; env example/launcher/docs/README. No protected owner path or lockfile changed.
@@ -175,6 +181,7 @@ Historical phase-2 checklist:
 - Pre-existing owner changes preserved, excluded from staging: PROGRESS.md, docs/run-guide.md, customer-tryon/package-lock.json; untracked browser security plan, old proof image, pasted jewelry image.
 
 ## Test commands and last results
+- Plan-only task: reviewed against confirmed conversation decisions and inspected repository boundaries; document content assertions and git diff --check passed. No app tests/builds rerun because application code was not changed.
 - Startup diagnosis 2026-11-15: `lsof -nP -iTCP:5155 -sTCP:LISTEN` identified PID 81558 on both loopback families; `ps -p 81558 -o pid=,ppid=,lstart=,comm=` identified this main-checkout API, started Nov 14; read-only `curl --noproxy "*" --max-time 5 -s -o /dev/null -w "%{http_code}" http://localhost:5155/api/storefront/products` returned 200. Fetch and ff-only pull passed with approved sandbox escalation. Handoff-only validation and diff whitespace check passed; application suites not rerun because no source changed.
 - QA document only: verified launcher flags/staff email, Angular catalog/source routes, status/publication control labels and local Python path against repository files; Markdown/content assertions and git diff --check passed. Application suites not rerun because no application code changed.
 - Portal final backend: `dotnet test backend/NbJewel.Api.Tests --no-restore`, Sample forced and SQL/connection/secrets removed, existing CUTOUT_PYTHON_PATH: 394 passed, 6 SQL skipped, zero failed. `dotnet build backend/NbJewel.Api --no-restore`: zero warnings/errors. Logs /tmp/nbjewel-portal-final-backend.log and /tmp/nbjewel-final-backend-build.log.
@@ -228,6 +235,7 @@ Historical phase-2 checklist:
 - Real browser CORS and cookies.
 
 ## Agent log (newest first)
+- 2026-11-15T14:49:09+04:00 codex-portal-plan: baseline c342b51 clean and synced; prior Lock explicitly released. Saved requested plan, preserved implementation hold and released Lock in documentation checkpoint. No app/service/env/schema changes.
 - 2026-11-15T14:41:25+04:00 codex-port-diagnosis: read full handoff, verified released lock, clean branch/upstream and snapshot, fetched/pulled, identified existing healthy loopback API as cause of duplicate-start failure. Acquired/released Lock for this diagnosis checkpoint. Existing session preserved; no new feature work or live provider calls.
 - 2026-11-14T18:28:57+04:00 codex-qa-doc: fetch/ff-only pull and clean baseline 5bb3835 verified, acquired released Lock, created requested QA guide and validated documented routes/controls. Explicit-path docs checkpoint/push releases Lock. No running app, credential, source config or owner file changed.
 - 2026-11-14T16:57:24+04:00 codex-portal: completed both requested upgrades, read-only review corrections and sample gates; documented service inventory and manual limits. Final explicit-path checkpoint/push releases Lock. No protected owner files, actual .env, SQL data, Docker, deploy, forbidden worktree or force push touched.
