@@ -4,6 +4,7 @@
 // try-on jewelry feature (images served from JEWELRY_STORAGE_PATH), and adds one global error handler.
 
 using System.Threading.RateLimiting;
+using NbJewel.Api.Businesses;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NbJewel.Api.Identity;
@@ -39,6 +40,8 @@ if (args.Contains("--identity-schema"))
 }
 
 var builder = WebApplication.CreateBuilder(args);
+if (args.Contains("--provision-business") && !ProvisioningCommand.Allowed(builder.Configuration, builder.Environment))
+{ Console.Error.WriteLine("Business provisioning requires Development and Sample without SQL settings."); return 1; }
 
 if (args.Contains("--platform-schema"))
 {
@@ -58,6 +61,11 @@ builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 
 TrustedProxySetup.Configure(builder.Services);
 
 builder.AddIdentityFoundation();
+builder.Services.AddSingleton<BusinessRegistry>();
+builder.Services.AddScoped<BusinessMemberships>();
+builder.Services.AddScoped<BusinessContext>();
+builder.Services.AddScoped<ProvisioningCommand>();
+builder.Services.AddHostedService<MembershipMigration>();
 builder.Services.AddSingleton<IAccountVerificationSender, SmtpAccountVerificationSender>();
 builder.Services.AddScoped<AccountVerification>();
 builder.Services.AddScoped<CustomerPortal>();
@@ -184,6 +192,15 @@ builder.Services.AddRateLimiter(options =>
 var app = builder.Build();
 app.ConfigureSampleIdentityRuntime();
 if (args.Contains("--bootstrap-identity")) return await IdentitySetup.BootstrapAsync(app);
+if (args.Contains("--provision-business"))
+{
+    // Assumed Sample provisioning keeps this host alive so its memory-only owner can sign in.
+    await app.Services.GetServices<IHostedService>().OfType<SampleIdentityBootstrap>().Single().StartAsync(CancellationToken.None);
+    await new MembershipMigration(app.Services).StartAsync(CancellationToken.None);
+    using var scope = app.Services.CreateScope();
+    var result = await scope.ServiceProvider.GetRequiredService<ProvisioningCommand>().RunAsync(args, Console.Out, Console.Error, CancellationToken.None);
+    if (result != 0) return result;
+}
 // Must run first: later middleware (HTTPS redirect, rate limiter, cookies) reads the corrected address and scheme.
 // It does nothing until TRUSTED_PROXIES names at least one proxy.
 app.UseForwardedHeaders();

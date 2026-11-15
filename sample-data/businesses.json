@@ -1,0 +1,16 @@
+[
+  {
+    "id": "nb-jewel-demo",
+    "slug": "nb-jewel-demo",
+    "name": "NB Jewel",
+    "kind": "retailer",
+    "createdAt": "1970-01-01T00:00:00+00:00"
+  },
+  {
+    "id": "sample-wholesale",
+    "slug": "sample-wholesale",
+    "name": "Assumed sample wholesale",
+    "kind": "wholesaler",
+    "createdAt": "1970-01-01T00:00:00+00:00"
+  }
+]

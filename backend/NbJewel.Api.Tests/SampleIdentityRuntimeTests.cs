@@ -11,6 +11,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting.Internal;
 using NbJewel.Api.Identity;
+using Microsoft.EntityFrameworkCore;
 namespace NbJewel.Api.Tests;
 
 public sealed class SampleIdentityRuntimeTests
@@ -48,7 +49,8 @@ public sealed class SampleIdentityRuntimeTests
         var access = await client.GetFromJsonAsync<AccountAccess>("/api/auth/me");
         Assert.Equal("erp", access!.AccountType); Assert.True(access.AllStores);
         Assert.Contains("items.write", access.Permissions); Assert.Contains("knowledge.manage", access.Permissions);
-        Assert.DoesNotContain("chat.read", access.Permissions); Assert.DoesNotContain("jewelry.manage", access.Permissions);
+        Assert.Contains("chat.read", access.Permissions); Assert.Contains("jewelry.manage", access.Permissions);
+        Assert.Contains("portal.manage", access.Permissions); Assert.Contains("portal.publish", access.Permissions);
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/items/7")).StatusCode);
         client.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
         Assert.Equal(HttpStatusCode.BadRequest, (await client.PatchAsJsonAsync("/api/items/7/status", new { status = "Complete" })).StatusCode);
@@ -57,7 +59,19 @@ public sealed class SampleIdentityRuntimeTests
         using var scope = factory.Services.CreateScope();
         var user = await scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>().FindByEmailAsync(Email);
         Assert.NotNull(user); Assert.NotEqual(Password, user.PasswordHash); Assert.True(user.EmailConfirmed);
+        var stored = await scope.ServiceProvider.GetRequiredService<IPermissionAdapter>().ResolveAsync(user.Id, default);
+        Assert.DoesNotContain("chat.read", stored!.Permissions); Assert.DoesNotContain("jewelry.manage", stored.Permissions);
         Assert.Equal("Microsoft.EntityFrameworkCore.InMemory", scope.ServiceProvider.GetRequiredService<IdentityDatabase>().Database.ProviderName);
+    }
+    [Fact]
+    public async Task AHostCanBootstrapForProvisioningBeforeServingWithoutCreatingAnotherStaffAccount()
+    {
+        await using var factory = new SampleRuntimeFactory();
+        using var client = factory.CreateClient();
+        var bootstrap = Assert.Single(factory.Services.GetServices<Microsoft.Extensions.Hosting.IHostedService>().OfType<SampleIdentityBootstrap>());
+        await bootstrap.StartAsync(default);
+        using var scope = factory.Services.CreateScope();
+        Assert.Equal(1, await scope.ServiceProvider.GetRequiredService<IdentityDatabase>().Users.CountAsync());
     }
     [Fact]
     public void SampleStartupRequiresExplicitStrongRuntimePassword()

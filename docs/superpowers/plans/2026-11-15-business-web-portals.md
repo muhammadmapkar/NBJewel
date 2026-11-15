@@ -147,7 +147,8 @@ A business ID in a body or query string is never trusted. A missing context fail
 ### 2.6 Provisioning and owner credentials (D7)
 
 - CLI only (assumed flags): `dotnet run --project backend/NbJewel.Api -- --provision-business --slug <slug> --name <name> --kind retailer|wholesaler --owner-email <email>`.
-- Development and Sample only in v1, the same guard as `--bootstrap-identity`.
+- Development and Sample only in v1; requires the explicit memory-only Sample identity provider and all SQL/connection settings unset.
+- Assumed Sample lifecycle amendment: successful CLI provisioning keeps that newly started host serving, so the generated owner and membership remain usable for that process lifetime. They reset on restart, like all Sample identities. The command never stops or restarts an existing service; an occupied port is an operator-visible failure.
 - Creates the business offline with a preset draft. Attaches an existing staff account, or creates one and prints its generated password once.
 - Rejects duplicate, reserved or malformed slugs, and owner emails that already hold another membership.
 - No HTTP signup or provisioning route exists.
@@ -273,7 +274,7 @@ All tasks are **authorized, pending implementation**, in the stated order after 
 ### A1. Business context and memberships
 - **Depends on:** none.
 - **Touchpoints:** new `backend/NbJewel.Api/Businesses/` (registry, BusinessContext, membership, provisioning CLI); Identity/IdentityData.cs, IdentitySetup.cs, SampleIdentitySetup.cs, ErpBoundaryFilter.cs; KnowledgeController.cs `CanManage`; AuthController `me`; Program.cs; sample-data/businesses.json; prepared SQL file.
-- [ ] RED (`BusinessContextTests`, `BusinessMembershipHttpTests`, `ProvisioningCommandTests`):
+- [x] RED (`BusinessContextTests`, `BusinessMembershipHttpTests`, `ProvisioningCommandTests`):
   - staff without membership gets 403
   - slug mismatch gets 404
   - AllStores covers only the member business
@@ -281,8 +282,8 @@ All tasks are **authorized, pending implementation**, in the stated order after 
   - CLI rejects duplicate/reserved slugs and second memberships, and never writes the password to logs or files
   - no HTTP provisioning route
   - existing staff migrate to nb-jewel-demo
-- [ ] Implement the minimum. Add `portal.manage` and `portal.publish`.
-- [ ] Full backend build/test green.
+- [x] Implement the minimum. Add `portal.manage` and `portal.publish`.
+- [x] Full backend build/test green.
 
 ### A2. Data isolation
 - **Depends on:** A1.

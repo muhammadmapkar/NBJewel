@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using NbJewel.Api.Identity;
+using NbJewel.Api.Businesses;
 
 namespace NbJewel.Api.Controllers;
 
@@ -19,7 +20,7 @@ public sealed record ResendVerificationRequest([Required, EmailAddress, MaxLengt
 [ApiController]
 [Route("api/auth")]
 public sealed class AuthController(UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn,
-    IPermissionAdapter permissions, IdentityAvailability availability, IAntiforgery antiforgery, AccountVerification verification, SampleIdentityOptions sampleIdentity) : ControllerBase
+    IPermissionAdapter permissions, IdentityAvailability availability, IAntiforgery antiforgery, AccountVerification verification, SampleIdentityOptions sampleIdentity, BusinessMemberships memberships) : ControllerBase
 {
     [HttpGet("csrf")]
     public IActionResult Csrf()
@@ -35,7 +36,11 @@ public sealed class AuthController(UserManager<ApplicationUser> users, SignInMan
         Response.Headers.CacheControl = "no-store";
         var id = User.FindFirstValue(ClaimTypes.NameIdentifier);
         var access = id is null ? null : await permissions.ResolveAsync(id, cancellationToken);
-        return access is null ? Unauthorized() : Ok(access);
+        if (access is null) return Unauthorized();
+        if (access.AccountType != "erp") return Ok(access);
+        var member = await memberships.ResolveAsync(access, cancellationToken);
+        var effective = member is null ? access : BusinessMemberships.Effective(access, member);
+        return Ok(new { effective.Id, effective.Email, effective.AccountType, effective.Permissions, effective.StoreIds, effective.AllStores, business = member });
     }
 
     [HttpPost("register")]

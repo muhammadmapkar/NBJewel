@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NbJewel.Api.Businesses;
 using NbJewel.Api.Identity;
 using NbJewel.Api.Jewelry;
 
@@ -161,6 +162,7 @@ public sealed class IdentityTestFactory : WebApplicationFactory<Program>
         {
             ["NBJEWEL_IDENTITY_CONNECTION"] = "",
             ["Repository:Provider"] = "Sample",
+            ["BUSINESS_STORAGE_PATH"] = Path.Combine(Path.GetTempPath(), "nbjewel-businesses-" + databaseName),
             ["JEWELRY_STORAGE_PATH"] = Path.Combine(Path.GetTempPath(), "nbjewel-identity-" + databaseName)
         }));
         builder.ConfigureTestServices(services =>
@@ -190,6 +192,7 @@ public sealed class IdentityTestFactory : WebApplicationFactory<Program>
         db.PermissionGrants.AddRange(permissions.Select(p => new PermissionGrant { UserId = user.Id, Permission = p }));
         db.StoreGrants.Add(new StoreGrant { UserId = user.Id, StoreId = 1 });
         await db.SaveChangesAsync();
+        if (user.AccountType == "erp") await scope.ServiceProvider.GetRequiredService<BusinessMemberships>().AssignAsync(user.Id, BusinessRegistry.DemoSlug, "staff", default);
         return user.Id;
     }
 }

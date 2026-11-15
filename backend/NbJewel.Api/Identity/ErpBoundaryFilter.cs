@@ -1,11 +1,12 @@
 // Role: Enforces deterministic permissions and denies endpoints whose queries cannot honor store scope.
 using System.Security.Claims;
+using NbJewel.Api.Businesses;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace NbJewel.Api.Identity;
 
-public sealed class ErpBoundaryFilter(IPermissionAdapter permissions) : IAsyncAuthorizationFilter
+public sealed class ErpBoundaryFilter(BusinessContext business) : IAsyncAuthorizationFilter
 {
     public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
     {
@@ -45,8 +46,12 @@ public sealed class ErpBoundaryFilter(IPermissionAdapter permissions) : IAsyncAu
             context.Result = new UnauthorizedResult();
             return;
         }
-        var id = principal.FindFirstValue(ClaimTypes.NameIdentifier);
-        var access = id is null ? null : await permissions.ResolveAsync(id, context.HttpContext.RequestAborted);
+        if (!await business.ResolveErpAsync(context.HttpContext, context.HttpContext.RequestAborted))
+        {
+            context.Result = business.Membership is not null && context.HttpContext.Request.RouteValues.ContainsKey("slug") ? new NotFoundResult() : new ForbidResult();
+            return;
+        }
+        var access = business.Access;
         var requiresAllStores = controller is "Jewelry" or "ItemImages" || (controller == "Items" &&
             !HttpMethods.IsGet(context.HttpContext.Request.Method) && name != "AddStock");
         if (access is null || access.AccountType != "erp" || (requiresAllStores && !access.AllStores) || !required.All(access.Permissions.Contains))

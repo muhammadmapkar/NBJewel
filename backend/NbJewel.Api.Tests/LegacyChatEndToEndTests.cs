@@ -13,6 +13,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NbJewel.Api.Chat;
+using NbJewel.Api.Businesses;
 using NbJewel.Api.Identity;
 using NbJewel.Api.Jewelry;
 using NbJewel.Api.Platform;
@@ -68,7 +69,8 @@ public class LegacyChatEndToEndTests
             Assert.True((await manager.CreateAsync(user, "PasswordExample123!")).Succeeded);
             var db = scope.ServiceProvider.GetRequiredService<IdentityDatabase>();
             db.PermissionGrants.AddRange(Grants.Select(p => new PermissionGrant { UserId = user.Id, Permission = p }));
-            db.StoreGrants.Add(new StoreGrant { UserId = user.Id, StoreId = 1 }); await db.SaveChangesAsync(); return user.Id;
+            db.StoreGrants.Add(new StoreGrant { UserId = user.Id, StoreId = 1 }); await db.SaveChangesAsync();
+            if (user.AccountType == "erp") await scope.ServiceProvider.GetRequiredService<BusinessMemberships>().AssignAsync(user.Id, BusinessRegistry.DemoSlug, "staff", default); return user.Id;
         }
         public async Task Revoke(string userId, string permission)
         {

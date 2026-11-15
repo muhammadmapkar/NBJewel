@@ -1,5 +1,6 @@
 // Role: Persists login accounts and explicit permission grants separately from ERP data.
 using Microsoft.AspNetCore.Identity;
+using NbJewel.Api.Businesses;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -40,6 +41,9 @@ public sealed class IdentityDatabase(DbContextOptions<IdentityDatabase> options)
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+        // Assumed Sample membership is memory-only; the existing SQL schema needs no table.
+        if (Database.IsInMemory()) { builder.Entity<BusinessMembership>().HasKey(x => x.UserId); }
+        else builder.Ignore<BusinessMembership>();
         builder.Entity<CustomerPortalRecord>().HasKey(x => x.Id);
         builder.Entity<CustomerPortalRecord>().Property(x => x.Revision).IsConcurrencyToken();
         builder.Entity<CustomerPortalRecord>().HasOne<ApplicationUser>().WithOne().HasForeignKey<CustomerPortalRecord>(x => x.Id);

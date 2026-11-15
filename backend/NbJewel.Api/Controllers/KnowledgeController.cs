@@ -1,5 +1,6 @@
 // Role: Provides permission-checked administration of knowledge and product publication.
 using System.Security.Claims;
+using NbJewel.Api.Businesses;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NbJewel.Api.Identity;
@@ -10,7 +11,7 @@ namespace NbJewel.Api.Controllers;
 
 [ApiController]
 [Route("api/ai/knowledge")]
-public sealed class KnowledgeController(KnowledgeDatabase db, KnowledgeService service, IPermissionAdapter permissions, IItemRepository items) : ControllerBase
+public sealed class KnowledgeController(KnowledgeDatabase db, KnowledgeService service, IItemRepository items, BusinessContext business) : ControllerBase
 {
     public sealed record Confirmation(bool Confirm, string? VersionId = null, string? AssetRevisionId = null);
     private async Task<bool> Authorized(CancellationToken ct)
@@ -18,7 +19,7 @@ public sealed class KnowledgeController(KnowledgeDatabase db, KnowledgeService s
         if (User.Identity?.IsAuthenticated != true) return false;
         var id = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(id)) return false;
-        try { var access = await permissions.ResolveAsync(id, ct); return access is { AccountType: "erp", AllStores: true } && access.Permissions.Contains("knowledge.manage"); }
+        try { return await business.ResolveErpAsync(HttpContext, ct) && business.Access is { AccountType: "erp", AllStores: true } access && access.Permissions.Contains("knowledge.manage"); }
         catch (Exception e) when (e is not OperationCanceledException) { return false; }
     }
     [HttpGet("documents")]

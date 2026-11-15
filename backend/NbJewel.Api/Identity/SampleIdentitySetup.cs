@@ -49,8 +49,10 @@ public static class SampleIdentitySetup
 
 public sealed class SampleIdentityBootstrap(IServiceProvider services) : IHostedService
 {
+    private bool started;
     public async Task StartAsync(CancellationToken ct)
     {
+        if (started) return;
         using var scope = services.CreateScope();
         var options = scope.ServiceProvider.GetRequiredService<SampleIdentityOptions>();
         if (!options.Enabled) return;
@@ -65,6 +67,7 @@ public sealed class SampleIdentityBootstrap(IServiceProvider services) : IHosted
         foreach (var permission in new[] { "items.read", "items.write", "prices.read", "stock.read", "status.read", "status.write", "reference.read", "knowledge.manage" })
             database.PermissionGrants.Add(new PermissionGrant { UserId = user.Id, Permission = permission });
         await database.SaveChangesAsync(ct);
+        started = true;
     }
     public Task StopAsync(CancellationToken ct) => Task.CompletedTask;
 }
