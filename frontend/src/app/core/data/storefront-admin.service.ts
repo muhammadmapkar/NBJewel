@@ -8,9 +8,9 @@ import { Item, StorefrontMetadata } from '../models';
 export interface StorefrontAsset { itemId: number; revisionId: string; state: string; qualityReview: string; licenseStatus: string; width: number; height: number; }
 export interface StorefrontSuggestion { revisionId: string; description: string; collection: string; }
 export interface PublicationState { itemId: number; published: boolean; assetRevisionId: string | null; }
-// Category IDs 3 and 6 are the assumed sample necklace/earring categories. The API rechecks names.
-export function publicationReady(item: Item, asset: StorefrontAsset | null): boolean {
-  return item.status === 'Complete' && [3, 6].includes(item.categoryId) && !!item.storefront?.description.trim() &&
+// SQL assigns category IDs; use the loaded category name. The API independently rechecks eligibility.
+export function publicationReady(item: Item, asset: StorefrontAsset | null, categoryName: string): boolean {
+  return item.status === 'Complete' && ['Necklaces', 'Earrings'].includes(categoryName) && !!item.storefront?.description.trim() &&
     asset?.itemId === item.id && asset.state === 'ready' && asset.qualityReview === 'approved';
 }
 @Injectable({ providedIn: 'root' })

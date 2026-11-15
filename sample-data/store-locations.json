@@ -1,0 +1,41 @@
+[
+  {
+    "id": "1",
+    "name": "Dubai ERP sample",
+    "city": "Dubai",
+    "latitude": 25.2048,
+    "longitude": 55.2708,
+    "source": "erp",
+    "isSample": true,
+    "erpEnabled": true,
+    "inventorySyncedAt": null,
+    "imagesSyncedAt": null,
+    "productIds": []
+  },
+  {
+    "id": "2",
+    "name": "Chennai ERP sample",
+    "city": "Chennai",
+    "latitude": 13.0827,
+    "longitude": 80.2707,
+    "source": "erp",
+    "isSample": true,
+    "erpEnabled": true,
+    "inventorySyncedAt": null,
+    "imagesSyncedAt": null,
+    "productIds": []
+  },
+  {
+    "id": "3",
+    "name": "Bengaluru ERP sample",
+    "city": "Bengaluru",
+    "latitude": 12.9716,
+    "longitude": 77.5946,
+    "source": "erp",
+    "isSample": true,
+    "erpEnabled": true,
+    "inventorySyncedAt": null,
+    "imagesSyncedAt": null,
+    "productIds": []
+  }
+]

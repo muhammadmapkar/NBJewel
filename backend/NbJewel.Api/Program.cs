@@ -113,7 +113,11 @@ builder.Services.AddSingleton(services =>
         configuration["CUTOUT_PYTHON_PATH"] ?? "python3",
         Path.Combine(AppContext.BaseDirectory, "scripts", "cutout-jewelry.py"));
 });
-builder.Services.AddSingleton<IItemImageAssetRepository, FileItemImageAssetRepository>();
+if (provider.Equals("Sql", StringComparison.OrdinalIgnoreCase))
+    builder.Services.AddSingleton<IItemImageAssetRepository>(new SqlItemImageAssetRepository(
+        new DbContextOptionsBuilder<ItemAssetDatabase>().UseSqlServer(builder.Configuration["NBJEWEL_SQL_CONNECTION"]).Options));
+else
+    builder.Services.AddSingleton<IItemImageAssetRepository, FileItemImageAssetRepository>();
 builder.Services.AddSingleton<ItemCutoutPipeline>();
 builder.Services.AddSingleton(services => JewelryVisionOptions.Read(services.GetRequiredService<IConfiguration>()));
 builder.Services.AddHttpClient<IJewelryVision, JewelryVisionClient>().RemoveAllLoggers();

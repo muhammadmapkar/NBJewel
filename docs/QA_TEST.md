@@ -1,4 +1,6 @@
 <!-- Role: Gives Muhammad a short local QA checklist for ERP jewelry publication and the customer journey. -->
+
+Current catalog behavior and SQL setup: see [SQL catalog QA](SQL_CATALOG_QA.md). The storefront no longer loads a separate bundled catalog. The sample launcher below remains sample-only and must not be used to demonstrate SQL persistence.
 # QA: ERP jewelry to storefront
 
 Allow 15 minutes. Use sample data. Pass = create in ERP, publish, see it on the website, edit it, then revoke it.

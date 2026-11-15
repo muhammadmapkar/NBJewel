@@ -33,16 +33,22 @@ it('treats missing assets as empty but keeps permission failures visible', () =>
   http.expectOne(`${base}/api/items/7/image`).flush(null, { status: 403, statusText: 'Forbidden' }); expect(failed).toBe(true);
 });
 it('requires complete supported item, description, matching item and reviewed ready asset', () => {
-  expect(publicationReady(item, asset)).toBe(true); expect(publicationReady(item, null)).toBe(false);
-  expect(publicationReady({ ...item, status: 'Draft' }, asset)).toBe(false);
-  expect(publicationReady({ ...item, categoryId: 2 }, asset)).toBe(false);
-  expect(publicationReady(item, { ...asset, state: 'processing' })).toBe(false);
-  expect(publicationReady(item, { ...asset, qualityReview: 'pending' })).toBe(false);
-  expect(publicationReady(item, { ...asset, itemId: 8 })).toBe(false);
+  expect(publicationReady(item, asset, 'Necklaces')).toBe(true); expect(publicationReady(item, null, 'Necklaces')).toBe(false);
+  expect(publicationReady({ ...item, status: 'Draft' }, asset, 'Necklaces')).toBe(false);
+  expect(publicationReady({ ...item, categoryId: 2 }, asset, 'Rings')).toBe(false);
+  expect(publicationReady(item, { ...asset, state: 'processing' }, 'Necklaces')).toBe(false);
+  expect(publicationReady(item, { ...asset, qualityReview: 'pending' }, 'Necklaces')).toBe(false);
+  expect(publicationReady(item, { ...asset, itemId: 8 }, 'Necklaces')).toBe(false);
 });
 
 it('loads the exact preview revision the operator is reviewing', () => {
   service.preview(7, 'reviewed-revision').subscribe({ error: () => undefined });
   const request = http.expectOne(`${base}/api/items/7/image/preview?revisionId=reviewed-revision`);
   expect(request.request.responseType).toBe('blob'); request.flush(new Blob(['image']));
+});
+
+it('allows supported SQL categories regardless of their generated IDs', () => {
+  expect(publicationReady({ ...item, categoryId: 101 }, asset, 'Necklaces')).toBe(true);
+  expect(publicationReady({ ...item, categoryId: 102 }, asset, 'Earrings')).toBe(true);
+  expect(publicationReady(item, asset, 'Rings')).toBe(false);
 });

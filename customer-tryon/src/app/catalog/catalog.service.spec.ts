@@ -23,9 +23,15 @@ function setup(apiBaseUrl: string | null) {
   http = injector.get(HttpTestingController); service = injector.get(CatalogService);
 }
 afterEach(() => { http?.verify(); injector?.destroy(); vi.unstubAllGlobals(); });
-it('keeps the bundled catalog when no API address is configured', () => {
-  setup(null); service.load(); http.expectOne(`${page}catalog/catalog.json`).flush(bundled);
-  expect(service.catalog()).toEqual(bundled); service.load(); http.expectNone(`${page}catalog/catalog.json`);
+it('fails visibly without an API address instead of loading demo products', () => {
+  setup(null); service.load(); expect(service.state().status).toBe('error');
+  http.expectNone(`${page}catalog/catalog.json`);
+});
+it('legacy demo links load the unified ERP catalog', () => {
+  setup(api); service.selectStore(null, 'demo');
+  http.expectOne(`${api}/api/storefront/products?page=1&pageSize=100`).flush({ items: [], page: 1, pageSize: 100, totalCount: 0 });
+  http.expectOne(`${api}/api/storefront/metal-rates`).flush([rate]);
+  expect(service.source()).toBe('erp'); http.expectNone(`${page}catalog/catalog.json`);
 });
 it('loads published API products and rates anonymously and keeps authoritative pricing', () => {
   setup(api + '/'); service.load();

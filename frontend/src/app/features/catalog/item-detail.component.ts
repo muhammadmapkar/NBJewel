@@ -63,7 +63,7 @@ type TabId = 'overview' | 'images' | 'variants' | 'stock';
 
           <div role="tabpanel" [attr.aria-labelledby]="'tab-' + tab()">
             @switch (tab()) {
-              @case ('images') { <nb-storefront-panel [item]="it" (itemSaved)="storefrontSaved($event)" /> }
+              @case ('images') { <nb-storefront-panel [item]="it" [categoryName]="categoryName(it.categoryId)" (itemSaved)="storefrontSaved($event)" /> }
               @case ('variants') { <nb-variants-table [itemId]="it.id" /> }
               @case ('stock') { <nb-stock-panel [itemId]="it.id" /> }
               @default {

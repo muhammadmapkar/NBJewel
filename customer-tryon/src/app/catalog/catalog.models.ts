@@ -1,5 +1,5 @@
 // Role: Types and pure rules for the customer shop: the catalog file shape
-// (public/catalog/catalog.json, made by scripts/build-tryon-catalog.py), price from recorded metal rates,
+// mapped from the published ERP API, priced from recorded metal rates,
 // catalog filters and sorting, and the try-on "parts" query. All values in the catalog are SAMPLE
 // data for the demo (assumed). Unit tested in catalog.models.spec.ts.
 

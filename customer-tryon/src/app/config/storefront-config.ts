@@ -1,5 +1,5 @@
-// Role: Loads a nonsecret runtime API address before pages start. Missing/unset config uses
-// the bundled sample catalog; invalid or unavailable configured data produces a visible error.
+// Role: Loads the nonsecret backend address for the unified catalog and customer portal.
+// Missing or invalid configuration produces a visible error, never a static catalog.
 import { InjectionToken } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom, timeout } from 'rxjs';
@@ -18,7 +18,10 @@ export async function loadStorefrontConfig(http: HttpClient, config: StorefrontC
     const value = await firstValueFrom(http.get<{ apiBaseUrl?: unknown; portalApiBaseUrl?: unknown }>(new URL('storefront-config.json', pageBase).href, { headers: { 'Cache-Control': 'no-cache' } }).pipe(timeout(5000)));
     config.apiBaseUrl = resolveApiBase(value?.apiBaseUrl, pageBase);
     if (value?.portalApiBaseUrl !== undefined) config.portalApiBaseUrl = resolveApiBase(value.portalApiBaseUrl, pageBase);
+    const base = config.apiBaseUrl ?? config.portalApiBaseUrl;
+    if (!base) throw new Error('API not configured.');
+    config.apiBaseUrl = base; config.portalApiBaseUrl = base;
   } catch (error) {
-    if ((error as { status?: number }).status !== 404) config.error = 'Could not load storefront configuration.';
+    config.error = 'Could not load storefront configuration.';
   }
 }

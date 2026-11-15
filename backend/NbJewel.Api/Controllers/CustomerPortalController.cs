@@ -12,7 +12,7 @@ using NbJewel.Api.Repositories;
 using NbJewel.Api.Storefront;
 namespace NbJewel.Api.Controllers;
 [ApiController, Authorize, Route("api/customer"), ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public sealed class CustomerPortalController(IPermissionAdapter permissions, CustomerPortal portal, StoreDirectory stores, IItemRepository items, IPublicationReader publications, IConfiguration config) : ControllerBase
+public sealed class CustomerPortalController(IPermissionAdapter permissions, CustomerPortal portal, StoreDirectory stores, IItemRepository items, IPublicationReader publications) : ControllerBase
 {
     public sealed record ProfileInput([Required, MaxLength(100)] string Name, [MaxLength(30)] string Phone);
     public sealed record BagInput([Required, MaxLength(100)] string Id, [Required, RegularExpression("^(demo|erp)$")] string Source);
@@ -71,11 +71,6 @@ public sealed class CustomerPortalController(IPermissionAdapter permissions, Cus
     }, ct);
     private async Task<bool> ProductExists(string id, string source, CancellationToken ct)
     {
-        if (source == "demo") {
-            if (string.Equals(config["Repository:Provider"], "Sql", StringComparison.OrdinalIgnoreCase)) return false;
-            using var data = JsonDocument.Parse(await System.IO.File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "sample-data", "storefront-catalog.json"), ct));
-            return data.RootElement.GetProperty("products").EnumerateArray().Any(x => x.GetProperty("id").GetString() == id);
-        }
         if (source != "erp" || !int.TryParse(id, out var number) || !(await publications.PublishedItemIdsAsync(ct)).Contains(number)) return false;
         var item = await items.GetItemAsync(number, ct);
         return item is not null && PublicCatalogPolicy.Allows(item, await PublicCatalogPolicy.AllowedCategoriesAsync(items, ct));

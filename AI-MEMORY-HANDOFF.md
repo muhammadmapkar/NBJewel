@@ -2,11 +2,12 @@
 # AI memory handoff
 
 ## Lock
-- Agent: codex-portal-plan.
-- Since: 2026-11-15T14:49:09+04:00
-- Status: released in the plan-only documentation checkpoint; implementation is not authorized.
+- Agent: codex-sql-catalog.
+- Since: 2026-11-15T15:22:53+04:00
+- Status: released in the unified SQL catalog implementation checkpoint. Owner-run SQL setup/import and manual image approval remain pending. Business portal plan remains held.
 
 ## Branch and last commit
+- Unified SQL catalog predecessor: `fcdf3a1`; fetched and ff-only pulled. Final snapshot is the commit containing this handoff. Pre-existing owner edit to docs/superpowers/plans/2026-11-15-business-web-portals.md was excluded.
 - Startup diagnosis predecessor: `11b3f14973519f76e63a705507e66539a1b94755`; matched HEAD and handoff snapshot after fetch and ff-only pull.
 - Portal upgrade predecessor: `7720b2a64bd36ba5b0d79ab8e2f1f8be70d50b2e`. Final portal snapshot is the commit containing this handoff, resolved with `git log -1 --format=%H -- AI-MEMORY-HANDOFF.md`; push target remains origin/feature/customer-storefront.
 - Reconciliation baseline: `5e6066f2dcee8fd49f7086cc34cd1630ade5ca57`, exact origin alignment verified after fetch/reset/ff-only pull.
@@ -33,6 +34,9 @@
 - Snapshot commit: the commit containing this handoff; resolve with `git log -1 --format=%H -- AI-MEMORY-HANDOFF.md`. Compare it with HEAD on the next start. A literal self-referencing commit hash cannot be recorded inside the same commit.
 
 ## Current goal
+Approved one-SQL-catalog implementation prepared and verified offline/sample-only. See docs/SQL_CATALOG_QA.md for owner-run Docker/SQL setup, credentials, import and manager demonstration. No database migration, SQL import, bootstrap or live SQL validation was performed. Existing sample API remains running and QA snapshot is preserved. Do not claim the running API is SQL-backed until the owner completes setup.
+
+Previous goal:
 Save-only request completed: docs/superpowers/plans/2026-11-15-business-web-portals.md records the agreed multi-business Web Portal design. STOP: Muhammad explicitly said not to implement yet. Await explicit implementation authorization; do not resume its unchecked tasks automatically.
 
 Previous completed goal:
@@ -43,6 +47,9 @@ Origin reconciliation, forensic audit and reproduced assistant visibility repair
 
 
 ## Done
+- Final SQL catalog review fixed ERP publication eligibility tied to sample IDs 3/6: uses loaded category names, tested with SQL-generated IDs 101/102. Unified default, Home, legacy source=demo links and 1280px/390px navigation verified in browser; anonymous try-on prompts login. Current backend remains the untouched running Sample API, so this browser check is not SQL validation.
+- Downloaded 12 Met public-domain images (9 necklaces, 3 earrings), 18-entry checksum/provenance manifest including 6 existing owner images kept Draft with unresolved licensing. Offline import validation and 4 Python tests pass. QA public snapshot/source/preview preserved at ignored App_Data/sql-migration/20261115-153502-687583; sample API not stopped. Prepared additive schema, reference data and SQL launch/import tools; no SQL execution.
+- Unified catalog task: SQL image metadata adapter/model, in-memory persistence/revision tests and configured provider wiring added. Initial backend 396 passed/6 SQL skipped; real SQL remains unexecuted. Frontend legacy demo/static fallback regressions reproduced and API-only implementation passes 73 tests.
 - Saved the business Web Portal plan only: confirmed ownership/template/wholesale/global-login/provisioning choices, isolation requirements, draft/preview/publish behavior, staged tasks and acceptance tests. No implementation performed.
 - Startup conflict diagnosed: existing main-checkout NbJewel.Api PID 81558 owns localhost:5155 and public products returned HTTP 200. Second launcher cannot bind the same port. Existing process left running to preserve its in-memory session; no application change needed.
 - QA guide: docs/QA_TEST.md documents exact startup/login retrieval, a new-item fixture, source=erp catalog links, manual publication/edit/revoke checks, separate browser sessions, inventory limitations and troubleshooting. No real credential recorded; proposed customer credentials are explicitly test-only and require signup.
@@ -74,6 +81,10 @@ Origin reconciliation, forensic audit and reproduced assistant visibility repair
 - Setup files written: replaced stale handoff statements, added the handoff protocol to AGENTS.md, and added Claude/Copilot routing instructions. Validation passed; setup pushed as `d44c748`.
 
 ## Next steps (ordered checklist)
+- [x] SQL asset metadata adapter and safe schema/config preparation; execution remains owner-run.
+- [x] One API-only storefront and SQL directory, including legacy links. Static customer/demo bypasses removed and regression-tested.
+- [x] Licensed image manifest, duplicate-safe ERP importer, QA preservation export and SQL launcher prepared; importer dry-run only.
+- [x] Offline/sample verification and local self-review, setup/demo guide and final checkpoint. Independent reviewer unavailable due to usage limit; no independent-review claim.
 - [ ] Wait for Muhammad's explicit authorization before implementing the business Web Portal plan. Saving this plan does not authorize execution.
 - [x] ERP Vision endpoint, editable rendered-preview auto-fill and protected revision/auth tests.
 - [x] Customer profile/bag/reservation backend and opt-in Sample customer identity.
@@ -104,6 +115,8 @@ Historical phase-2 checklist:
 - [x] After task 9: sequential read-only lead review completed; all findings corrected with regressions and affected suites/builds passing. Stop and wait for Muhammad.
 
 ## Blockers and decisions
+- Final review: independent read-only subagent hit usage limit and returned no review. Root continued local review, reproduced ERP hardcoded category-ID publish gate failure and changed it to loaded category names. Headroom handoff compression was auto-review blocked for private-data transfer; no retry or transmission.
+- Current ruling: implement inline in main checkout with this handoff as only ledger. SQL/Docker operations are owner-run. Existing edited business portal plan excluded. Images stay durable files; SQL holds exact revision/hash/review/publication evidence.
 - 2026-11-15 startup diagnosis: preserve the existing API. To restart with providers, Muhammad can stop the original API terminal with Ctrl+C, confirm port 5155 is free, then rerun the supplied launcher. Only the successful new launch password applies; restart resets temporary identity/session state. Maintenance warning is separate from the confirmed fatal port conflict and was not investigated here.
 - Portal choices: use existing OSM embed (zero key) and local cutout stack (zero key). Two unique provider keys suffice with shared Gemini + GoldAPI, or three for separate ERP/chat Gemini credentials. Root .env remains untouched. Real provider calls were not made during sample checks.
 - Sample store coordinates are assumed, never claimed verified. A live badge requires configured non-sample SQL store, ERP enabled, and both externally supplied sync timestamps fresh within 15 minutes. No upstream ERP sync writer is invented.
@@ -159,6 +172,7 @@ Historical phase-2 checklist:
 - No questions to owner. Choose conservative sample-only behavior and log assumptions. Accounts, chatbot, locator are later phases.
 
 ## Files touched
+- Unified SQL catalog: backend asset SQL model/repository/provider wiring, customer demo bypass removal, SQL store locations, protected storage diagnostic, SQL asset/HTTP tests; storefront API-only catalog/config/directory; ERP category-name readiness and tests; 12 JPGs and provenance/import manifest; additive schema/reference/read-only inspection SQL; launcher/import/export/schema-generator scripts and Python tests; SQL_CATALOG_QA.md, QA guide pointer, README, env example and this handoff. Protected owner files and pre-existing business-plan edits excluded. Ignored QA snapshot is local only.
 - Plan-only task: docs/superpowers/plans/2026-11-15-business-web-portals.md and AI-MEMORY-HANDOFF.md only.
 - Startup diagnosis: AI-MEMORY-HANDOFF.md only. No application, owner file, secret, provider or running process modified.
 - QA documentation task: docs/QA_TEST.md and AI-MEMORY-HANDOFF.md only.
@@ -181,6 +195,11 @@ Historical phase-2 checklist:
 - Pre-existing owner changes preserved, excluded from staging: PROGRESS.md, docs/run-guide.md, customer-tryon/package-lock.json; untracked browser security plan, old proof image, pasted jewelry image.
 
 ## Test commands and last results
+- Unified SQL catalog final: sanitized `dotnet test backend/NbJewel.Api.Tests --no-restore`: 396 passed, 7 SQL-only skipped, 0 failed. `dotnet build backend/NbJewel.Api --no-restore`: 0 warnings/errors. Logs /tmp/nbjewel-sql-verified-backend.log and /tmp/nbjewel-sql-verified-build.log. SQL connections/secrets removed from verification processes.
+- Customer `npm test`: 73 passed; strict `npx tsc --noEmit -p tsconfig.app.json` and bounded-worker production build passed. ERP final after category-ID fix: 74 tests passed; strict typecheck and production build passed. Initial sandbox Angular worker aborts resolved by approved build retries. Linter unavailable because neither package defines one.
+- `python3 -m unittest discover -s scripts/tests`: 6 passed. Manifest dry-run validates 18 products/hashes, including 12 CC0/public-domain downloads; preserved QA import manifest validates separately. All 12 new photos pass the EXISTING cutout script's technical generation checks to /tmp/nbjewel-demo-previews; none is manually approved or published. Generated SQL is checked offline only, not parsed/executed by SQL Server.
+- Browser: Home, /shop and /shop?source=demo all show the preserved QA API product; mobile390/desktop1280 navigation and guest try-on login gate verified. Viewport reset and dialog closed. No data mutation or provider/SQL/real-camera check.
+- Independent review attempted once; subagent failed on usage quota before reviewing. Root self-review caught and regression-tested the category-ID issue. Headroom compression rejected by automatic approval review for private handoff transfer; no retry/transmission. Serena unavailable.
 - Plan-only task: reviewed against confirmed conversation decisions and inspected repository boundaries; document content assertions and git diff --check passed. No app tests/builds rerun because application code was not changed.
 - Startup diagnosis 2026-11-15: `lsof -nP -iTCP:5155 -sTCP:LISTEN` identified PID 81558 on both loopback families; `ps -p 81558 -o pid=,ppid=,lstart=,comm=` identified this main-checkout API, started Nov 14; read-only `curl --noproxy "*" --max-time 5 -s -o /dev/null -w "%{http_code}" http://localhost:5155/api/storefront/products` returned 200. Fetch and ff-only pull passed with approved sandbox escalation. Handoff-only validation and diff whitespace check passed; application suites not rerun because no source changed.
 - QA document only: verified launcher flags/staff email, Angular catalog/source routes, status/publication control labels and local Python path against repository files; Markdown/content assertions and git diff --check passed. Application suites not rerun because no application code changed.
@@ -223,6 +242,9 @@ Historical phase-2 checklist:
 - Task 1 baseline: `dotnet test backend/NbJewel.Api.Tests` with all SQL/connection environment variables removed and `Repository__Provider=Sample`: 309 passed, 6 skipped, 0 failed. Initial sandbox run aborted at VSTest socket binding; same command outside sandbox passed. No SQL executed. Logs: `/tmp/nbjewel-task1-baseline.log`.
 
 ## Manual checks for Muhammad
+- Follow docs/SQL_CATALOG_QA.md: preserve any private ERP-only QA fields, apply additive SQL/reference scripts yourself, configure the three backend connections to the dedicated demo DB, bootstrap SQL staff, stop Sample only after export, run SQL launcher, import manifest, and manually review/publish. These operations have NOT happened yet.
+- QA public snapshot/source/preview: backend/NbJewel.Api/App_Data/sql-migration/20261115-153502-687583 (ignored, local only). Do not delete this or the current sample asset directory. New SQL IDs are assigned; item codes preserved. Private HUID/design/stock fields require manual export if relevant.
+- Eight new necklace records are prepared for Complete status after import; four new designs and six existing unresolved-license records stay Draft. Paired earring source photos need manual fit review. No source-image licensing or cutout-quality approval is implied.
 - Current guide: docs/portal-upgrades.md. Test live Gemini via --with-services, configure optional GoldAPI, test physical camera/fit/cutout quality, and provision real stores/SMTP/SQL only with separate authorization. Current local API intentionally ran without provider keys for browser tests; restart with guide command to enable them.
 - Read RECONCILIATION_REPORT.md before configuring services: exact key names and absent implementations are distinguished. Keep SQL variables unset for sample use; no provider key alone enables missing spot-feed or map code.
 - Current audit did not retest camera/phone layouts, cookie flows or representative cutout quality. Prior browser evidence below is historical, not newly repeated.
@@ -235,6 +257,7 @@ Historical phase-2 checklist:
 - Real browser CORS and cookies.
 
 ## Agent log (newest first)
+- 2026-11-15T15:51:21+04:00 codex-sql-catalog: approved one-catalog implementation, public-domain downloads, QA snapshot, SQL adapter/setup/import preparation and verification complete within owner-run SQL boundary. Local self-review fixed category-ID assumptions. Releasing Lock in the final explicitly staged/pushed checkpoint; unrelated business-plan edit remains untouched.
 - 2026-11-15T14:49:09+04:00 codex-portal-plan: baseline c342b51 clean and synced; prior Lock explicitly released. Saved requested plan, preserved implementation hold and released Lock in documentation checkpoint. No app/service/env/schema changes.
 - 2026-11-15T14:41:25+04:00 codex-port-diagnosis: read full handoff, verified released lock, clean branch/upstream and snapshot, fetched/pulled, identified existing healthy loopback API as cause of duplicate-start failure. Acquired/released Lock for this diagnosis checkpoint. Existing session preserved; no new feature work or live provider calls.
 - 2026-11-14T18:28:57+04:00 codex-qa-doc: fetch/ff-only pull and clean baseline 5bb3835 verified, acquired released Lock, created requested QA guide and validated documented routes/controls. Explicit-path docs checkpoint/push releases Lock. No running app, credential, source config or owner file changed.

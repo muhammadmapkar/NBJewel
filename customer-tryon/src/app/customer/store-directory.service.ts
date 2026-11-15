@@ -18,8 +18,8 @@ export class StoreDirectoryService {
     if (this.loaded && !force) return; this.loaded = true; this.error.set('');
     try {
       const base = this.session.base;
-      const result = base ? await firstValueFrom(this.http.get<PublicStore[]>(`${base}/api/storefront/stores`)) :
-        (await firstValueFrom(this.http.get<StoreLocation[]>('catalog/store-directory.json'))).filter(x => x.source === 'demo').map(location => ({ location, liveSynced: false, productCount: location.productIds.length }));
+      if (!base) throw new Error('API not configured.');
+      const result = await firstValueFrom(this.http.get<PublicStore[]>(`${base}/api/storefront/stores`));
       if (!Array.isArray(result) || result.some(x => !x.location || !Number.isFinite(x.location.latitude) || !Number.isFinite(x.location.longitude) || Math.abs(x.location.latitude) > 85 || Math.abs(x.location.longitude) > 180)) throw new Error();
       this.stores.set(result);
     } catch { this.stores.set([]); this.error.set('Store information is unavailable. Please retry.'); }

@@ -11,14 +11,14 @@ it('resolves public HTTP addresses and an unset address without allowing credent
   expect(resolveApiBase('', 'https://shop.example.test/')).toBeNull();
   for (const input of ['javascript:alert(1)', 'https://user:password@api.example.test', 'https://api.example.test?secret=value', 42]) expect(() => resolveApiBase(input, 'https://shop.example.test/')).toThrow();
 });
-it('loads configuration independently of the build and keeps a missing config in static mode', async () => {
+it('loads configuration independently of the build and reports a missing config as an error', async () => {
   const injector = createEnvironmentInjector([provideZonelessChangeDetection(), { provide: ɵINJECTOR_SCOPE, useValue: 'root' }, provideHttpClient(), provideHttpClientTesting()], null as unknown as EnvironmentInjector);
   const http = injector.get(HttpTestingController); const config: StorefrontConfig = { apiBaseUrl: null };
   try {
     const first = loadStorefrontConfig(injector.get(HttpClient), config, 'https://shop.example.test/base/');
     http.expectOne('https://shop.example.test/base/storefront-config.json').flush({ apiBaseUrl: 'https://api.example.test/' }); await first; expect(config.apiBaseUrl).toBe('https://api.example.test');
     const second = loadStorefrontConfig(injector.get(HttpClient), config, 'https://shop.example.test/base/');
-    http.expectOne('https://shop.example.test/base/storefront-config.json').flush(null, { status: 404, statusText: 'Missing' }); await second; expect(config.apiBaseUrl).toBeNull();
+    http.expectOne('https://shop.example.test/base/storefront-config.json').flush(null, { status: 404, statusText: 'Missing' }); await second; expect(config.apiBaseUrl).toBeNull(); expect(config.error).toBeTruthy();
     http.verify();
   } finally { injector.destroy(); }
 });

@@ -56,6 +56,7 @@ import { errorMessage } from './item-options';
 })
 export class StorefrontPanelComponent implements OnDestroy {
   readonly item = input.required<Item>();
+  readonly categoryName = input('');
   readonly itemSaved = output<Item>();
   private readonly api = inject(StorefrontAdminService);
   private readonly auth = inject(AuthService);
@@ -71,7 +72,7 @@ export class StorefrontPanelComponent implements OnDestroy {
   description = ''; collection = ''; reviewChecked = false;
   readonly canUpload = computed(() => { const u = this.auth.identity(); return u?.accountType === 'erp' && u.allStores && ['items.read', 'items.write', 'prices.read', 'status.read'].every(p => u.permissions.includes(p)); });
   readonly canManage = computed(() => this.canUpload() && this.auth.identity()!.permissions.includes('knowledge.manage'));
-  readonly ready = computed(() => publicationReady(this.saved() ?? this.item(), this.asset()));
+  readonly ready = computed(() => publicationReady(this.saved() ?? this.item(), this.asset(), this.categoryName()));
   constructor() { effect(() => { this.item(); untracked(() => { this.saved.set(null); this.load(); }); }); }
   ngOnDestroy(): void { this.analysis++; this.generation++; this.clearPreview(); }
   private clearPreview(): void { const value = this.preview(); if (value) URL.revokeObjectURL(value); this.preview.set(null); }

@@ -14,7 +14,7 @@ import { SiteHeaderComponent } from '../ui/site-header.component';
 @for (store of sorted(); track store.location.id) { <article [class.selected]="selected()?.location?.id === store.location.id">
 <button class="select-store" (click)="selected.set(store)"><b>{{ store.location.name }}</b><span>{{ store.location.city }} @if (position()) { · {{ distance(store).toFixed(1) }} km }</span></button>
 <p class="badge">{{ store.location.isSample ? 'Sample location' : store.liveSynced ? 'ERP connected · recently synced' : 'Sync not verified or stale' }}</p>
-<p>{{ store.productCount }} {{ store.location.source === 'demo' ? 'sample designs' : 'published designs in stock' }}</p>
+<p>{{ store.productCount }} published designs in stock</p>
 @if (store.location.inventorySyncedAt) { <p class="muted small">Inventory sync: {{ store.location.inventorySyncedAt }}</p> }
 <a class="btn ghost" routerLink="/shop" [queryParams]="{ store: store.location.id, source: store.location.source }">Browse this store</a></article> }
 </div><div class="map-wrap">@if (mapUrl(); as url) { <iframe title="Interactive map of selected store" [src]="url" loading="lazy" referrerpolicy="no-referrer"></iframe><p class="muted small">Map © OpenStreetMap contributors. Select a store card to move the marker. Pan and zoom within the map.</p> } @else { <p>Select a store to view its map.</p> }</div></div></main>`, styles: [`

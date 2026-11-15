@@ -1,4 +1,6 @@
 <!-- Role: Explains the sample demo, safe local startup, storefront runtime configuration and phase 2 verification. -->
+
+Current SQL catalog workflow: [owner-run SQL setup and manager QA](docs/SQL_CATALOG_QA.md). The storefront now reads only the ERP API; older bundled-demo instructions below are historical. SQL/Docker execution and manual image approval remain owner steps.
 # nbjewel-assistant
 
 An internship demo for Cetas (jewelry retail ERP, NB Jewel). The ERP Angular app, customer try-on Angular app and .NET API use synthetic sample data. Unconfirmed business rules are assumed demo policy, not NB Jewel internals. No real client data is permitted.

@@ -21,6 +21,10 @@ public sealed class ItemsController(IItemRepository repository) : ControllerBase
     private IChatDataReader Reader => Access is { } a
         ? new ScopedChatDataReader(repository, new("erp", a.Id, a.AccountType, a.Permissions, a.StoreIds, a.AllStores))
         : new ChatDataReader(repository);
+    // Authenticated diagnostic for the local importer; never returns connection details.
+    [HttpGet("storage")]
+    public IActionResult GetStorage() => Ok(new { provider = repository is SqlItemRepository ? "Sql" : "Sample" });
+
     [HttpGet]
     public async Task<ActionResult<PagedResult<Item>>> GetItems(string? search, int? category, string? metal, string? purity, string? status, int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
     {

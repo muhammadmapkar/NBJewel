@@ -1,5 +1,5 @@
-// Role: Loads the bundled sample catalog when no runtime API address is configured; otherwise
-// fetches all published API products and dated rates. API failures never restore static products.
+// Role: Loads the single published ERP catalog and dated rates through the backend API.
+// Legacy demo links use this same catalog; missing configuration and API failures fail closed.
 import { CanActivateFn } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
@@ -15,10 +15,12 @@ export class CatalogService {
   readonly state = signal<CatalogState>({ status: 'loading' });
   readonly catalog = computed(() => { const s = this.state(); return s.status === 'ready' ? s.catalog : null; });
   readonly products = computed(() => this.catalog()?.products ?? []);
-  readonly source = signal<'demo' | 'erp'>(this.config.apiBaseUrl ? 'erp' : 'demo');
+  readonly source = signal<'demo' | 'erp'>('erp');
   readonly storeId = signal<string | null>(null);
   readonly linkParams = computed(() => ({ source: this.source(), store: this.storeId() }));
-  selectStore(id: string | null, source: 'demo' | 'erp' = this.config.apiBaseUrl ? 'erp' : 'demo'): void {
+  selectStore(id: string | null, source: 'demo' | 'erp' = 'erp'): void {
+    if (source === 'demo') id = null; // Old demo store IDs are not ERP store IDs.
+    source = 'erp';
     if (this.storeId() === id && this.source() === source) { this.load(); return; }
     this.storeId.set(id); this.source.set(source); this.load(true);
   }
@@ -29,14 +31,10 @@ export class CatalogService {
     this.requested = true; this.active?.unsubscribe(); this.state.set({ status: 'loading' });
     try {
       if (this.config.error) throw new Error(this.config.error);
-      const base = this.source() === 'erp' ? resolveApiBase(this.config.apiBaseUrl ?? this.config.portalApiBaseUrl, document.baseURI) : null;
-      if (this.source() === 'erp' && !base) throw new Error('API not configured.');
-      const source = base ? forkJoin({ products: this.apiPage(base), rates: this.http.get<PublicMetalRate[]>(`${base}/api/storefront/metal-rates`) })
-        .pipe(map(({ products, rates }) => catalogFromApi(products, rates, base)))
-        : this.http.get<Catalog>(this.url('catalog/catalog.json')).pipe(map(catalog => {
-          if (catalog.products.some(product => !priceOf(product, catalog).available)) throw new Error('Missing matching metal rate.');
-          return catalog;
-        })).pipe(switchMap(catalog => this.storeId() ? this.http.get<import('../customer/store-directory.service').StoreLocation[]>('catalog/store-directory.json').pipe(map(stores => { const selected = stores.find(s => s.id === this.storeId() && s.source === 'demo'); if (!selected) throw new Error('Unknown store.'); return { ...catalog, products: catalog.products.filter(p => selected.productIds.includes(p.id)) }; })) : of(catalog)));
+      const base = resolveApiBase(this.config.apiBaseUrl ?? this.config.portalApiBaseUrl, document.baseURI);
+      if (!base) throw new Error('API not configured.');
+      const source = forkJoin({ products: this.apiPage(base), rates: this.http.get<PublicMetalRate[]>(`${base}/api/storefront/metal-rates`) })
+        .pipe(map(({ products, rates }) => catalogFromApi(products, rates, base)));
       this.active = source.subscribe({ next: catalog => this.state.set({ status: 'ready', catalog }), error: () => this.state.set({ status: 'error' }) });
     } catch { this.state.set({ status: 'error' }); }
   }
@@ -59,6 +57,6 @@ export class CatalogService {
 export const catalogContextGuard: CanActivateFn = route => {
   const catalog = inject(CatalogService); const source = route.queryParamMap.get('source');
   if (source === 'demo' || source === 'erp') catalog.selectStore(route.queryParamMap.get('store'), source);
-  else catalog.load();
+  else catalog.selectStore(route.queryParamMap.get('store'));
   return true;
 };
