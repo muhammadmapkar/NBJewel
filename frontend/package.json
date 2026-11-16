@@ -5,7 +5,7 @@
   "scripts": {
     "start": "ng serve",
     "build": "ng build",
-    "build:deploy": "node scripts/write-deploy-env.mjs && ng build --configuration deploy",
+    "build:deploy": "node ../scripts/build-web.mjs erp",
     "test": "vitest run"
   },
   "dependencies": {

@@ -21,6 +21,16 @@
             ],
             "styles": ["src/styles.css"],
             "outputPath": "dist/customer-tryon"
+          },
+          "configurations": {
+            "deploy": {
+              "baseHref": "/",
+              "assets": [
+                { "glob": "**/*", "input": "public", "ignore": ["storefront-config.json"] },
+                { "glob": "**/*", "input": "node_modules/@mediapipe/tasks-vision/wasm", "output": "mediapipe/wasm" },
+                { "glob": "**/*", "input": ".hosting/public" }
+              ]
+            }
           }
         },
         "serve": {

@@ -25,6 +25,12 @@
           },
           "configurations": {
             "deploy": {
+              "baseHref": "/erp/",
+              "assets": [
+                { "glob": "**/*", "input": "node_modules/@mediapipe/tasks-vision/wasm", "output": "mediapipe/wasm" },
+                { "glob": "**/*", "input": "public", "ignore": ["portal-config.json"] },
+                { "glob": "**/*", "input": ".hosting/public" }
+              ],
               "fileReplacements": [
                 { "replace": "src/environments/environment.ts", "with": "src/environments/environment.deploy.ts" }
               ]

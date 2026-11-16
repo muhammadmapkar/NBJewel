@@ -20,6 +20,7 @@ describe('ERP return navigation', () => {
   it('keeps supported ERP paths', () => {
     expect(safeErpReturnUrl('/catalog/42?tab=stock')).toBe('/catalog/42?tab=stock');
     expect(safeErpReturnUrl('/owner/jewelry')).toBe('/owner/jewelry');
+    expect(safeErpReturnUrl('/web-portal')).toBe('/web-portal');
   });
   it('rejects external URLs, auth loops and malformed paths', () => {
     for (const path of [null, '//evil.example', 'https://evil.example', '/\\evil', '/sign-in', '/access-denied', '/tryon', '/catalog;evil=1', '/catalog/%2f%2fevil', '/unknown']) {

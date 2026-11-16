@@ -1,5 +1,6 @@
 // Role: Defines assumed fixed portal editor contracts and calls membership-scoped APIs through the existing cookie/CSRF interceptor.
 import { HttpClient } from '@angular/common/http';
+import { DOCUMENT } from '@angular/common';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -18,9 +19,10 @@ export const PORTAL_FLAGS: { key: keyof Pick<PortalSettings, 'showBanner'|'showC
 @Injectable({ providedIn: 'root' })
 export class PortalAdminService {
   private readonly http = inject(HttpClient); private readonly base = environment.apiBaseUrl.replace(/\/$/, '');
+  private readonly document = inject(DOCUMENT);
   private storefront = '';
   private root(slug: string): string { if (!/^[a-z0-9-]{3,40}$/.test(slug)) throw new Error('Invalid business.'); return `${this.base}/api/businesses/${slug}/portal`; }
-  configuration(): Observable<string> { return this.http.get<{ storefrontBaseUrl: string }>('/portal-config.json').pipe(map(value => {
+  configuration(): Observable<string> { return this.http.get<{ storefrontBaseUrl: string }>(new URL('portal-config.json', this.document.baseURI).href).pipe(map(value => {
     const url = new URL(value.storefrontBaseUrl);
     if (url.username || url.password || url.search || url.hash || (url.protocol !== 'https:' && !(url.protocol === 'http:' && (url.hostname === 'localhost' || /^127\.[0-9.]+$/.test(url.hostname))))) throw new Error('Invalid storefront preview address.');
     return url.href.replace(/\/$/, '');

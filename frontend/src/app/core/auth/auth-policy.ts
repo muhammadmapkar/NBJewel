@@ -10,7 +10,7 @@ export function isApiUrl(requestUrl: string, apiBaseUrl: string): boolean {
 }
 
 export function safeErpReturnUrl(value: string | null): string {
-  if (!value || !/^\/(?:home|catalog|scheme-master|chit-master|change-financial-year|change-password|owner\/jewelry)(?:\/[^?#]*)?(?:[?#].*)?$/.test(value)
+  if (!value || !/^\/(?:home|catalog|scheme-master|chit-master|change-financial-year|change-password|owner\/jewelry|web-portal)(?:\/[^?#]*)?(?:[?#].*)?$/.test(value)
       || /[\\;%\r\n]/.test(value)) return '/home';
   return value;
 }

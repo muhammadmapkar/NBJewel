@@ -1,10 +1,4 @@
 {
   "buildCommand": "npm run build:deploy",
-  "outputDirectory": "dist/nbjewel-frontend/browser",
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ]
+  "framework": null
 }

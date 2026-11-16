@@ -2,11 +2,12 @@
 # AI memory handoff
 
 ## Lock
-- Agent: none (released by codex-portal-impl).
-- Since: 2026-11-16T11:16:00+04:00
-- Status: released in the owner QA documentation checkpoint; implementation remains complete and independent review pending.
+- Agent: none.
+- Since: 2026-11-16T12:27:26+04:00
+- Status: released in the combined-hosting checkpoint; no Docker execution, SQL or deployment.
 
 ## Branch and last commit
+- Hosting predecessor: 5e3ea4d (pushed, fetch/ff-only pull aligned). Hosting completion and Lock release are in the checkpoint containing this handoff; resolve with git log -1 --format=%H -- AI-MEMORY-HANDOFF.md.
 - Owner QA document predecessor: 84f12cf (pushed and aligned after fetch/ff-only pull). The next documentation checkpoint contains this handoff.
 - Portal D: b5ffeee (pushed); E predecessor verified. E completion/Lock release is the checkpoint containing this handoff.
 - Portal C2: 4555a79 (pushed); D predecessor verified. D is the next checkpoint containing this handoff.
@@ -43,6 +44,8 @@
 - Snapshot commit: the commit containing this handoff; resolve with `git log -1 --format=%H -- AI-MEMORY-HANDOFF.md`. Compare it with HEAD on the next start. A literal self-referencing commit hash cannot be recorded inside the same commit.
 
 ## Current goal
+Completed authorized combined-hosting preparation: hosted ERP /erp/, generated nonsecret settings/routing, existing cutout container dependencies, tests and isolated combined-origin browser evidence. See docs/combined-hosting.md for setup and owner-run container/cloud checks. No deployment, Docker or SQL execution; independent review pending for Claude.
+
 Completed new request: QA_Full_Flow_ERPtoWeb portal.md in the repository root provides owner-perspective acceptance criteria, rather than a developer implementation walkthrough. Documentation only; all 59 scenario results start Not run and missing capabilities remain Gaps.
 
 Implementation complete through E; stop here. Independent review pending for Claude. See docs/QA_TEST.md for fresh Sample/browser evidence, route/cache review, SQL limits and owner checks. No independent security approval is claimed.
@@ -63,6 +66,8 @@ Origin reconciliation, forensic audit and reproduced assistant visibility repair
 
 
 ## Done
+- H1: assumed Vercel Build Output API v3 generation, preserved /erp upstream/static prefix, base-aware portal config/return route and generated public API settings; local defaults unchanged. RED/GREEN and both app gates passed.
+- H2: .NET noble/Python/Pillow/NumPy/SciPy Dockerfile prepared, publish output/script verified. H3: real-cookie/CSRF owner/customer flows, nested refresh and public/private synthetic images passed through isolated gateway; only our servers stopped.
 - Owner QA document: 59 scenarios cover the business day from staff access and ERP stock/prices/photos to portal publication, customer interest/visits, changes and operational readiness; explicit results/gaps/sign-off avoid implementation-based passes.
 - E: locally reviewed every section 3 route/legacy alias/cache; no additional material code finding. Two-business browser demonstration and all eight gates passed; QA guide updated. Independent review pending for Claude.
 - D: fixed ERP editor with revision/conflict handling, own catalog/branch choices and saved draft desktop/mobile preview. Private navigation reauthenticates, preserves valid store filters and separates live/preview caches; all shopping actions disabled.
@@ -107,6 +112,8 @@ Origin reconciliation, forensic audit and reproduced assistant visibility repair
 - Setup files written: replaced stale handoff statements, added the handoff protocol to AGENTS.md, and added Claude/Copilot routing instructions. Validation passed; setup pushed as `d44c748`.
 
 ## Next steps (ordered checklist)
+- [x] H1/H2/H3: repository hosting preparation, all local gates/browser checks, guide and final checkpoint/Lock release.
+- [ ] Muhammad: use docs/combined-hosting.md for separately authorized Vercel/API setup, owner-run Docker smoke checks, durable storage and actual HTTPS/proxy validation.
 - [x] Create owner-perspective QA_Full_Flow_ERPtoWeb portal.md, validate document, checkpoint/push and release Lock.
 - [ ] Muhammad: run and record the owner acceptance scenarios; additional expectations are labelled assumed, and product gaps need separate prioritization.
 - [x] SQL asset metadata adapter and safe schema/config preparation; execution remains owner-run.
@@ -153,6 +160,8 @@ Historical phase-2 checklist:
 - [x] After task 9: sequential read-only lead review completed; all findings corrected with regressions and affected suites/builds passing. Stop and wait for Muhammad.
 
 ## Blockers and decisions
+- Hosting assumed: two Vercel projects, same repo, Framework Other/Node24/build:deploy, outside-root source enabled and no output override. Storefront gateway preserves /erp and /api prefixes; generated output is ignored. HTTPS origins required except loopback; browser API always public origin; missing config/self-forwarding fails closed.
+- Hosting limits: local isolated real-Identity API only, no SQL or container run/cloud deployment. Actual Vercel forwarding, HTTPS/proxy cookies, persistent volume, production identity/provider setup and independent review remain unverified. Existing owner 5155/4200/4300 preserved.
 - E assumed QA: temporary real-Identity HTTP test host on 127.0.0.1:5156 with /tmp assets/portal state; existing Angular builds served on 4201/4301 with nonsecret address overrides. Synthetic fixtures only; all our listeners stopped, owner 5155 preserved. Independent review pending; SQL/provider/real-photo checks remain unverified.
 - C1 decision: website history is conservatively invalidated on any new portal publication revision, preserving owned deletion. Customer state fixtures explicitly enable wholesale bag/reservations; the real wholesale preset stays offline and actions off. Public preview flags never authorize draft reads.
 - B ruling: demo seed disables enquiries until Muhammad supplies a real WhatsApp destination, since none exists and a number must not be invented. Wholesale drafts remain offline/incomplete until configured. Audit entries commit in the same atomic envelope as publication/state; retained filesystem lock coordinates writers.
@@ -217,6 +226,7 @@ Historical phase-2 checklist:
 - No questions to owner. Choose conservative sample-only behavior and log assumptions. Accounts, chatbot, locator are later phases.
 
 ## Files touched
+- Hosting: .gitignore/.dockerignore, backend/Dockerfile; both apps angular.json/package.json/vercel.json; scripts/build-web.mjs, hosting-config.mjs, tests/hosting-build.test.mjs; ERP write-deploy-env.mjs, auth-policy/spec, portal-admin.service/spec and web-portal.spec; docs/combined-hosting.md, hosting plan and handoff. No lockfiles/protected owner paths changed.
 - Owner QA request: QA_Full_Flow_ERPtoWeb portal.md and AI-MEMORY-HANDOFF.md only; no app, config, service or protected owner file changes.
 - E: docs/QA_TEST.md (also corrected stale bundled-catalog guidance), plan and handoff only. Temporary /tmp browser harness/screenshots/logs are not production startup code or tracked artifacts.
 - D: frontend Web Portal component/service/spec and nonsecret portal-config.json; ERP auth/sidebar/menu/routes; private storefront preview/catalog/directory/routes/header/nav and specs; PortalController choices/stores/filter, boundary map, empty directory handling, PortalEditorChoicesTests; plan/handoff.
@@ -250,6 +260,9 @@ Historical phase-2 checklist:
 - Pre-existing owner changes preserved, excluded from staging: PROGRESS.md, docs/run-guide.md, customer-tryon/package-lock.json; untracked browser security plan, old proof image, pasted jewelry image.
 
 ## Test commands and last results
+- Hosting H1 RED: Node missing module and ERP config-prefix/safe-return assertions failed (/tmp/nbjewel-hosting-H1-node-red.log, H1-erp-red2.log). GREEN node --test scripts/tests/hosting-build.test.mjs: 5 passed. ERP npm test:80, storefront npm test:88; both npx tsc --noEmit -p tsconfig.app.json, NG_BUILD_MAX_WORKERS=2 normal builds and explicit-loopback npm run build:deploy passed (/tmp/nbjewel-hosting-H1-*.log).
+- Hosting H2: env -i PATH="$PATH" HOME="$HOME" Repository__Provider=Sample CUTOUT_PYTHON_PATH=/tmp/nbjewel-cutout-runtime-venv/bin/python dotnet test backend/NbJewel.Api.Tests --no-restore:447 passed/7 SQL skipped/0 failed, importer/SQL DI included. Clean dotnet build and Release publish passed, exact script hash and 18 sample JSONs verified (/tmp/nbjewel-hosting-H2-*.log).
+- Hosting H3: browser sign-in/CSRF/draft/private preview/images/public publish-revoke/customer bag/ERP denial/nested reload passed at 127.0.0.1:4301; private reload after sign-out denied. HTTP no-store/401/400/404/prefixed WASM checks passed (/tmp/nbjewel-hosting-H3-http.log); screenshot /tmp/nbjewel-hosting-private-preview.jpg. Final whitespace/dash/role/protected-path checks: /tmp/nbjewel-hosting-final-static.log.
 - Owner QA doc only: 59 unique IDs/13 prefixes, table columns, relative links, role comment, no em/en dashes, unexecuted-results and whitespace checks passed (/tmp/nbjewel-owner-qa-doc-checks.log). Application tests/builds not rerun; no application source changed or QA scenarios executed in this documentation task.
 - E final: clean Sample dotnet test 447 passed/7 SQL skipped/0 failed; dotnet build 0 warnings/errors; ERP npm test 79, storefront npm test 88; both npx tsc --noEmit -p tsconfig.app.json and NG_BUILD_MAX_WORKERS=2 builds passed. Logs /tmp/nbjewel-E-final-<gate>.log; importer/SQL DI included. Docs/static final checks passed after guide edits (/tmp/nbjewel-E-doc-static.log).
 - E browser: two brands, hidden wholesale, desktop1280/mobile390, private saved preview versus live/publish, offline, one customer/two bags, synthetic upload/manual review/publish/name-price update/revoke and legacy store/parts redirect passed. Customer private preview denied. Ended signed out/reset viewport; only our temp servers stopped. Screenshots /tmp/nbjewel-E-{wholesale-mobile,wholesale-desktop,retail-bag-desktop}.jpg.
@@ -308,6 +321,7 @@ Historical phase-2 checklist:
 - Task 1 baseline: `dotnet test backend/NbJewel.Api.Tests` with all SQL/connection environment variables removed and `Repository__Provider=Sample`: 309 passed, 6 skipped, 0 failed. Initial sandbox run aborted at VSTest socket binding; same command outside sandbox passed. No SQL executed. Logs: `/tmp/nbjewel-task1-baseline.log`.
 
 ## Manual checks for Muhammad
+- Hosting: follow docs/combined-hosting.md. Agent never ran Docker/deployed/applied SQL; verify container imports/cutout, mounted /var/data durability/permissions, production identity/data-protection keys and actual HTTPS/proxy/session behavior yourself after separate authorization. Local browser verification used synthetic /tmp data and signed out; our 5156/4201/4301 listeners stopped, owner services left running.
 - Owner QA request: use the root document as a fresh acceptance run, record evidence per scenario, distinguish Sample demonstration from real operation, and keep operational gaps/independent review pending rather than marking them passed.
 - E: read docs/QA_TEST.md fresh record. Independent review pending for Claude. Existing 5155 still serves its previous runtime until you choose to restart it; temporary two-business test host is stopped. Real camera/fit/export, representative cutout quality/licensing, real WhatsApp, SMTP/live providers/hosting and SQL persistence remain owner checks. Future portal SQL is not required by v1 and was never applied.
 - A1: review future-only docs/business-portal-schema.sql after sql-demo-schema.sql, never apply as part of this agent run. It is not needed by v1. Sample provisioning is Development/memory-only and serves its own host; owner access resets on restart. Keep the existing API untouched until you choose to stop it yourself.
@@ -326,6 +340,7 @@ Historical phase-2 checklist:
 - Real browser CORS and cookies.
 
 ## Agent log (newest first)
+- 2026-11-16T12:27:26+04:00 codex-portal-impl: H1/H2/H3 complete after RED/GREEN, all gates and isolated combined-origin browser flows; guide records platform/container limits. Preparing explicit-path checkpoint/push with Lock released; owner services/files untouched, no SQL/Docker/deploy.
 - 2026-11-16T11:16:00+04:00 codex-portal-impl: fetched/ff-only pulled clean 84f12cf, read handoff and acquired/released Lock for owner QA documentation. Created/checked 59 assumed owner acceptance scenarios with no execution claims; explicit-path checkpoint/push, no application/service changes.
 - 2026-11-16T06:36:00+04:00 codex-portal-impl: E complete, final backend 447/7 SQL skips, ERP79/storefront88 and eight gates green; browser Sample demonstration passed with synthetic assets. QA docs updated; final checkpoint/push releases Lock. Independent review pending for Claude.
 - 2026-11-16T06:03:00+04:00 codex-portal-impl: continue fetched/ff-only pulled; HEAD 4555a79 and D files unchanged. Previous commit/push was not executed because automatic approval review reached usage limit; retrying now after reset. Own stale Lock renewed.

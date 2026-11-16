@@ -5,6 +5,7 @@
   "scripts": {
     "start": "ng serve --port 4300",
     "build": "ng build",
+    "build:deploy": "node ../scripts/build-web.mjs storefront",
     "test": "vitest run"
   },
   "dependencies": {

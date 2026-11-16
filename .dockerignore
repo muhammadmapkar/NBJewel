@@ -1,8 +1,16 @@
-# Role: Keeps the API container build small: only backend and sample-data are needed.
+# Role: Excludes local runtime data, credentials and build caches from the owner-run API container context.
 **/node_modules
 **/bin
 **/obj
 frontend
+customer-tryon
+backend/NbJewel.Api/App_Data
+**/.hosting
+**/.vercel
+**/dist
+**/.angular
 .git
 .env
 .env.*
+**/.env
+**/.env.*
