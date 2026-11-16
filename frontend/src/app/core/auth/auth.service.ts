@@ -11,6 +11,7 @@ export interface SessionIdentity {
   permissions: string[];
   storeIds: number[];
   allStores: boolean;
+  business?: { slug: string; name: string; role: 'owner' | 'staff' } | null;
 }
 
 export interface VerificationPending { verificationRequired: true; message: string; }

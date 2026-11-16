@@ -5,7 +5,7 @@ import { CatalogService } from '../catalog/catalog.service';
 import { IconComponent } from './icon.component';
 import { StoreService } from '../catalog/store.service';
 @Component({ selector: 'ct-mobile-nav', standalone: true, imports: [RouterLink, RouterLinkActive, IconComponent], template: `
-@if (!router.url.includes('/try/')) { <nav aria-label="Mobile navigation">
+@if (!catalog.preview() && !router.url.includes('/try/')) { <nav aria-label="Mobile navigation">
 <a [routerLink]="catalog.link()" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" [queryParams]="catalog.linkParams()"><ct-icon name="home" />Home</a>
 <a [routerLink]="catalog.link('stores')" routerLinkActive="active" [queryParams]="catalog.linkParams()"><ct-icon name="location" />Stores</a>
 @if (catalog.actionEnabled('tryOn')) { <a [routerLink]="catalog.products()[0] ? catalog.link('try', catalog.products()[0].id) : catalog.link('shop')" [queryParams]="catalog.linkParams()"><ct-icon name="camera" />Try-On</a> }

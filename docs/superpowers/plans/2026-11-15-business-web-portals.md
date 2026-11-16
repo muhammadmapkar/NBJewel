@@ -90,6 +90,7 @@ All nine are **confirmed by Muhammad on 2026-11-15**, with the step 0 amendments
 - Price hiding and disabled actions are enforced server-side, including requests from stale tabs.
 - v1 enquiries are WhatsApp/contact links only; there is no message delivery service.
 - Provider keys never appear in the editor.
+- Assumed nonsecret ERP preview configuration: frontend/public/portal-config.json, storefrontBaseUrl. Development defaults to http://localhost:4300; the operator must configure same-site HTTPS hosting before deployment.
 - Excluded: custom domains, payments, wholesale ordering, self-service signup, production provisioning.
 
 ### Global constraints
@@ -196,6 +197,7 @@ M = membership business; L = fixed nb-jewel-demo; S = slug route. Every non-GET 
 | GET /api/customer/shops/{slug}/state; POST .../bag; DELETE .../bag/{productId}; POST .../reservations | customer; current action switches | S | disabled action from a stale tab gets 409 (assumed code); store ID from another business rejected; staff gets 403 |
 | GET, PUT /api/businesses/{slug}/portal/draft | erp portal.manage, expected revision | M equals slug | other slug 404; customer 403; missing CSRF 400; stale revision 409 |
 | POST /api/businesses/{slug}/portal/assets; GET .../assets/{id} | erp portal.manage | M | oversize or non-PNG/JPG rejected; other business's asset ID 404 |
+| GET /api/businesses/{slug}/portal/choices, /stores (assumed editor choices/private branch preview) | erp portal.manage | M equals slug; own published choices and draft-visible stores | other business 404; anonymous 401 |
 | GET /api/businesses/{slug}/portal/preview (draft config plus products) | erp portal.manage; `Cache-Control: no-store`, noindex | M | anonymous 401; `preview=true` on public routes ignored |
 | POST /api/businesses/{slug}/portal/publish, /offline | erp portal.publish, expected revision | M | manage-only staff 403; invalid draft leaves the live revision byte-identical |
 | CLI `--provision-business` | host operator | n/a | POST /api/businesses returns 404 or 405 |
@@ -340,14 +342,14 @@ All tasks are **authorized, pending implementation**, in the stated order after 
 ### D. ERP Web Portal editor and preview
 - **Depends on:** B (APIs), C2 (preview route).
 - **Touchpoints:** frontend core/mock/mock-data.ts (add "Web Portal"; show "Try-On Jewelry" only for nb-jewel-demo members); app.config.ts route; new `frontend/src/app/features/web-portal/` and its API service; nonsecret storefront base URL config; customer-tryon `/shops/:slug/preview` route.
-- [ ] RED (component and service specs):
+- [x] RED (component and service specs):
   - owner versus staff (manage-only cannot publish)
   - fixed section switches only
   - WhatsApp validation message
   - 409 reload-and-keep flow
   - preview opens the storefront URL
   - preview disables actions
-- [ ] Implement with existing ERP components. Run ERP and storefront test/typecheck/build.
+- [x] Implement with existing ERP components. Run ERP and storefront test/typecheck/build.
 
 ### E. Two-business QA and release gate
 - **Depends on:** all.

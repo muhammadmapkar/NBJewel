@@ -3,8 +3,9 @@
 // is the only sidebar toggle. It is a real button and stays visible when the
 // sidebar is collapsed. On phone widths the topbar shows the logo too.
 
-import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
+import { Component, EventEmitter, Input, Output, computed, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { AuthService } from '../auth/auth.service';
 import { menuItems, MenuItem } from '../mock/mock-data';
 
 @Component({
@@ -13,7 +14,7 @@ import { menuItems, MenuItem } from '../mock/mock-data';
     <aside class="sidebar" [class.collapsed]="collapsed">
       <div class="brand"><button class="brand-toggle" type="button" title="Toggle menu" aria-label="Toggle menu" [attr.aria-expanded]="!collapsed" (click)="collapseChange.emit(!collapsed)"><span class="brand-name">NB <small>JEWEL</small></span></button></div>
       <nav>
-        @for (item of items; track item.label) {
+        @for (item of items(); track item.label) {
           <div class="nav-group">
             <a class="nav-item" [routerLink]="item.route || null" routerLinkActive="active" [class.has-children]="!!item.children" (click)="item.children && toggle(item.label)">
               <span class="nav-icon">{{ item.icon }}</span><span class="nav-label">{{ item.label }}</span><span class="chevron">{{ item.children ? (expanded() === item.label ? '⌄' : '›') : (item.route ? '' : '›') }}</span>
@@ -48,7 +49,8 @@ import { menuItems, MenuItem } from '../mock/mock-data';
 export class SidebarComponent {
   @Input() collapsed = false;
   @Output() collapseChange = new EventEmitter<boolean>();
-  readonly items: MenuItem[] = menuItems;
+  private readonly auth = inject(AuthService);
+  readonly items = computed(() => menuItems.filter(item => item.route === '/owner/jewelry' ? this.auth.identity()?.business?.slug === 'nb-jewel-demo' && this.auth.identity()?.allStores && this.auth.identity()?.permissions.includes('jewelry.manage') : item.route === '/web-portal' ? !!this.auth.identity()?.business && this.auth.identity()?.permissions.includes('portal.manage') : true));
   readonly expanded = signal('Gold Scheme');
   currentPage = '';
   toggle(label: string): void { this.expanded.set(this.expanded() === label ? '' : label); }

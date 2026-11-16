@@ -29,6 +29,7 @@ const routes: Routes = [
     { path: 'catalog', loadChildren: () => import('./features/catalog/catalog.routes').then(m => m.CATALOG_ROUTES) },
     { path: 'change-financial-year', loadComponent: () => import('./features/settings/financial-year.component').then(m => m.FinancialYearComponent) },
     { path: 'change-password', loadComponent: () => import('./features/settings/change-password.component').then(m => m.ChangePasswordComponent) },
+    { path: 'web-portal', loadComponent: () => import('./features/web-portal/web-portal.component').then(m => m.WebPortalComponent) },
     { path: 'owner/jewelry', loadComponent: () => import('./features/tryon/owner-jewelry.component').then(m => m.OwnerJewelryComponent) }
   ]
 }];

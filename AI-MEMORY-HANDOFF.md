@@ -3,10 +3,11 @@
 
 ## Lock
 - Agent: codex-portal-impl.
-- Since: 2026-11-15T22:47:38+04:00
+- Since: 2026-11-16T06:03:00+04:00
 - Status: held for authorized business portal tasks step 0, A1, A2, A3, B, C1, C2, D and E.
 
 ## Branch and last commit
+- Portal C2: 4555a79 (pushed); D predecessor verified. D is the next checkpoint containing this handoff.
 - Portal C1: 15acaff (pushed); C2 predecessor verified. C2 is the next checkpoint containing this handoff.
 - Portal B: 045f59b (pushed); C1 predecessor verified. C1 is the next checkpoint containing this handoff.
 - Portal A3: 7910eba (pushed); B predecessor verified. B is the next checkpoint containing this handoff.
@@ -56,6 +57,7 @@ Origin reconciliation, forensic audit and reproduced assistant visibility repair
 
 
 ## Done
+- D: fixed ERP editor with revision/conflict handling, own catalog/branch choices and saved draft desktop/mobile preview. Private navigation reauthenticates, preserves valid store filters and separates live/preview caches; all shopping actions disabled.
 - C2: /shops/:slug hierarchy restores shop/store before rendering; all legacy URLs redirect to demo and demo-source stores are dropped. Catalog/directory responses cancel or ignore stale business loads; links and enquiries keep slug/store context. Published branding, sections, price/rate visibility and action switches reuse the existing theme/components; offline fails visibly without fallback.
 - C1: scoped catalog/store/rate/preview reads share publication checks with demo aliases. Hidden prices are null/omitted server-side, rates empty, assistant prose has no price. Website conversation fingerprints include live policy so old price-bearing history is denied after a policy change; deletion still works. Current customer action and branch settings reject stale requests.
 - B: fixed assumed settings, expected draft revisions, full publication validation and one atomic envelope for draft/publication/online state/audit. Private assets require portal.manage; public assets require live references. Preview is authenticated, no-store/noindex; revoked product evidence drops immediately.
@@ -108,8 +110,8 @@ Origin reconciliation, forensic audit and reproduced assistant visibility repair
 - [x] B: validated drafts, private assets, authenticated preview and atomic publication/offline/audit.
 - [x] C1: scoped public catalog, hidden price/rates/assistant projections, stale action rejection and website-history policy binding.
 - [x] C2: shop routes/legacy redirects, context-safe links/state, published branding/actions and enquiries.
-- [ ] D: ERP Web Portal editor and authenticated storefront draft preview.
-- [ ] D, E: execute in order with per-task gates/commits/push; independent review pending for Claude.
+- [x] D: ERP Web Portal editor and authenticated storefront draft preview.
+- [ ] E: route/cache review, two-business browser QA, final gates/docs/checkpoint; independent review pending for Claude.
 - [x] ERP Vision endpoint, editable rendered-preview auto-fill and protected revision/auth tests.
 - [x] Customer profile/bag/reservation backend and opt-in Sample customer identity.
 - [x] Public store directory/filter/map and optional Gold/Silver/Platinum market reference adapter.
@@ -202,6 +204,7 @@ Historical phase-2 checklist:
 - No questions to owner. Choose conservative sample-only behavior and log assumptions. Accounts, chatbot, locator are later phases.
 
 ## Files touched
+- D: frontend Web Portal component/service/spec and nonsecret portal-config.json; ERP auth/sidebar/menu/routes; private storefront preview/catalog/directory/routes/header/nav and specs; PortalController choices/stores/filter, boundary map, empty directory handling, PortalEditorChoicesTests; plan/handoff.
 - C2: customer app component/config; catalog service/API mapper/new portal models/business routing and specs; store directory; existing home/shop/product/bag/profile/stores/tryon/reserved/wishlist pages and product-card/header/mobile-nav; camera navigation spec; plan and handoff. No lockfile or owner file changed.
 - C1: PortalPolicy.cs, Program/BusinessBoundary, PublicCatalogController/PortalController/CustomerPortalController, AssistantAccess/Tools/Contracts/GroundedAnswer; PriceHidingHttpTests, ShopPublicHttpTests and three isolated test fixtures; plan and handoff.
 - B: Businesses/PortalSettings.cs, PortalStore.cs, PortalService.cs; Controllers/PortalController.cs and ShopsController.cs; Program.cs, ErpBoundaryFilter.cs, PortalLifecycleHttpTests.cs; plan and handoff.
@@ -232,6 +235,7 @@ Historical phase-2 checklist:
 - Pre-existing owner changes preserved, excluded from staging: PROGRESS.md, docs/run-guide.md, customer-tryon/package-lock.json; untracked browser security plan, old proof image, pasted jewelry image.
 
 ## Test commands and last results
+- D RED: editor/private route tests, preview cache privacy and store-filter failures reproduced; logs /tmp/nbjewel-D-{preview-privacy-red,store-filter-red,backend-filter-red}.log. Final focused 1 backend/7 storefront passed; full clean backend 447 passed/7 SQL skipped, build zero warnings/errors, ERP 79/storefront 88 passed, both typechecks/builds and static checks passed (/tmp/nbjewel-D-final2-<gate>.log). Importer/SQL DI included; no SQL/service changes.
 - C2 RED: 4 missing shop-service failures, 3 legacy-route failures and missing enquiry store context reproduced. Final storefront 84 passed, typecheck/build passed, focused 12 and static passed (/tmp/nbjewel-C2-final-{focused,test,typecheck,build,static}.log). Backend importer/SQL DI focused 3 passed (/tmp/nbjewel-C2-backend-regression.log); backend production unchanged. Browser verification remains E.
 - C1 RED: 3 failures for price policy/history/stale actions (/tmp/nbjewel-C1-red.log); hidden assistant price label separately RED/GREEN. Final clean backend 446 passed/7 SQL skipped/0 failed, build 0 warnings/errors, focused 20 passed, static passed (/tmp/nbjewel-C1-{final-focused,full,build,static}.log). Importer/SQL DI regressions included; frontend unchanged.
 - B RED: 6 missing-route failures (/tmp/nbjewel-B-red.log). Final clean backend 441 passed/7 SQL skipped/0 failed, build 0 warnings/errors (/tmp/nbjewel-B-{full,build}.log); focused 10 passed and static checks passed. Includes importer/SQL DI regression; no frontend changes or SQL execution.
@@ -302,6 +306,8 @@ Historical phase-2 checklist:
 - Real browser CORS and cookies.
 
 ## Agent log (newest first)
+- 2026-11-16T06:03:00+04:00 codex-portal-impl: continue fetched/ff-only pulled; HEAD 4555a79 and D files unchanged. Previous commit/push was not executed because automatic approval review reached usage limit; retrying now after reset. Own stale Lock renewed.
+- 2026-11-15T23:18:00+04:00 codex-portal-impl: D reviewed and complete; all eight gates/static pass. Preview auth/cache/store-filter RED/GREEN read by root. Checkpoint/push before E; independent review pending.
 - 2026-11-15T22:47:38+04:00 codex-portal-impl: C2 complete; root reviewed both mechanical helper diffs and corrected camera link bracket/context fixture. Storefront 84/typecheck/build and backend regressions green. Checkpoint/push before D; independent review pending.
 - 2026-11-15T22:22:10+04:00 codex-portal-impl: C1 complete, 446 backend passed/7 SQL skipped, build/static green; root reviewed all helper fixture diffs. Checkpoint/push before C2; independent review pending.
 - 2026-11-15T22:05:32+04:00 codex-portal-impl: B lifecycle complete, backend 441/7 SQL skipped and build/static passed. Seed, atomic audit, permission and preview decisions reviewed by root. Checkpoint/push before C1; independent review pending.

@@ -3,9 +3,12 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using NbJewel.Api.Businesses;
 using NbJewel.Api.Jewelry;
+using NbJewel.Api.Repositories;
+using NbJewel.Api.Platform;
+using NbJewel.Api.Models;
 namespace NbJewel.Api.Controllers;
 [ApiController, Route("api/businesses/{slug}/portal"), ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public sealed class PortalController(BusinessContext context, PortalStore store, PortalService service, PortalPolicy policy) : ControllerBase
+public sealed class PortalController(BusinessContext context, PortalStore store, PortalService service, PortalPolicy policy, IItemRepository items, IPublicationReader publications) : ControllerBase
 {
     public sealed record DraftInput(long Revision, PortalSettings Settings);
     public sealed record RevisionInput(long Revision);
@@ -43,12 +46,26 @@ public sealed class PortalController(BusinessContext context, PortalStore store,
         var catalog = ActivatorUtilities.CreateInstance<PublicCatalogController>(HttpContext.RequestServices);
         catalog.ControllerContext = ControllerContext; return catalog;
     }
+    [HttpGet("choices")]
+    public Task<IActionResult> Choices(CancellationToken ct) => Execute(async () => {
+        var published = await publications.PublishedItemIdsAsync(ct); var categories = await PublicCatalogPolicy.AllowedCategoriesAsync(items, ct);
+        var products = new List<object>(); var collections = new HashSet<string>(StringComparer.Ordinal);
+        for (var page = 1; ; page++) {
+            var batch = await items.SearchItemsAsync(null, null, null, null, ItemStatusRules.Complete, page, 100, ct);
+            if (batch.TotalCount > 10000) return StatusCode(503);
+            foreach (var item in batch.Items) if (published.Contains(item.Id) && PublicCatalogPolicy.Allows(item, categories)) { products.Add(new { item.Id, item.Name, collection = item.Storefront?.Collection ?? "" }); if (!string.IsNullOrEmpty(item.Storefront?.Collection)) collections.Add(item.Storefront.Collection); }
+            if (page * 100 >= batch.TotalCount) break; if (batch.Items.Count == 0) return StatusCode(503);
+        }
+        return Ok(new { branches = (await items.GetStoresAsync(ct)).Select(x => new { x.Id, x.Name }).ToArray(), products, collections = collections.Order().ToArray() });
+    });
+    [HttpGet("stores")]
+    public async Task<IActionResult> PreviewStores(CancellationToken ct) { policy.UsePreview((await store.ReadAsync(Business, ct)).Draft); return await Catalog().GetStores(ct); }
     [HttpGet("preview")]
-    public Task<IActionResult> Preview(CancellationToken ct, int page = 1) => Execute(async () => {
+    public Task<IActionResult> Preview(CancellationToken ct, int page = 1, int? storeId = null) => Execute(async () => {
         Response.Headers["X-Robots-Tag"] = "noindex, nofollow";
         var draft = (await store.ReadAsync(Business, ct)).Draft;
         policy.UsePreview(draft);
-        var products = await Catalog().GetProducts(null, null, page, 100, ct);
+        var products = await Catalog().GetProducts(null, null, page, 100, ct, storeId);
         if (products.Result is not OkObjectResult ok) return products.Result ?? StatusCode(503);
         return Ok(new { draft.Revision, draft.Settings, preview = true, products = ok.Value });
     });

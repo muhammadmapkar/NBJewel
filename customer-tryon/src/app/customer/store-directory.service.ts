@@ -14,8 +14,8 @@ export function distanceKm(lat: number, lon: number, otherLat: number, otherLon:
 @Injectable({ providedIn: 'root' })
 export class StoreDirectoryService {
   private readonly http = inject(HttpClient); private readonly session = inject(CustomerSession);
-  private readonly catalog = inject(CatalogService); private slug = 'nb-jewel-demo'; private sequence = 0;
-  selectShop(slug: string): void { if (slug !== this.slug) { this.slug = slug; this.loaded = false; this.sequence++; this.stores.set([]); this.error.set(''); } }
+  private readonly catalog = inject(CatalogService); private slug = 'nb-jewel-demo'; private scope = ''; private sequence = 0;
+  selectShop(slug: string): void { const scope = `${slug}:${this.catalog.preview()}`; if (scope !== this.scope) { this.scope = scope; this.slug = slug; this.loaded = false; this.sequence++; this.stores.set([]); this.error.set(''); } }
   readonly stores = signal<PublicStore[]>([]); readonly error = signal(''); private loaded = false;
   async load(force = false): Promise<void> {
     this.selectShop(this.catalog.shopSlug() ?? 'nb-jewel-demo');
@@ -24,7 +24,7 @@ export class StoreDirectoryService {
     try {
       const base = this.session.base;
       if (!base) throw new Error('API not configured.');
-      const result = await firstValueFrom(this.http.get<PublicStore[]>(`${base}/api/shops/${this.slug}/stores`));
+      const result = await firstValueFrom(this.http.get<PublicStore[]>(`${base}${this.catalog.preview() ? `/api/businesses/${this.slug}/portal` : `/api/shops/${this.slug}`}/stores`, { withCredentials: this.catalog.preview() }));
       if (!Array.isArray(result) || result.some(x => !x.location || !Number.isFinite(x.location.latitude) || !Number.isFinite(x.location.longitude) || Math.abs(x.location.latitude) > 85 || Math.abs(x.location.longitude) > 180)) throw new Error();
       if (sequence === this.sequence) this.stores.set(result);
     } catch { if (sequence === this.sequence) { this.stores.set([]); this.error.set('Store information is unavailable. Please retry.'); } }

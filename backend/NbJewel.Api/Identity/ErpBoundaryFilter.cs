@@ -16,7 +16,7 @@ public sealed class ErpBoundaryFilter(BusinessContext business) : IAsyncAuthoriz
         string[] required = (controller, name) switch
         {
             ("Portal", "Publish" or "Offline") => ["portal.publish"],
-            ("Portal", "Draft" or "SaveDraft" or "UploadAsset" or "GetAsset" or "Preview" or "ProductPreview") => ["portal.manage"],
+            ("Portal", "Draft" or "SaveDraft" or "UploadAsset" or "GetAsset" or "Preview" or "ProductPreview" or "Choices" or "PreviewStores") => ["portal.manage"],
             ("ItemImages", "Review") => ["items.read", "items.write", "prices.read", "status.read", "knowledge.manage"],
             ("ItemImages", "Upload" or "Analyze") => ["items.read", "items.write", "prices.read", "status.read"],
             ("ItemImages", _) => ["items.read", "prices.read", "status.read"],

@@ -23,3 +23,9 @@ export const shopContextGuard: CanActivateFn = async route => {
   if (route.routeConfig?.path?.startsWith('try/') && !catalog.actionEnabled('tryOn')) return router.createUrlTree(catalog.link('shop'), { queryParams: catalog.linkParams() });
   return true;
 };
+
+export const previewContextGuard: CanActivateFn = async route => {
+  const catalog = inject(CatalogService); const store = inject(StoreService); const directory = inject(StoreDirectoryService);
+  const slug = route.paramMap.get('slug') ?? route.pathFromRoot.map(parent => parent.paramMap.get('slug')).find(value => !!value);
+  if (!slug) return false; catalog.selectPreview(slug, route.queryParamMap.get('store')); store.selectShop(slug); directory.selectShop(slug); await catalog.whenReady(); return slug === catalog.shopSlug();
+};

@@ -20,7 +20,7 @@ public sealed class StoreDirectory(IConfiguration configuration, IItemRepository
         else {
             var path = storage is not null && business?.Business is { } current ? storage.DirectoryPath(current) : configuration["STOREFRONT_STORES_PATH"];
             if (string.IsNullOrWhiteSpace(path)) path = Path.Combine(AppContext.BaseDirectory, "sample-data", "store-locations.json");
-            var data = await File.ReadAllTextAsync(path, ct);
+            var data = !File.Exists(path) && business?.Business?.Slug is { } slug && slug != BusinessRegistry.DemoSlug ? "[]" : await File.ReadAllTextAsync(path, ct);
             if (data.Length > 256000) throw new InvalidOperationException("Invalid store directory.");
             rows = JsonSerializer.Deserialize<StoreLocation[]>(data, new JsonSerializerOptions(JsonSerializerDefaults.Web)) ?? [];
         }

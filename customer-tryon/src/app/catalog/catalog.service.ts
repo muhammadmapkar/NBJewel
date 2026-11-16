@@ -22,15 +22,21 @@ export class CatalogService {
   readonly portal = signal<PortalSettings | null>(null);
   readonly preview = signal(false);
   readonly showPrices = computed(() => this.portal()?.showPrices ?? this.shopSlug() === null);
+  selectPreview(slug: string, store: string | null = null): void {
+    if (!/^[a-z0-9-]{3,40}$/.test(slug)) throw new Error('Invalid shop.');
+    if (this.preview() && slug === this.shopSlug()) { this.portal.set(null); this.storeId.set(store); this.load(true); return; }
+    this.active?.unsubscribe(); this.preview.set(true); this.shopSlug.set(slug); this.portal.set(null); this.storeId.set(store); this.requested = false; this.load();
+  }
   selectShop(slug: string, store: string | null = null): void {
+    if (this.preview()) { this.preview.set(false); this.requested = false; this.shopSlug.set(null); }
     if (!/^[a-z0-9-]{3,40}$/.test(slug)) throw new Error('Invalid shop.');
     if (slug === this.shopSlug()) { if (store !== this.storeId()) this.selectStore(store); else this.load(); return; }
     this.active?.unsubscribe(); this.shopSlug.set(slug); this.portal.set(null); this.storeId.set(store); this.requested = false; this.state.set({ status: 'loading' }); this.load();
   }
-  link(...parts: (string | number)[]): string[] { return ['/shops', this.shopSlug() ?? 'nb-jewel-demo', ...parts.flatMap(part => String(part).split('/').filter(Boolean))]; }
+  link(...parts: (string | number)[]): string[] { return ['/shops', this.shopSlug() ?? 'nb-jewel-demo', ...(this.preview() ? ['preview'] : []), ...parts.flatMap(part => String(part).split('/').filter(Boolean))]; }
   contextParams(extra: Record<string, unknown> = {}): Record<string, unknown> { return { ...this.linkParams(), ...extra }; }
   actionEnabled(action: 'bag' | 'reservations' | 'tryOn' | 'enquiries'): boolean { return !this.preview() && (this.shopSlug() === null || (this.state().status === 'ready' && this.portal()?.[action] === true)); }
-  assetUrl(id: string | null | undefined): string | null { if (!id || !/^[a-f0-9]{32}$/.test(id)) return null; const base = resolveApiBase(this.config.apiBaseUrl ?? this.config.portalApiBaseUrl, document.baseURI); return base ? `${base}/api/shops/${this.shopSlug()}/assets/${id}` : null; }
+  assetUrl(id: string | null | undefined): string | null { if (!id || !/^[a-f0-9]{32}$/.test(id)) return null; const base = resolveApiBase(this.config.apiBaseUrl ?? this.config.portalApiBaseUrl, document.baseURI); return base ? `${base}${this.preview() ? `/api/businesses/${this.shopSlug()}/portal` : `/api/shops/${this.shopSlug()}`}/assets/${id}` : null; }
   enquiry(products: Product[]): string | null {
     const portal = this.portal(); if (!portal || !this.actionEnabled('enquiries') || !/^\+[1-9][0-9]{7,14}$/.test(portal.whatsApp)) return null;
     const lines = products.map(p => { const url = new URL(this.url(this.link('p', p.id).join('/'))); if (this.storeId()) url.searchParams.set('store', this.storeId()!); return `${p.name} (${p.code})${this.showPrices() ? ' ' + this.money(this.price(p).total) : ''} ${url.href}`; });
@@ -55,7 +61,9 @@ export class CatalogService {
       if (this.config.error) throw new Error(this.config.error);
       const base = resolveApiBase(this.config.apiBaseUrl ?? this.config.portalApiBaseUrl, document.baseURI);
       if (!base) throw new Error('API not configured.');
-      const slug = this.shopSlug(); const prefix = slug ? `/api/shops/${slug}` : '/api/storefront';
+      const slug = this.shopSlug();
+      if (this.preview() && slug) { this.active = this.previewPage(base, slug).subscribe({ next: catalog => { this.state.set({ status: 'ready', catalog }); this.settle(); }, error: () => { this.portal.set(null); this.state.set({ status: 'error' }); this.settle(); } }); return; }
+      const prefix = slug ? `/api/shops/${slug}` : '/api/storefront';
       const configuration: Observable<PortalSettings | null> = slug ? this.http.get<PublicPortal>(`${base}${prefix}`).pipe(map(value => checkedPortal(value, slug))) : of(null);
       const source = configuration.pipe(switchMap(settings => {
         this.portal.set(settings);
@@ -72,6 +80,17 @@ export class CatalogService {
       const all = [...previous, ...batch.items];
       if (all.length > batch.totalCount || (all.length < batch.totalCount && batch.items.length !== 100)) throw new Error('Incomplete catalog page.');
       return all.length < batch.totalCount ? this.apiPage(base, prefix, page + 1, all, batch.totalCount) : of(all);
+    }));
+  }
+  private previewPage(base: string, slug: string, page = 1, previous: ApiProduct[] = [], revision?: number, expected?: number): Observable<Catalog> {
+    return this.http.get<{ revision: number; settings: PortalSettings; preview: boolean; products: ApiPage }>(`${base}/api/businesses/${slug}/portal/preview`, { params: { page, ...(this.storeId() ? { storeId: this.storeId()! } : {}) }, withCredentials: true }).pipe(switchMap(value => {
+      const settings = checkedPortal({ slug, revision: value.revision, settings: value.settings }, slug); const batch = value.products;
+      if (!value.preview || (revision !== undefined && revision !== value.revision) || !Array.isArray(batch.items) || batch.page !== page || batch.pageSize !== 100 || !Number.isInteger(batch.totalCount) || batch.totalCount < 0 || batch.totalCount > 10000 || (expected !== undefined && expected !== batch.totalCount)) throw new Error('Draft preview changed.');
+      const all = [...previous, ...batch.items]; if (all.length > batch.totalCount || (all.length < batch.totalCount && batch.items.length !== 100)) throw new Error('Incomplete preview.');
+      if (all.length < batch.totalCount) return this.previewPage(base, slug, page + 1, all, value.revision, batch.totalCount);
+      this.portal.set(settings);
+      const rates: PublicMetalRate[] = []; if (settings.showPrices) for (const product of all) { const p = product.price; if (p && !rates.some(r => r.metalType === product.metalType && r.purity === product.purity)) rates.push({ id: 0, metalType: product.metalType, purity: product.purity, ratePerGram: p.ratePerGram, currency: p.currency, effectiveDate: p.effectiveDate }); }
+      return of(catalogFromApi(all, rates, base, { pricesHidden: !settings.showPrices, slug, preview: true }));
     }));
   }
   find(id: string): Product | undefined { return this.products().find(p => p.id === id); }
