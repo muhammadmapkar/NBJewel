@@ -2,11 +2,12 @@
 # AI memory handoff
 
 ## Lock
-- Agent: codex-portal-impl.
-- Since: 2026-11-16T06:03:00+04:00
-- Status: held for authorized business portal tasks step 0, A1, A2, A3, B, C1, C2, D and E.
+- Agent: none (released by codex-portal-impl).
+- Since: 2026-11-16T06:36:00+04:00
+- Status: released in the final pushed portal checkpoint; authorized implementation complete through E. Independent review pending for Claude.
 
 ## Branch and last commit
+- Portal D: b5ffeee (pushed); E predecessor verified. E completion/Lock release is the checkpoint containing this handoff.
 - Portal C2: 4555a79 (pushed); D predecessor verified. D is the next checkpoint containing this handoff.
 - Portal C1: 15acaff (pushed); C2 predecessor verified. C2 is the next checkpoint containing this handoff.
 - Portal B: 045f59b (pushed); C1 predecessor verified. C1 is the next checkpoint containing this handoff.
@@ -41,6 +42,8 @@
 - Snapshot commit: the commit containing this handoff; resolve with `git log -1 --format=%H -- AI-MEMORY-HANDOFF.md`. Compare it with HEAD on the next start. A literal self-referencing commit hash cannot be recorded inside the same commit.
 
 ## Current goal
+Implementation complete through E; stop here. Independent review pending for Claude. See docs/QA_TEST.md for fresh Sample/browser evidence, route/cache review, SQL limits and owner checks. No independent security approval is claimed.
+
 Muhammad explicitly authorized step 0 and tasks A1, A2, A3, B, C1, C2, D and E on 2026-11-15, overriding the plan execution hold and prior business portal hold for this scope. D1 to D9 and assumed names confirmed with step 0 amendments. Preserve running services and all SQL/Docker/secret/owner-file restrictions. Independent review remains pending for Claude after E.
 
 Previous goal:
@@ -57,6 +60,7 @@ Origin reconciliation, forensic audit and reproduced assistant visibility repair
 
 
 ## Done
+- E: locally reviewed every section 3 route/legacy alias/cache; no additional material code finding. Two-business browser demonstration and all eight gates passed; QA guide updated. Independent review pending for Claude.
 - D: fixed ERP editor with revision/conflict handling, own catalog/branch choices and saved draft desktop/mobile preview. Private navigation reauthenticates, preserves valid store filters and separates live/preview caches; all shopping actions disabled.
 - C2: /shops/:slug hierarchy restores shop/store before rendering; all legacy URLs redirect to demo and demo-source stores are dropped. Catalog/directory responses cancel or ignore stale business loads; links and enquiries keep slug/store context. Published branding, sections, price/rate visibility and action switches reuse the existing theme/components; offline fails visibly without fallback.
 - C1: scoped catalog/store/rate/preview reads share publication checks with demo aliases. Hidden prices are null/omitted server-side, rates empty, assistant prose has no price. Website conversation fingerprints include live policy so old price-bearing history is denied after a policy change; deletion still works. Current customer action and branch settings reject stale requests.
@@ -111,7 +115,9 @@ Origin reconciliation, forensic audit and reproduced assistant visibility repair
 - [x] C1: scoped public catalog, hidden price/rates/assistant projections, stale action rejection and website-history policy binding.
 - [x] C2: shop routes/legacy redirects, context-safe links/state, published branding/actions and enquiries.
 - [x] D: ERP Web Portal editor and authenticated storefront draft preview.
-- [ ] E: route/cache review, two-business browser QA, final gates/docs/checkpoint; independent review pending for Claude.
+- [x] E: route/cache review, two-business browser QA, final gates/docs/checkpoint.
+- [ ] Claude: independent final security/code review pending; do not self-certify it.
+- [ ] Muhammad: owner-run SQL/real-device/provider/photo checks in docs/QA_TEST.md and SQL_CATALOG_QA.md; no agent SQL or Docker execution authorized.
 - [x] ERP Vision endpoint, editable rendered-preview auto-fill and protected revision/auth tests.
 - [x] Customer profile/bag/reservation backend and opt-in Sample customer identity.
 - [x] Public store directory/filter/map and optional Gold/Silver/Platinum market reference adapter.
@@ -141,6 +147,7 @@ Historical phase-2 checklist:
 - [x] After task 9: sequential read-only lead review completed; all findings corrected with regressions and affected suites/builds passing. Stop and wait for Muhammad.
 
 ## Blockers and decisions
+- E assumed QA: temporary real-Identity HTTP test host on 127.0.0.1:5156 with /tmp assets/portal state; existing Angular builds served on 4201/4301 with nonsecret address overrides. Synthetic fixtures only; all our listeners stopped, owner 5155 preserved. Independent review pending; SQL/provider/real-photo checks remain unverified.
 - C1 decision: website history is conservatively invalidated on any new portal publication revision, preserving owned deletion. Customer state fixtures explicitly enable wholesale bag/reservations; the real wholesale preset stays offline and actions off. Public preview flags never authorize draft reads.
 - B ruling: demo seed disables enquiries until Muhammad supplies a real WhatsApp destination, since none exists and a number must not be invented. Wholesale drafts remain offline/incomplete until configured. Audit entries commit in the same atomic envelope as publication/state; retained filesystem lock coordinates writers.
 - A2 assumed storage: per-host Sample knowledge DB for other businesses; existing demo knowledge provider preserved. Unseeded businesses start with empty catalog/reference lists, never demo fallback. Request binding is immutable; changed membership fails closed. Conversation hashes now include business, so older transcripts may require a new conversation after activation. SQL remains one business and no existing table/UNIQUE change.
@@ -204,6 +211,7 @@ Historical phase-2 checklist:
 - No questions to owner. Choose conservative sample-only behavior and log assumptions. Accounts, chatbot, locator are later phases.
 
 ## Files touched
+- E: docs/QA_TEST.md (also corrected stale bundled-catalog guidance), plan and handoff only. Temporary /tmp browser harness/screenshots/logs are not production startup code or tracked artifacts.
 - D: frontend Web Portal component/service/spec and nonsecret portal-config.json; ERP auth/sidebar/menu/routes; private storefront preview/catalog/directory/routes/header/nav and specs; PortalController choices/stores/filter, boundary map, empty directory handling, PortalEditorChoicesTests; plan/handoff.
 - C2: customer app component/config; catalog service/API mapper/new portal models/business routing and specs; store directory; existing home/shop/product/bag/profile/stores/tryon/reserved/wishlist pages and product-card/header/mobile-nav; camera navigation spec; plan and handoff. No lockfile or owner file changed.
 - C1: PortalPolicy.cs, Program/BusinessBoundary, PublicCatalogController/PortalController/CustomerPortalController, AssistantAccess/Tools/Contracts/GroundedAnswer; PriceHidingHttpTests, ShopPublicHttpTests and three isolated test fixtures; plan and handoff.
@@ -235,6 +243,8 @@ Historical phase-2 checklist:
 - Pre-existing owner changes preserved, excluded from staging: PROGRESS.md, docs/run-guide.md, customer-tryon/package-lock.json; untracked browser security plan, old proof image, pasted jewelry image.
 
 ## Test commands and last results
+- E final: clean Sample dotnet test 447 passed/7 SQL skipped/0 failed; dotnet build 0 warnings/errors; ERP npm test 79, storefront npm test 88; both npx tsc --noEmit -p tsconfig.app.json and NG_BUILD_MAX_WORKERS=2 builds passed. Logs /tmp/nbjewel-E-final-<gate>.log; importer/SQL DI included. Docs/static final checks passed after guide edits (/tmp/nbjewel-E-doc-static.log).
+- E browser: two brands, hidden wholesale, desktop1280/mobile390, private saved preview versus live/publish, offline, one customer/two bags, synthetic upload/manual review/publish/name-price update/revoke and legacy store/parts redirect passed. Customer private preview denied. Ended signed out/reset viewport; only our temp servers stopped. Screenshots /tmp/nbjewel-E-{wholesale-mobile,wholesale-desktop,retail-bag-desktop}.jpg.
 - D RED: editor/private route tests, preview cache privacy and store-filter failures reproduced; logs /tmp/nbjewel-D-{preview-privacy-red,store-filter-red,backend-filter-red}.log. Final focused 1 backend/7 storefront passed; full clean backend 447 passed/7 SQL skipped, build zero warnings/errors, ERP 79/storefront 88 passed, both typechecks/builds and static checks passed (/tmp/nbjewel-D-final2-<gate>.log). Importer/SQL DI included; no SQL/service changes.
 - C2 RED: 4 missing shop-service failures, 3 legacy-route failures and missing enquiry store context reproduced. Final storefront 84 passed, typecheck/build passed, focused 12 and static passed (/tmp/nbjewel-C2-final-{focused,test,typecheck,build,static}.log). Backend importer/SQL DI focused 3 passed (/tmp/nbjewel-C2-backend-regression.log); backend production unchanged. Browser verification remains E.
 - C1 RED: 3 failures for price policy/history/stale actions (/tmp/nbjewel-C1-red.log); hidden assistant price label separately RED/GREEN. Final clean backend 446 passed/7 SQL skipped/0 failed, build 0 warnings/errors, focused 20 passed, static passed (/tmp/nbjewel-C1-{final-focused,full,build,static}.log). Importer/SQL DI regressions included; frontend unchanged.
@@ -290,6 +300,7 @@ Historical phase-2 checklist:
 - Task 1 baseline: `dotnet test backend/NbJewel.Api.Tests` with all SQL/connection environment variables removed and `Repository__Provider=Sample`: 309 passed, 6 skipped, 0 failed. Initial sandbox run aborted at VSTest socket binding; same command outside sandbox passed. No SQL executed. Logs: `/tmp/nbjewel-task1-baseline.log`.
 
 ## Manual checks for Muhammad
+- E: read docs/QA_TEST.md fresh record. Independent review pending for Claude. Existing 5155 still serves its previous runtime until you choose to restart it; temporary two-business test host is stopped. Real camera/fit/export, representative cutout quality/licensing, real WhatsApp, SMTP/live providers/hosting and SQL persistence remain owner checks. Future portal SQL is not required by v1 and was never applied.
 - A1: review future-only docs/business-portal-schema.sql after sql-demo-schema.sql, never apply as part of this agent run. It is not needed by v1. Sample provisioning is Development/memory-only and serves its own host; owner access resets on restart. Keep the existing API untouched until you choose to stop it yourself.
 - Follow docs/SQL_CATALOG_QA.md: preserve any private ERP-only QA fields, apply additive SQL/reference scripts yourself, configure the three backend connections to the dedicated demo DB, bootstrap SQL staff, stop Sample only after export, run SQL launcher, import manifest, and manually review/publish. These operations have NOT happened yet.
 - QA public snapshot/source/preview: backend/NbJewel.Api/App_Data/sql-migration/20261115-153502-687583 (ignored, local only). Do not delete this or the current sample asset directory. New SQL IDs are assigned; item codes preserved. Private HUID/design/stock fields require manual export if relevant.
@@ -306,6 +317,7 @@ Historical phase-2 checklist:
 - Real browser CORS and cookies.
 
 ## Agent log (newest first)
+- 2026-11-16T06:36:00+04:00 codex-portal-impl: E complete, final backend 447/7 SQL skips, ERP79/storefront88 and eight gates green; browser Sample demonstration passed with synthetic assets. QA docs updated; final checkpoint/push releases Lock. Independent review pending for Claude.
 - 2026-11-16T06:03:00+04:00 codex-portal-impl: continue fetched/ff-only pulled; HEAD 4555a79 and D files unchanged. Previous commit/push was not executed because automatic approval review reached usage limit; retrying now after reset. Own stale Lock renewed.
 - 2026-11-15T23:18:00+04:00 codex-portal-impl: D reviewed and complete; all eight gates/static pass. Preview auth/cache/store-filter RED/GREEN read by root. Checkpoint/push before E; independent review pending.
 - 2026-11-15T22:47:38+04:00 codex-portal-impl: C2 complete; root reviewed both mechanical helper diffs and corrected camera link bracket/context fixture. Storefront 84/typecheck/build and backend regressions green. Checkpoint/push before D; independent review pending.

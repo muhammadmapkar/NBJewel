@@ -1,7 +1,7 @@
 <!-- Role: Records the authorized multi-business web portal design, SQL-safe amendments and ordered implementation steps. -->
 # Business web portals implementation plan
 
-> **Status: authorized, in progress.** Muhammad explicitly authorized step 0 and tasks A1, A2, A3, B, C1, C2, D and E on 2026-11-15. This overrides the previous execution hold for these tasks only.
+> **Status: authorized, implementation complete through E; independent review pending.** Muhammad explicitly authorized step 0 and tasks A1, A2, A3, B, C1, C2, D and E on 2026-11-15. This overrides the previous execution hold for these tasks only.
 > Use executing-plans for sequential core implementation. Routine low-reasoning helpers may locate references, check drift, run gates, apply exact mechanical edits and draft fixtures/docs. The primary agent owns design, security code, assertions, review, handoff, commits and pushes.
 
 **Revision:** 2026-11-15 by codex-portal-impl. D1 to D9 and assumed names are confirmed with the SQL-safe step 0 amendments. Baseline SQL catalog: `dfc5ba6`.
@@ -353,16 +353,16 @@ All tasks are **authorized, pending implementation**, in the stated order after 
 
 ### E. Two-business QA and release gate
 - **Depends on:** all.
-- [ ] Read-only review of every section 3 row, legacy alias and cache. Fix material findings, each with a regression test.
-- [ ] Run all six gates: backend build/test, ERP test/build, storefront test/build, plus both typechecks.
-- [ ] Sample browser demonstration:
+- [x] Read-only review of every section 3 row, legacy alias and cache. Fix material findings, each with a regression test.
+- [x] Run all six gates: backend build/test, ERP test/build, storefront test/build, plus both typechecks.
+- [x] Sample browser demonstration:
   - two branded businesses
   - hidden-price wholesaler
   - the existing upload, review, publish, edit and revoke flow inside nb-jewel-demo
   - preview versus live
   - offline
   - one customer with two separate bags
-- [ ] Extend docs/QA_TEST.md. Record prepared SQL and its limits. Update the handoff, checkpoint, push, release the Lock. No deploy, no SQL.
+- [x] Extend docs/QA_TEST.md. Record prepared SQL and its limits. Update the handoff, checkpoint, push, release the Lock. No deploy, no SQL.
 
 ## 8. Acceptance tests per risk
 
@@ -404,7 +404,7 @@ Prepared SQL alone is not evidence of production readiness.
 
 ## 10. Execution authorization
 
-**Status: authorized, in progress.** Muhammad's 2026-11-15 instruction explicitly authorizes step 0 then A1, A2, A3, B, C1, C2, D and E, overriding the earlier hold for these tasks only. D1 to D9 and section 9 names are confirmed with these amendments.
+**Status: authorized, implementation complete through E; independent review pending.** Muhammad's 2026-11-15 instruction explicitly authorizes step 0 then A1, A2, A3, B, C1, C2, D and E, overriding the earlier hold for these tasks only. D1 to D9 and section 9 names are confirmed with these amendments.
 
 SQL preparation (assumed): `docs/business-portal-schema.sql` is ordered after `docs/sql-demo-schema.sql`, uses the same transaction and IF OBJECT_ID guard style, is additive with no data, and never alters existing tables or UNIQUE constraints. It is future-only and must never be applied by the agent. Runtime v1 does not require it.
 
