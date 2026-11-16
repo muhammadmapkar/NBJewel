@@ -3,10 +3,11 @@
 
 ## Lock
 - Agent: none (released by codex-portal-impl).
-- Since: 2026-11-16T06:36:00+04:00
-- Status: released in the final pushed portal checkpoint; authorized implementation complete through E. Independent review pending for Claude.
+- Since: 2026-11-16T11:16:00+04:00
+- Status: released in the owner QA documentation checkpoint; implementation remains complete and independent review pending.
 
 ## Branch and last commit
+- Owner QA document predecessor: 84f12cf (pushed and aligned after fetch/ff-only pull). The next documentation checkpoint contains this handoff.
 - Portal D: b5ffeee (pushed); E predecessor verified. E completion/Lock release is the checkpoint containing this handoff.
 - Portal C2: 4555a79 (pushed); D predecessor verified. D is the next checkpoint containing this handoff.
 - Portal C1: 15acaff (pushed); C2 predecessor verified. C2 is the next checkpoint containing this handoff.
@@ -42,6 +43,8 @@
 - Snapshot commit: the commit containing this handoff; resolve with `git log -1 --format=%H -- AI-MEMORY-HANDOFF.md`. Compare it with HEAD on the next start. A literal self-referencing commit hash cannot be recorded inside the same commit.
 
 ## Current goal
+Completed new request: QA_Full_Flow_ERPtoWeb portal.md in the repository root provides owner-perspective acceptance criteria, rather than a developer implementation walkthrough. Documentation only; all 59 scenario results start Not run and missing capabilities remain Gaps.
+
 Implementation complete through E; stop here. Independent review pending for Claude. See docs/QA_TEST.md for fresh Sample/browser evidence, route/cache review, SQL limits and owner checks. No independent security approval is claimed.
 
 Muhammad explicitly authorized step 0 and tasks A1, A2, A3, B, C1, C2, D and E on 2026-11-15, overriding the plan execution hold and prior business portal hold for this scope. D1 to D9 and assumed names confirmed with step 0 amendments. Preserve running services and all SQL/Docker/secret/owner-file restrictions. Independent review remains pending for Claude after E.
@@ -60,6 +63,7 @@ Origin reconciliation, forensic audit and reproduced assistant visibility repair
 
 
 ## Done
+- Owner QA document: 59 scenarios cover the business day from staff access and ERP stock/prices/photos to portal publication, customer interest/visits, changes and operational readiness; explicit results/gaps/sign-off avoid implementation-based passes.
 - E: locally reviewed every section 3 route/legacy alias/cache; no additional material code finding. Two-business browser demonstration and all eight gates passed; QA guide updated. Independent review pending for Claude.
 - D: fixed ERP editor with revision/conflict handling, own catalog/branch choices and saved draft desktop/mobile preview. Private navigation reauthenticates, preserves valid store filters and separates live/preview caches; all shopping actions disabled.
 - C2: /shops/:slug hierarchy restores shop/store before rendering; all legacy URLs redirect to demo and demo-source stores are dropped. Catalog/directory responses cancel or ignore stale business loads; links and enquiries keep slug/store context. Published branding, sections, price/rate visibility and action switches reuse the existing theme/components; offline fails visibly without fallback.
@@ -103,6 +107,8 @@ Origin reconciliation, forensic audit and reproduced assistant visibility repair
 - Setup files written: replaced stale handoff statements, added the handoff protocol to AGENTS.md, and added Claude/Copilot routing instructions. Validation passed; setup pushed as `d44c748`.
 
 ## Next steps (ordered checklist)
+- [x] Create owner-perspective QA_Full_Flow_ERPtoWeb portal.md, validate document, checkpoint/push and release Lock.
+- [ ] Muhammad: run and record the owner acceptance scenarios; additional expectations are labelled assumed, and product gaps need separate prioritization.
 - [x] SQL asset metadata adapter and safe schema/config preparation; execution remains owner-run.
 - [x] One API-only storefront and SQL directory, including legacy links. Static customer/demo bypasses removed and regression-tested.
 - [x] Licensed image manifest, duplicate-safe ERP importer, QA preservation export and SQL launcher prepared; importer dry-run only.
@@ -211,6 +217,7 @@ Historical phase-2 checklist:
 - No questions to owner. Choose conservative sample-only behavior and log assumptions. Accounts, chatbot, locator are later phases.
 
 ## Files touched
+- Owner QA request: QA_Full_Flow_ERPtoWeb portal.md and AI-MEMORY-HANDOFF.md only; no app, config, service or protected owner file changes.
 - E: docs/QA_TEST.md (also corrected stale bundled-catalog guidance), plan and handoff only. Temporary /tmp browser harness/screenshots/logs are not production startup code or tracked artifacts.
 - D: frontend Web Portal component/service/spec and nonsecret portal-config.json; ERP auth/sidebar/menu/routes; private storefront preview/catalog/directory/routes/header/nav and specs; PortalController choices/stores/filter, boundary map, empty directory handling, PortalEditorChoicesTests; plan/handoff.
 - C2: customer app component/config; catalog service/API mapper/new portal models/business routing and specs; store directory; existing home/shop/product/bag/profile/stores/tryon/reserved/wishlist pages and product-card/header/mobile-nav; camera navigation spec; plan and handoff. No lockfile or owner file changed.
@@ -243,6 +250,7 @@ Historical phase-2 checklist:
 - Pre-existing owner changes preserved, excluded from staging: PROGRESS.md, docs/run-guide.md, customer-tryon/package-lock.json; untracked browser security plan, old proof image, pasted jewelry image.
 
 ## Test commands and last results
+- Owner QA doc only: 59 unique IDs/13 prefixes, table columns, relative links, role comment, no em/en dashes, unexecuted-results and whitespace checks passed (/tmp/nbjewel-owner-qa-doc-checks.log). Application tests/builds not rerun; no application source changed or QA scenarios executed in this documentation task.
 - E final: clean Sample dotnet test 447 passed/7 SQL skipped/0 failed; dotnet build 0 warnings/errors; ERP npm test 79, storefront npm test 88; both npx tsc --noEmit -p tsconfig.app.json and NG_BUILD_MAX_WORKERS=2 builds passed. Logs /tmp/nbjewel-E-final-<gate>.log; importer/SQL DI included. Docs/static final checks passed after guide edits (/tmp/nbjewel-E-doc-static.log).
 - E browser: two brands, hidden wholesale, desktop1280/mobile390, private saved preview versus live/publish, offline, one customer/two bags, synthetic upload/manual review/publish/name-price update/revoke and legacy store/parts redirect passed. Customer private preview denied. Ended signed out/reset viewport; only our temp servers stopped. Screenshots /tmp/nbjewel-E-{wholesale-mobile,wholesale-desktop,retail-bag-desktop}.jpg.
 - D RED: editor/private route tests, preview cache privacy and store-filter failures reproduced; logs /tmp/nbjewel-D-{preview-privacy-red,store-filter-red,backend-filter-red}.log. Final focused 1 backend/7 storefront passed; full clean backend 447 passed/7 SQL skipped, build zero warnings/errors, ERP 79/storefront 88 passed, both typechecks/builds and static checks passed (/tmp/nbjewel-D-final2-<gate>.log). Importer/SQL DI included; no SQL/service changes.
@@ -300,6 +308,7 @@ Historical phase-2 checklist:
 - Task 1 baseline: `dotnet test backend/NbJewel.Api.Tests` with all SQL/connection environment variables removed and `Repository__Provider=Sample`: 309 passed, 6 skipped, 0 failed. Initial sandbox run aborted at VSTest socket binding; same command outside sandbox passed. No SQL executed. Logs: `/tmp/nbjewel-task1-baseline.log`.
 
 ## Manual checks for Muhammad
+- Owner QA request: use the root document as a fresh acceptance run, record evidence per scenario, distinguish Sample demonstration from real operation, and keep operational gaps/independent review pending rather than marking them passed.
 - E: read docs/QA_TEST.md fresh record. Independent review pending for Claude. Existing 5155 still serves its previous runtime until you choose to restart it; temporary two-business test host is stopped. Real camera/fit/export, representative cutout quality/licensing, real WhatsApp, SMTP/live providers/hosting and SQL persistence remain owner checks. Future portal SQL is not required by v1 and was never applied.
 - A1: review future-only docs/business-portal-schema.sql after sql-demo-schema.sql, never apply as part of this agent run. It is not needed by v1. Sample provisioning is Development/memory-only and serves its own host; owner access resets on restart. Keep the existing API untouched until you choose to stop it yourself.
 - Follow docs/SQL_CATALOG_QA.md: preserve any private ERP-only QA fields, apply additive SQL/reference scripts yourself, configure the three backend connections to the dedicated demo DB, bootstrap SQL staff, stop Sample only after export, run SQL launcher, import manifest, and manually review/publish. These operations have NOT happened yet.
@@ -317,6 +326,7 @@ Historical phase-2 checklist:
 - Real browser CORS and cookies.
 
 ## Agent log (newest first)
+- 2026-11-16T11:16:00+04:00 codex-portal-impl: fetched/ff-only pulled clean 84f12cf, read handoff and acquired/released Lock for owner QA documentation. Created/checked 59 assumed owner acceptance scenarios with no execution claims; explicit-path checkpoint/push, no application/service changes.
 - 2026-11-16T06:36:00+04:00 codex-portal-impl: E complete, final backend 447/7 SQL skips, ERP79/storefront88 and eight gates green; browser Sample demonstration passed with synthetic assets. QA docs updated; final checkpoint/push releases Lock. Independent review pending for Claude.
 - 2026-11-16T06:03:00+04:00 codex-portal-impl: continue fetched/ff-only pulled; HEAD 4555a79 and D files unchanged. Previous commit/push was not executed because automatic approval review reached usage limit; retrying now after reset. Own stale Lock renewed.
 - 2026-11-15T23:18:00+04:00 codex-portal-impl: D reviewed and complete; all eight gates/static pass. Preview auth/cache/store-filter RED/GREEN read by root. Checkpoint/push before E; independent review pending.
