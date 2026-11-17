@@ -2,11 +2,12 @@
 # AI memory handoff
 
 ## Lock
-- Agent: none.
-- Since: 2026-11-16T12:27:26+04:00
-- Status: released in the combined-hosting checkpoint; no Docker execution, SQL or deployment.
+- Agent: codex-portal-impl.
+- Since: 2026-11-17T12:20:34+04:00
+- Status: held for authorized zero-cost live demo implementation; SQL/Docker/deployment remain owner-run.
 
 ## Branch and last commit
+- Live demo predecessor: aed04c5; fetch/ff-only pull aligned, clean main checkout verified before acquisition.
 - Hosting predecessor: 5e3ea4d (pushed, fetch/ff-only pull aligned). Hosting completion and Lock release are in the checkpoint containing this handoff; resolve with git log -1 --format=%H -- AI-MEMORY-HANDOFF.md.
 - Owner QA document predecessor: 84f12cf (pushed and aligned after fetch/ff-only pull). The next documentation checkpoint contains this handoff.
 - Portal D: b5ffeee (pushed); E predecessor verified. E completion/Lock release is the checkpoint containing this handoff.
@@ -44,6 +45,8 @@
 - Snapshot commit: the commit containing this handoff; resolve with `git log -1 --format=%H -- AI-MEMORY-HANDOFF.md`. Compare it with HEAD on the next start. A literal self-referencing commit hash cannot be recorded inside the same commit.
 
 ## Current goal
+Implement the approved zero-cost live demo: Vercel frontends, tunnel to SQL-backed Mac API, fixed owner login, automatic publication after image approval and storefront refresh within 30 seconds. Latest authorization explicitly selects Terra routine, Sol simple logic, Astra complex reasoning subagents. Root owns handoff/commits/push; one implementation writer at a time.
+
 Completed authorized combined-hosting preparation: hosted ERP /erp/, generated nonsecret settings/routing, existing cutout container dependencies, tests and isolated combined-origin browser evidence. See docs/combined-hosting.md for setup and owner-run container/cloud checks. No deployment, Docker or SQL execution; independent review pending for Claude.
 
 Completed new request: QA_Full_Flow_ERPtoWeb portal.md in the repository root provides owner-perspective acceptance criteria, rather than a developer implementation walkthrough. Documentation only; all 59 scenario results start Not run and missing capabilities remain Gaps.
@@ -112,6 +115,10 @@ Origin reconciliation, forensic audit and reproduced assistant visibility repair
 - Setup files written: replaced stale handoff statements, added the handoff protocol to AGENTS.md, and added Claude/Copilot routing instructions. Validation passed; setup pushed as `d44c748`.
 
 ## Next steps (ordered checklist)
+- [ ] L1: SQL inspection/setup preparation, stable owner credentials, public-demo launcher and core readiness.
+- [ ] L2: safe persistent automatic publication and ERP controls.
+- [ ] L3: visible-tab storefront refresh within 30 seconds.
+- [ ] L4: CI, owner runbook, independent Astra review, all gates, checkpoint/push/release.
 - [x] H1/H2/H3: repository hosting preparation, all local gates/browser checks, guide and final checkpoint/Lock release.
 - [ ] Muhammad: use docs/combined-hosting.md for separately authorized Vercel/API setup, owner-run Docker smoke checks, durable storage and actual HTTPS/proxy validation.
 - [x] Create owner-perspective QA_Full_Flow_ERPtoWeb portal.md, validate document, checkpoint/push and release Lock.
@@ -160,6 +167,8 @@ Historical phase-2 checklist:
 - [x] After task 9: sequential read-only lead review completed; all findings corrected with regressions and affected suites/builds passing. Stop and wait for Muhammad.
 
 ## Blockers and decisions
+- Live demo ruling: latest subagent authorization supersedes older root-only critical implementation instructions. Root Astra reviews security assertions and every diff; helpers never commit/push/lock/handoff. No skill worktree or separate progress ledger; this handoff remains authoritative.
+- Preflight: L1 self-consistent (owner-only SQL/setup, offline tests); L2 self-consistent (manual image approval retained); L3 self-consistent (20-second visible refresh); L4 self-consistent (no auto deployment). L1/L2 share Program and SQL readiness: sequential writers; L2/L3 share catalog response contracts: additive only; L1/L4 share commands/config: guide derives from implemented CLI.
 - Hosting assumed: two Vercel projects, same repo, Framework Other/Node24/build:deploy, outside-root source enabled and no output override. Storefront gateway preserves /erp and /api prefixes; generated output is ignored. HTTPS origins required except loopback; browser API always public origin; missing config/self-forwarding fails closed.
 - Hosting limits: local isolated real-Identity API only, no SQL or container run/cloud deployment. Actual Vercel forwarding, HTTPS/proxy cookies, persistent volume, production identity/provider setup and independent review remain unverified. Existing owner 5155/4200/4300 preserved.
 - E assumed QA: temporary real-Identity HTTP test host on 127.0.0.1:5156 with /tmp assets/portal state; existing Angular builds served on 4201/4301 with nonsecret address overrides. Synthetic fixtures only; all our listeners stopped, owner 5155 preserved. Independent review pending; SQL/provider/real-photo checks remain unverified.
@@ -340,6 +349,8 @@ Historical phase-2 checklist:
 - Real browser CORS and cookies.
 
 ## Agent log (newest first)
+- 2026-11-17T12:20:34+04:00 codex-portal-impl: continued interrupted live demo; aed04c5 aligned after fetch/ff-only pull. Astra previously exhausted usage before edits; only plan/handoff changes existed. Renewed own Lock. Temporary local customer demonstration services remain untouched.
+- 2026-11-16T13:17:19+04:00 codex-portal-impl: read full handoff, fetch/ff-only pull/branch clean aed04c5 verified, acquired Lock for approved live demo. Terra/Sol/Astra delegation selected explicitly; no SQL/Docker/provider/deploy operations.
 - 2026-11-16T12:27:26+04:00 codex-portal-impl: H1/H2/H3 complete after RED/GREEN, all gates and isolated combined-origin browser flows; guide records platform/container limits. Preparing explicit-path checkpoint/push with Lock released; owner services/files untouched, no SQL/Docker/deploy.
 - 2026-11-16T11:16:00+04:00 codex-portal-impl: fetched/ff-only pulled clean 84f12cf, read handoff and acquired/released Lock for owner QA documentation. Created/checked 59 assumed owner acceptance scenarios with no execution claims; explicit-path checkpoint/push, no application/service changes.
 - 2026-11-16T06:36:00+04:00 codex-portal-impl: E complete, final backend 447/7 SQL skips, ERP79/storefront88 and eight gates green; browser Sample demonstration passed with synthetic assets. QA docs updated; final checkpoint/push releases Lock. Independent review pending for Claude.
