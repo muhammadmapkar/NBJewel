@@ -69,6 +69,7 @@ Origin reconciliation, forensic audit and reproduced assistant visibility repair
 
 
 ## Done
+- L1: fixed SQL owner setup/reset via hidden-prompt Keychain launcher, guarded Production loopback public API, core readiness and narrow gateway health routes. Scoped independent Astra review passed spec/quality; no SQL/Keychain/tunnel/deploy execution.
 - H1: assumed Vercel Build Output API v3 generation, preserved /erp upstream/static prefix, base-aware portal config/return route and generated public API settings; local defaults unchanged. RED/GREEN and both app gates passed.
 - H2: .NET noble/Python/Pillow/NumPy/SciPy Dockerfile prepared, publish output/script verified. H3: real-cookie/CSRF owner/customer flows, nested refresh and public/private synthetic images passed through isolated gateway; only our servers stopped.
 - Owner QA document: 59 scenarios cover the business day from staff access and ERP stock/prices/photos to portal publication, customer interest/visits, changes and operational readiness; explicit results/gaps/sign-off avoid implementation-based passes.
@@ -115,7 +116,7 @@ Origin reconciliation, forensic audit and reproduced assistant visibility repair
 - Setup files written: replaced stale handoff statements, added the handoff protocol to AGENTS.md, and added Claude/Copilot routing instructions. Validation passed; setup pushed as `d44c748`.
 
 ## Next steps (ordered checklist)
-- [ ] L1: SQL inspection/setup preparation, stable owner credentials, public-demo launcher and core readiness.
+- [x] L1: SQL inspection/setup preparation, stable owner credentials, public-demo launcher and core readiness.
 - [ ] L2: safe persistent automatic publication and ERP controls.
 - [ ] L3: visible-tab storefront refresh within 30 seconds.
 - [ ] L4: CI, owner runbook, independent Astra review, all gates, checkpoint/push/release.
@@ -235,6 +236,7 @@ Historical phase-2 checklist:
 - No questions to owner. Choose conservative sample-only behavior and log assumptions. Accounts, chatbot, locator are later phases.
 
 ## Files touched
+- L1: IdentitySetup/Program, new Platform CoreReadiness/PublicDemoSetup and owner/runtime tests; scripts/run-public-demo.py/tests, hosting-config/hosting tests; docs/public-demo-sql-inspection.sql. New exact CLI: check, setup-owner, reset-owner, serve.
 - Hosting: .gitignore/.dockerignore, backend/Dockerfile; both apps angular.json/package.json/vercel.json; scripts/build-web.mjs, hosting-config.mjs, tests/hosting-build.test.mjs; ERP write-deploy-env.mjs, auth-policy/spec, portal-admin.service/spec and web-portal.spec; docs/combined-hosting.md, hosting plan and handoff. No lockfiles/protected owner paths changed.
 - Owner QA request: QA_Full_Flow_ERPtoWeb portal.md and AI-MEMORY-HANDOFF.md only; no app, config, service or protected owner file changes.
 - E: docs/QA_TEST.md (also corrected stale bundled-catalog guidance), plan and handoff only. Temporary /tmp browser harness/screenshots/logs are not production startup code or tracked artifacts.
@@ -269,6 +271,7 @@ Historical phase-2 checklist:
 - Pre-existing owner changes preserved, excluded from staging: PROGRESS.md, docs/run-guide.md, customer-tryon/package-lock.json; untracked browser security plan, old proof image, pasted jewelry image.
 
 ## Test commands and last results
+- L1: clean Sample backend 478 passed/7 SQL skipped, build 0 warnings/errors (/tmp/nbjewel-live-L1-full.log, -build.log); Python18 and Node6 passed (-python-all-final.log, -node.log); focused32, role/dash/protected/whitespace checks passed (-static.log). RED logs in -python-red/-owner-red/-reset-red/-runtime-core-red/-https-red/-gateway-red. Independent Astra spec/quality PASS; no real SQL claim.
 - Hosting H1 RED: Node missing module and ERP config-prefix/safe-return assertions failed (/tmp/nbjewel-hosting-H1-node-red.log, H1-erp-red2.log). GREEN node --test scripts/tests/hosting-build.test.mjs: 5 passed. ERP npm test:80, storefront npm test:88; both npx tsc --noEmit -p tsconfig.app.json, NG_BUILD_MAX_WORKERS=2 normal builds and explicit-loopback npm run build:deploy passed (/tmp/nbjewel-hosting-H1-*.log).
 - Hosting H2: env -i PATH="$PATH" HOME="$HOME" Repository__Provider=Sample CUTOUT_PYTHON_PATH=/tmp/nbjewel-cutout-runtime-venv/bin/python dotnet test backend/NbJewel.Api.Tests --no-restore:447 passed/7 SQL skipped/0 failed, importer/SQL DI included. Clean dotnet build and Release publish passed, exact script hash and 18 sample JSONs verified (/tmp/nbjewel-hosting-H2-*.log).
 - Hosting H3: browser sign-in/CSRF/draft/private preview/images/public publish-revoke/customer bag/ERP denial/nested reload passed at 127.0.0.1:4301; private reload after sign-out denied. HTTP no-store/401/400/404/prefixed WASM checks passed (/tmp/nbjewel-hosting-H3-http.log); screenshot /tmp/nbjewel-hosting-private-preview.jpg. Final whitespace/dash/role/protected-path checks: /tmp/nbjewel-hosting-final-static.log.
@@ -330,6 +333,7 @@ Historical phase-2 checklist:
 - Task 1 baseline: `dotnet test backend/NbJewel.Api.Tests` with all SQL/connection environment variables removed and `Repository__Provider=Sample`: 309 passed, 6 skipped, 0 failed. Initial sandbox run aborted at VSTest socket binding; same command outside sandbox passed. No SQL executed. Logs: `/tmp/nbjewel-task1-baseline.log`.
 
 ## Manual checks for Muhammad
+- L1: future final runbook will document private Keychain nbjewel-public-demo/configuration JSON, durable existing roots, owner backup/schema/setup/reset, core readiness and tunnel with --http-host-header localhost. Do not run public sample identity; owner SQL/Keychain/live checks remain unexecuted.
 - Hosting: follow docs/combined-hosting.md. Agent never ran Docker/deployed/applied SQL; verify container imports/cutout, mounted /var/data durability/permissions, production identity/data-protection keys and actual HTTPS/proxy/session behavior yourself after separate authorization. Local browser verification used synthetic /tmp data and signed out; our 5156/4201/4301 listeners stopped, owner services left running.
 - Owner QA request: use the root document as a fresh acceptance run, record evidence per scenario, distinguish Sample demonstration from real operation, and keep operational gaps/independent review pending rather than marking them passed.
 - E: read docs/QA_TEST.md fresh record. Independent review pending for Claude. Existing 5155 still serves its previous runtime until you choose to restart it; temporary two-business test host is stopped. Real camera/fit/export, representative cutout quality/licensing, real WhatsApp, SMTP/live providers/hosting and SQL persistence remain owner checks. Future portal SQL is not required by v1 and was never applied.

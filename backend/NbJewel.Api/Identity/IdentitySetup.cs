@@ -1,6 +1,7 @@
 // Role: Configures SQL Identity, secure cookies, CSRF, and an explicit development bootstrap command.
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using NbJewel.Api.Businesses;
 
 namespace NbJewel.Api.Identity;
 
@@ -53,39 +54,77 @@ public static class IdentitySetup
         builder.Services.AddScoped<ErpBoundaryFilter>();
     }
 
+    // Local CLI only. Never mapped to a controller or endpoint, and never changes account privileges.
+    public static async Task<int> ResetOwnerPasswordAsync(WebApplication app)
+    {
+        if (!OwnerCommandAllowed(app.Configuration, app.Environment)) return 1;
+        var email = app.Configuration["NBJEWEL_BOOTSTRAP_EMAIL"];
+        var password = app.Configuration["NBJEWEL_BOOTSTRAP_PASSWORD"];
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password)) return 1;
+        try
+        {
+            using var scope = app.Services.CreateScope();
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var user = await users.FindByEmailAsync(email);
+            if (user is null || user.AccountType != "erp" || !user.AllStores)
+            { Console.Error.WriteLine("Reset requires an existing all-store ERP owner. No account changed."); return 1; }
+            var token = await users.GeneratePasswordResetTokenAsync(user);
+            if (!(await users.ResetPasswordAsync(user, token, password)).Succeeded)
+            { Console.Error.WriteLine("Owner reset failed Identity validation. No account changed."); return 1; }
+            Console.WriteLine("Owner password reset. Existing session security stamps have been invalidated.");
+            return 0;
+        }
+        catch (Exception)
+        { Console.Error.WriteLine("Owner reset failed. Check private SQL configuration locally."); return 1; }
+    }
+
+    public static bool OwnerCommandAllowed(IConfiguration configuration, IHostEnvironment environment) =>
+        environment.IsDevelopment() &&
+        string.Equals(configuration["Repository:Provider"], "Sql", StringComparison.OrdinalIgnoreCase) &&
+        !configuration.GetValue<bool>("SampleIdentity:Enabled") &&
+        !configuration.GetValue<bool>("PublicDemo:Enabled") &&
+        !string.IsNullOrWhiteSpace(configuration["NBJEWEL_IDENTITY_CONNECTION"]);
+
     public static async Task<int> BootstrapAsync(WebApplication app)
     {
-        if (!app.Environment.IsDevelopment())
+        if (!OwnerCommandAllowed(app.Configuration, app.Environment))
         {
-            Console.Error.WriteLine("Identity bootstrap is allowed only in Development.");
+            Console.Error.WriteLine("Owner setup requires local Development, Sql, and disabled Sample identity/public demo.");
             return 1;
         }
-        var email = Environment.GetEnvironmentVariable("NBJEWEL_BOOTSTRAP_EMAIL");
-        var password = Environment.GetEnvironmentVariable("NBJEWEL_BOOTSTRAP_PASSWORD");
-        using var scope = app.Services.CreateScope();
-        if (!scope.ServiceProvider.GetRequiredService<IdentityAvailability>().Configured ||
-            string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+        var email = app.Configuration["NBJEWEL_BOOTSTRAP_EMAIL"];
+        var password = app.Configuration["NBJEWEL_BOOTSTRAP_PASSWORD"];
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
         {
-            Console.Error.WriteLine("Set NBJEWEL_IDENTITY_CONNECTION, NBJEWEL_BOOTSTRAP_EMAIL and NBJEWEL_BOOTSTRAP_PASSWORD.");
+            Console.Error.WriteLine("Use the owner launcher to supply credentials privately.");
             return 1;
         }
-        // The reviewed schema must already exist. This command never creates or migrates databases.
-        var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        if (await users.FindByEmailAsync(email) is not null)
+        try
         {
-            Console.Error.WriteLine("Account exists. Bootstrap will not elevate an existing account.");
+            using var scope = app.Services.CreateScope();
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            if (await users.FindByEmailAsync(email) is not null)
+            {
+                Console.Error.WriteLine("Account exists. Setup never changes or elevates an existing account.");
+                return 1;
+            }
+            // The reviewed schema must already exist. No create/migrate/seed operation is performed.
+            var database = scope.ServiceProvider.GetRequiredService<IdentityDatabase>();
+            await using var transaction = await database.Database.BeginTransactionAsync();
+            var user = new ApplicationUser { Email = email, UserName = email, AccountType = "erp", AllStores = true, EmailConfirmed = true };
+            if (!(await users.CreateAsync(user, password)).Succeeded)
+            { Console.Error.WriteLine("Owner setup failed Identity validation."); return 1; }
+            foreach (var permission in BusinessMemberships.OwnerPermissions)
+                database.PermissionGrants.Add(new PermissionGrant { UserId = user.Id, Permission = permission });
+            await database.SaveChangesAsync();
+            await transaction.CommitAsync();
+            Console.WriteLine("Created fixed demo ERP owner. Password and permissions will not change on startup.");
+            return 0;
+        }
+        catch (Exception)
+        {
+            Console.Error.WriteLine("Owner setup failed. Check the reviewed SQL schema and private configuration locally.");
             return 1;
         }
-        var database = scope.ServiceProvider.GetRequiredService<IdentityDatabase>();
-        await using var transaction = await database.Database.BeginTransactionAsync();
-        var user = new ApplicationUser { Email = email, UserName = email, AccountType = "erp", AllStores = true };
-        var result = await users.CreateAsync(user, password);
-        if (!result.Succeeded) { Console.Error.WriteLine("Bootstrap failed Identity validation."); return 1; }
-        foreach (var permission in new[] { "items.read", "items.write", "prices.read", "stock.read", "stock.write", "status.read", "status.write", "reference.read", "chat.read", "jewelry.manage", "knowledge.manage" })
-            database.PermissionGrants.Add(new PermissionGrant { UserId = user.Id, Permission = permission });
-        await database.SaveChangesAsync();
-        await transaction.CommitAsync();
-        Console.WriteLine("Created explicit all-store development ERP account. No business role mapping is assumed.");
-        return 0;
     }
 }

@@ -63,3 +63,13 @@ test('generated hosted files expose only the public origin and leave local runti
   assert.equal(await readFile(join(root, 'frontend/public/portal-config.json'), 'utf8'), '{"local":"retained"}');
   assert.equal(await readFile(join(root, 'customer-tryon/public/storefront-config.json'), 'utf8'), '{"local":"retained"}');
 });
+test('gateway forwards only named GET health probes before the storefront fallback without caching', () => {
+  const config = outputConfig('storefront', settingsFor('storefront', env));
+  const resolve = (path, method = 'GET') => { const route = config.routes.find(r => r.src && (!r.methods || r.methods.includes(method)) && new RegExp(r.src).test(path)); return route?.dest ? path.replace(new RegExp(route.src), route.dest) : null; };
+  assert.equal(resolve('/health/live'), 'https://api.example.test/health/live');
+  assert.equal(resolve('/health/ready/core'), 'https://api.example.test/health/ready/core');
+  assert.equal(resolve('/health/ready'), '/index.html');
+  assert.equal(resolve('/health/arbitrary'), '/index.html');
+  assert.equal(resolve('/health/ready/core', 'POST'), '/index.html');
+  assert.equal(config.routes.find(r => r.src === '^/health/ready/core$')?.headers?.['Cache-Control'], 'no-store');
+});

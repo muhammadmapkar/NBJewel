@@ -39,7 +39,15 @@ if (args.Contains("--identity-schema"))
     return 0;
 }
 
+var credentialCommand = args.Contains("--bootstrap-identity") || args.Contains("--reset-owner-password");
+var privateRuntime = credentialCommand;
+try
+{
 var builder = WebApplication.CreateBuilder(args);
+privateRuntime |= PublicDemoSetup.Enabled(builder.Configuration);
+if (credentialCommand && !IdentitySetup.OwnerCommandAllowed(builder.Configuration, builder.Environment))
+{ Console.Error.WriteLine("Owner commands require local Development SQL mode without Sample identity or public demo."); return 1; }
+PublicDemoSetup.Validate(builder.Configuration, builder.Environment);
 if (args.Contains("--provision-business") && !ProvisioningCommand.Allowed(builder.Configuration, builder.Environment))
 { Console.Error.WriteLine("Business provisioning requires Development and Sample without SQL settings."); return 1; }
 
@@ -148,7 +156,11 @@ builder.Services.AddScoped<AssistantEvidence>();
 builder.Services.AddScoped<PlatformOrchestrator>();
 builder.Services.AddScoped<ConversationService>();
 builder.Services.AddScoped<ILegacyAssistant, LegacyAssistant>();
-builder.Services.AddHostedService<PlatformMaintenance>();
+// Public demo startup never purges existing SQL records. Retention maintenance remains owner-managed for this demo.
+if (!PublicDemoSetup.Enabled(builder.Configuration)) builder.Services.AddHostedService<PlatformMaintenance>();
+builder.Services.AddScoped<CoreReadiness>();
+if (PublicDemoSetup.Enabled(builder.Configuration))
+    builder.Services.Configure<Microsoft.AspNetCore.Identity.SecurityStampValidatorOptions>(options => options.ValidationInterval = TimeSpan.Zero);
 
 // Try-on jewelry: metadata JSON and images on disk under JEWELRY_STORAGE_PATH (default App_Data/jewelry
 // inside the API folder). Swap FileJewelryRepository for a SQL or blob version later.
@@ -179,9 +191,19 @@ builder.Services.AddRateLimiter(options =>
 });
 
 var app = builder.Build();
+privateRuntime |= PublicDemoSetup.Enabled(app.Configuration);
+PublicDemoSetup.Validate(app.Configuration, app.Environment);
 app.Services.GetRequiredService<BusinessStorage>().Validate();
 app.ConfigureSampleIdentityRuntime();
 if (args.Contains("--bootstrap-identity")) return await IdentitySetup.BootstrapAsync(app);
+if (args.Contains("--reset-owner-password")) return await IdentitySetup.ResetOwnerPasswordAsync(app);
+if (PublicDemoSetup.Enabled(app.Configuration))
+{
+    using var scope = app.Services.CreateScope();
+    using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+    if (!await scope.ServiceProvider.GetRequiredService<CoreReadiness>().CheckAsync(timeout.Token))
+    { Console.Error.WriteLine("Public demo core readiness failed. Check SQL schema and existing storage locally; no repair was attempted."); return 1; }
+}
 if (args.Contains("--provision-business"))
 {
     // Assumed Sample provisioning keeps this host alive so its memory-only owner can sign in.
@@ -194,6 +216,7 @@ if (args.Contains("--provision-business"))
 // Must run first: later middleware (HTTPS redirect, rate limiter, cookies) reads the corrected address and scheme.
 // It does nothing until TRUSTED_PROXIES names at least one proxy.
 app.UseForwardedHeaders();
+if (PublicDemoSetup.Enabled(app.Configuration)) app.Use(PublicDemoSetup.RequireHttps);
 // One global error handler: clients get a short message, never a stack trace.
 app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
 {
@@ -203,7 +226,7 @@ app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
 if (app.Environment.IsDevelopment()) { app.UseSwagger(); app.UseSwaggerUI(); }
 app.UseRouting();
 app.UseCors("AngularDevelopment");
-if (app.Environment.IsProduction()) { app.UseHsts(); app.UseHttpsRedirection(); }
+if (app.Environment.IsProduction()) { app.UseHsts(); if (!PublicDemoSetup.Enabled(app.Configuration)) app.UseHttpsRedirection(); }
 app.UseAuthentication();
 app.Use(BusinessBoundary.InvokeAsync);
 app.UseAuthorization();
@@ -223,6 +246,13 @@ app.MapGet("/jewelry-images/{file}", async (string file, IJewelryRepository repo
 });
 app.MapControllers();
 app.MapGet("/health/live", () => Results.Ok(new { status = "alive" }));
+app.MapGet("/health/ready/core", async (CoreReadiness readiness, HttpContext context, CancellationToken ct) =>
+{
+    context.Response.Headers.CacheControl = "no-store";
+    using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+    timeout.CancelAfter(TimeSpan.FromSeconds(10));
+    return await readiness.CheckAsync(timeout.Token) ? Results.Ok(new { status = "ready" }) : Results.StatusCode(503);
+});
 app.MapGet("/health/ready", async (PlatformDatabase platform, KnowledgeDatabase knowledge, IdentityDatabase identity, GeminiOptions model, AssistantRegistry assistants, CancellationToken ct) =>
 {
     try
@@ -237,5 +267,11 @@ app.MapGet("/health/ready", async (PlatformDatabase platform, KnowledgeDatabase 
 });
 app.Run();
 return 0;
+}
+catch (Exception) when (privateRuntime)
+{
+    Console.Error.WriteLine("Private demo command failed. Check configuration, SQL schema and storage locally. No secret details are logged.");
+    return 1;
+}
 
 public partial class Program;

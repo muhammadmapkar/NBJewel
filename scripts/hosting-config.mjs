@@ -30,6 +30,8 @@ export function outputConfig(app, settings) {
   const routes = app === 'storefront' ? [
     { src: '^/erp$', status: 307, headers: { Location: '/erp/sign-in', ...noStore } },
     { src: '^/erp/(.*)$', dest: `${settings.erpUpstream}/erp/$1`, headers: noStore },
+    { src: '^/health/live$', methods: ['GET'], dest: `${settings.apiUpstream}/health/live`, headers: noStore },
+    { src: '^/health/ready/core$', methods: ['GET'], dest: `${settings.apiUpstream}/health/ready/core`, headers: noStore },
     { src: '^/api/(.*)$', dest: `${settings.apiUpstream}/api/$1`, headers: noStore },
     { src: '^/jewelry-images/(.*)$', dest: `${settings.apiUpstream}/jewelry-images/$1`, headers: noStore },
     { src: '^/storefront-config\\.json$', headers: noStore, continue: true }

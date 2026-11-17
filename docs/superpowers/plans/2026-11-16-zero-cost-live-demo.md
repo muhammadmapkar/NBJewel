@@ -15,7 +15,7 @@ Storefront refreshes every 20 seconds only while visible and on return to the ta
 
 ## Implementation checkpoints
 
-- [ ] L1: owner SQL inspection/backup/schema guidance, permanent credential setup/reset, secure public-demo launcher and core readiness. Test invalid configuration, no secret output, no environment leakage, no startup SQL mutation, account guards and optional-provider independence.
+- [x] L1: owner SQL inspection/backup/schema guidance, permanent credential setup/reset, secure public-demo launcher and core readiness. Test invalid configuration, no secret output, no environment leakage, no startup SQL mutation, account guards and optional-provider independence.
 - [ ] L2: durable publication intent SQL/Sample storage, shared readiness evaluator, worker, permissions and ERP status/control. Test approvals, revision races, revoked authorizations, pause/withdraw races, retries, restart and importer compatibility.
 - [ ] L3: polling implementation and tests for visible/hidden/focus, cancellation, shop/store changes, errors, product detail changes and destroyed subscriptions.
 - [ ] L4: GitHub checks (no SQL/deployment secrets), complete numbered owner runbook, independent Astra review and final gates. Manager proof: create on live ERP, inspect row in Docker SQL, approve image, see storefront within 30 seconds, price edit/withdraw, same login/data after restart.
