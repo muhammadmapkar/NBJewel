@@ -38,7 +38,7 @@ export const TUNING = {
   earHideShare: 0.25,
   earShowShare: 0.35,
   necklaceWidth: 1.4,
-  necklaceDrop: 0.22, // top of the necklace below the chin, in face heights (when no neckline is known)
+  necklaceDrop: 0.15, // top of the necklace below the chin, in face heights (when no neckline is known)
   neckBase: 0.38, // base of the neck below the chin, in face heights (measured on a test photo)
   necklaceRollFollow: 0.5,
   tikkaHeight: 0.42,
