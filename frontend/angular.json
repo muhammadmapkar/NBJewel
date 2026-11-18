@@ -17,7 +17,7 @@
             "tsConfig": "tsconfig.app.json",
             "assets": [
               { "glob": "**/*", "input": "node_modules/@mediapipe/tasks-vision/wasm", "output": "mediapipe/wasm" },
-              { "glob": "**/*", "input": "public" }
+              { "glob": "**/*", "input": "public", "ignore": ["tryon-samples/**"] }
             ],
             "styles": ["src/styles.css"],
             "allowedCommonJsDependencies": ["qrcode"],
@@ -28,7 +28,7 @@
               "baseHref": "/erp/",
               "assets": [
                 { "glob": "**/*", "input": "node_modules/@mediapipe/tasks-vision/wasm", "output": "mediapipe/wasm" },
-                { "glob": "**/*", "input": "public", "ignore": ["portal-config.json"] },
+                { "glob": "**/*", "input": "public", "ignore": ["portal-config.json", "tryon-samples/**"] },
                 { "glob": "**/*", "input": ".hosting/public" }
               ],
               "fileReplacements": [

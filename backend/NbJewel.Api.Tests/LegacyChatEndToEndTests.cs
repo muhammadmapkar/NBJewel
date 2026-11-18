@@ -53,7 +53,7 @@ public class LegacyChatEndToEndTests
             }));
             builder.ConfigureTestServices(s =>
             {
-                s.RemoveAll<JewelryStorageOptions>(); s.AddSingleton(new JewelryStorageOptions(Path.Combine(Path.GetTempPath(), "legacy-images-" + name), Path.Combine(SampleRepositoryFactory.FindRoot(), "sample-data", "jewelry")));
+                s.RemoveAll<JewelryStorageOptions>(); s.AddSingleton(new JewelryStorageOptions(Path.Combine(Path.GetTempPath(), "legacy-images-" + name)));
                 s.RemoveAll<DbContextOptions<IdentityDatabase>>(); s.RemoveAll<IDbContextOptionsConfiguration<IdentityDatabase>>(); s.AddDbContext<IdentityDatabase>(o => o.UseInMemoryDatabase(name + "identity"));
                 s.RemoveAll<DbContextOptions<PlatformDatabase>>(); s.RemoveAll<IDbContextOptionsConfiguration<PlatformDatabase>>(); s.AddDbContext<PlatformDatabase>(o => o.UseInMemoryDatabase(name + "platform"));
                 s.RemoveAll<DbContextOptions<NbJewel.Api.Knowledge.KnowledgeDatabase>>(); s.RemoveAll<IDbContextOptionsConfiguration<NbJewel.Api.Knowledge.KnowledgeDatabase>>(); s.AddDbContext<NbJewel.Api.Knowledge.KnowledgeDatabase>(o => o.UseInMemoryDatabase(name + "knowledge"));

@@ -16,7 +16,7 @@
             "polyfills": ["zone.js"],
             "tsConfig": "tsconfig.app.json",
             "assets": [
-              { "glob": "**/*", "input": "public" },
+              { "glob": "**/*", "input": "public", "ignore": ["catalog/**"] },
               { "glob": "**/*", "input": "node_modules/@mediapipe/tasks-vision/wasm", "output": "mediapipe/wasm" }
             ],
             "styles": ["src/styles.css"],
@@ -26,7 +26,7 @@
             "deploy": {
               "baseHref": "/",
               "assets": [
-                { "glob": "**/*", "input": "public", "ignore": ["storefront-config.json"] },
+                { "glob": "**/*", "input": "public", "ignore": ["storefront-config.json", "catalog/**"] },
                 { "glob": "**/*", "input": "node_modules/@mediapipe/tasks-vision/wasm", "output": "mediapipe/wasm" },
                 { "glob": "**/*", "input": ".hosting/public" }
               ]

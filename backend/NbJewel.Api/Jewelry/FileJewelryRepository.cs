@@ -1,7 +1,5 @@
-// Role: Stores try-on jewelry on disk. Metadata lives in one JSON file (jewelry.json) and the
-// images in an "images" folder, both under JEWELRY_STORAGE_PATH. On first start (no metadata
-// file yet) it copies the 6 sample items from sample-data/jewelry. File names are generated
-// (id plus extension); the client file name is never used. One lock guards all writes.
+// Role: Stores uploaded legacy try-on images and metadata under JEWELRY_STORAGE_PATH.
+// Files use generated names and a single lock guards writes.
 // On hosts with a temporary disk, uploads are lost on restart (known limit, see docs).
 
 using System.Text.Json;
@@ -12,6 +10,12 @@ namespace NbJewel.Api.Jewelry;
 public sealed partial class FileJewelryRepository : IJewelryRepository
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { WriteIndented = true };
+    private static readonly HashSet<string> RetiredSampleIds = new(StringComparer.Ordinal)
+    {
+        "a1000000000000000000000000000001", "a1000000000000000000000000000002",
+        "a1000000000000000000000000000003", "a1000000000000000000000000000004",
+        "a1000000000000000000000000000005", "a1000000000000000000000000000006"
+    };
     private readonly JewelryStorageOptions options;
     private readonly SemaphoreSlim gate = new(1, 1);
     private List<JewelryRecord> records;
@@ -20,8 +24,9 @@ public sealed partial class FileJewelryRepository : IJewelryRepository
     {
         this.options = options;
         Directory.CreateDirectory(options.ImagesFolder);
-        if (!File.Exists(options.MetadataFile)) Seed();
-        records = JsonSerializer.Deserialize<List<JewelryRecord>>(File.ReadAllText(options.MetadataFile), Json) ?? [];
+        records = File.Exists(options.MetadataFile)
+            ? JsonSerializer.Deserialize<List<JewelryRecord>>(File.ReadAllText(options.MetadataFile), Json) ?? []
+            : [];
     }
 
     // Ids are 32 lower case hex characters. Anything else is unknown, which also blocks path tricks.
@@ -32,7 +37,11 @@ public sealed partial class FileJewelryRepository : IJewelryRepository
     public async Task<IReadOnlyList<JewelryRecord>> ListAsync(bool activeOnly, CancellationToken cancellationToken)
     {
         await gate.WaitAsync(cancellationToken);
-        try { return records.Where(x => !activeOnly || x.Active).OrderBy(x => x.Type).ThenBy(x => x.CreatedAt).ToList(); }
+        try
+        {
+            return records.Where(x => !activeOnly || (x.Active && !RetiredSampleIds.Contains(x.Id)))
+                .OrderBy(x => x.Type).ThenBy(x => x.CreatedAt).ToList();
+        }
         finally { gate.Release(); }
     }
 
@@ -103,29 +112,5 @@ public sealed partial class FileJewelryRepository : IJewelryRepository
         await File.WriteAllTextAsync(temp, JsonSerializer.Serialize(next, Json), cancellationToken);
         File.Move(temp, options.MetadataFile, overwrite: true);
         records = next;
-    }
-
-    private sealed record SeedEntry(string Id, string Name, string Type, string File, bool Active);
-
-    private void Seed()
-    {
-        var seeded = new List<JewelryRecord>();
-        var seedFile = Path.Combine(options.SeedFolder, "seed.json");
-        if (File.Exists(seedFile))
-        {
-            var entries = JsonSerializer.Deserialize<List<SeedEntry>>(File.ReadAllText(seedFile), Json) ?? [];
-            var created = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
-            foreach (var (entry, index) in entries.Select((e, i) => (e, i)))
-            {
-                var source = Path.Combine(options.SeedFolder, Path.GetFileName(entry.File));
-                if (!IsValidId(entry.Id) || JewelryTypes.Resolve(entry.Type) is not { } type || !File.Exists(source)) continue;
-                var bytes = File.ReadAllBytes(source);
-                if (UploadValidator.DetectExtension(bytes) is not { } extension) continue;
-                var file = entry.Id + extension;
-                File.WriteAllBytes(Path.Combine(options.ImagesFolder, file), bytes);
-                seeded.Add(new JewelryRecord(entry.Id, entry.Name, type, file, entry.Active, created.AddMinutes(index)));
-            }
-        }
-        File.WriteAllText(options.MetadataFile, JsonSerializer.Serialize(seeded, Json));
     }
 }

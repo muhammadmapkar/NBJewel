@@ -32,6 +32,19 @@ npm start
 
 The Python path exists locally and needs Pillow/numpy/scipy. No SQL/Docker needed. If port 5155 is occupied, stop the older API; a failed startup does not change its password.
 
+### Import the sample jewellery photos
+
+With the local Sample API running, open another terminal in the repository root and run:
+
+```sh
+python3 scripts/import-erp-demo.py --sample
+python3 scripts/import-erp-demo.py --sample --apply --code DEMO-MET-39436
+```
+
+The first command validates the manifest offline. The second prompts for your Sample ERP credentials and imports one photo through the normal ERP upload and cutout flow. Omit `--code DEMO-MET-39436` to import all 18 entries. Each source photo lives under `sample-data/Jewellery Images`. Existing item codes are skipped. In ERP, find the imported code, inspect the cutout against the original, approve the revision if suitable, and publish it when ready. The six owner-provided photos have unresolved licensing and stay Draft during import.
+
+`DEMO-MET-446770` and `DEMO-MET-39408` stay Draft because the current cutout script produces no transparency for those two photos. If you need either item for try-on, open the existing Draft in ERP and upload a photo with a light, neutral background. Re-running the importer skips the existing Draft.
+
 ## 2. URLs and credentials
 
 | Purpose | URL / credentials |

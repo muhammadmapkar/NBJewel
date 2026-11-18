@@ -31,7 +31,7 @@ public sealed record JewelryItem(string Id, string Name, string Type, string Ima
 public sealed record JewelryActiveRequest(bool Active);
 
 // Settings for the file based repository. StoragePath comes from JEWELRY_STORAGE_PATH.
-public sealed record JewelryStorageOptions(string StoragePath, string SeedFolder)
+public sealed record JewelryStorageOptions(string StoragePath)
 {
     public string ImagesFolder => Path.Combine(StoragePath, "images");
     public string MetadataFile => Path.Combine(StoragePath, "jewelry.json");

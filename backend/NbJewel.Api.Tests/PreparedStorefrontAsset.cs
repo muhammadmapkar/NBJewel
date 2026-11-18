@@ -14,7 +14,7 @@ internal static class PreparedStorefrontAsset
         var options = scope.ServiceProvider.GetRequiredService<ItemCutoutOptions>();
         var revision = Guid.NewGuid().ToString("N");
         var folder = options.RevisionFolder(revision); Directory.CreateDirectory(folder);
-        var bytes = await File.ReadAllBytesAsync(Path.Combine(SampleRepositoryFactory.FindRoot(), "sample-data", "jewelry", "necklace-gold-pendant.png"));
+        var bytes = Jewelry.JewelryTestKit.CutoutPhoto;
         await File.WriteAllBytesAsync(Path.Combine(folder, "preview.png"), bytes);
         var hash = Convert.ToHexString(SHA256.HashData(bytes));
         var asset = new ItemImageAsset(itemId, revision, hash, hash, "ready", "approved", "open", 64, 64, DateTimeOffset.UtcNow);

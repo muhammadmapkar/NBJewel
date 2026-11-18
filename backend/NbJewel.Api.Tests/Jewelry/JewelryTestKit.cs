@@ -1,5 +1,5 @@
 // Role: Test helpers for the try-on jewelry feature: tiny valid PNG and JPEG byte arrays,
-// a fresh temp storage folder per test seeded from the real sample-data/jewelry folder,
+// a fresh temp storage folder per test,
 // and a controller built with a chosen OWNER_PIN.
 
 using Microsoft.AspNetCore.Http;
@@ -21,6 +21,9 @@ internal static class JewelryTestKit
         return bytes;
     }
 
+    // Decodable photo fixture for tests that need to process or serve a PNG.
+    public static readonly byte[] CutoutPhoto = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAlklEQVR4nO3awQmEUAAD0XGwDyuwMCuyMCuwkm8NIosM67sHArlmGmNQJnESJ3ESJ3ESJ3ESJ3ESJ3ESJ3ESJ3Hz3cCxL/zSup3/tYDESZzESZzESZzESZzESZzESZzESZzESZzESZzESZzESZzESZzESZzESZzESZzESdz0/YVeJnESJ3ESJ3ESJ3ESJ3ESJ3ESJ3G+XeCpCyqgCXui4j6ZAAAAAElFTkSuQmCC");
+
     public static byte[] Jpeg(int size = 64)
     {
         var bytes = new byte[size];
@@ -31,7 +34,7 @@ internal static class JewelryTestKit
     public static JewelryStorageOptions TempOptions()
     {
         var folder = Path.Combine(Path.GetTempPath(), "nbjewel-jewelry-" + Guid.NewGuid().ToString("N"));
-        return new JewelryStorageOptions(folder, Path.Combine(SampleRepositoryFactory.FindRoot(), "sample-data", "jewelry"));
+        return new JewelryStorageOptions(folder);
     }
 
     public static OwnerPin Pin(string? value) =>

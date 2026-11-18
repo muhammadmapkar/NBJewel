@@ -94,7 +94,7 @@ Without a mounted durable volume, those paths are still temporary container stor
 ```sh
 docker build -f backend/Dockerfile -t nbjewel-api:hosting-check .
 docker run --rm --entrypoint /usr/bin/python3 nbjewel-api:hosting-check -c "import PIL, numpy, scipy; print('Existing cutout dependencies import successfully')"
-docker run --rm --entrypoint /usr/bin/python3 nbjewel-api:hosting-check scripts/cutout-jewelry.py sample-data/jewelry/necklace-gold-pendant.png /tmp/hosting-preview.png --metadata /tmp/hosting-preview.json
+docker run --rm --mount "type=bind,src=$PWD/sample-data/Jewellery Images/public-domain,dst=/qa-photos,readonly" --entrypoint /usr/bin/python3 nbjewel-api:hosting-check scripts/cutout-jewelry.py /qa-photos/met-39436.jpg /tmp/hosting-preview.png --metadata /tmp/hosting-preview.json
 ```
 
 Review the generated synthetic preview separately from real permitted jewelry photos. Successful processing does not approve licensing or visual fit.

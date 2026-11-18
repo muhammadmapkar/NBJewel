@@ -168,9 +168,7 @@ var jewelryStorage = builder.Configuration["JEWELRY_STORAGE_PATH"];
 jewelryStorage = Path.GetFullPath(string.IsNullOrWhiteSpace(jewelryStorage)
     ? Path.Combine(builder.Environment.ContentRootPath, "App_Data", "jewelry")
     : jewelryStorage);
-var jewelrySeed = Path.Combine(builder.Environment.ContentRootPath, "..", "..", "sample-data", "jewelry");
-if (!Directory.Exists(jewelrySeed)) jewelrySeed = Path.Combine(AppContext.BaseDirectory, "sample-data", "jewelry");
-var jewelryOptions = new JewelryStorageOptions(jewelryStorage, jewelrySeed);
+var jewelryOptions = new JewelryStorageOptions(jewelryStorage);
 builder.Services.AddSingleton(jewelryOptions);
 builder.Services.AddSingleton<IJewelryRepository, FileJewelryRepository>();
 builder.Services.AddSingleton<OwnerPin>();

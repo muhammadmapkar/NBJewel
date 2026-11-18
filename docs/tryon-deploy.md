@@ -6,21 +6,21 @@ Document only. Nothing here has been deployed.
 
 Needs the `tryon-feature` branch on GitHub, a free Vercel account, and (for step B) a free Render account. Sign in to both with GitHub.
 
-A. Customer try-on only, 6 built-in samples (about 5 minutes):
+A. Set up the legacy try-on frontend:
 
 1. On the phone, open vercel.com, Add New, Project, import `nbjewel`.
 2. Branch: `tryon-feature`. Root Directory: `frontend`. Framework preset: Other. Leave `NBJEWEL_API_URL` empty.
-3. Deploy. Open `https://<your-app>.vercel.app/tryon`, tap a piece, allow the camera.
+3. Deploy. Open `https://<your-app>.vercel.app/tryon` once the API is connected and a piece is uploaded.
 
 If the import screen has no branch picker, Vercel builds the default branch first (that build shows "page doesn't exist"; it is the old code). Vercel builds `tryon-feature` after the next push to that branch. Then, in Settings, Environments, Production, Branch Tracking, set `tryon-feature` and Save (Vercel only accepts a branch it has built once).
 
-Without the API the app runs in sample mode: the try-on works with the 6 samples, and the owner page says uploads are off.
+The legacy gallery needs the API and an uploaded piece. For the current ERP-backed storefront, see the [combined hosting guide](combined-hosting.md).
 
 B. Add the API for the owner page (uploads, Active toggle, delete):
 
 1. On the phone, open dashboard.render.com, New, Blueprint, pick the repo and branch `tryon-feature`. Render reads `render.yaml` and builds `backend/Dockerfile`.
 2. When asked, set `OWNER_PIN` (8 or more characters) and `CORS_ORIGINS` = `https://<your-app>.vercel.app`.
-3. Wait for the deploy (the first build takes a few minutes). Check `https://<your-api>.onrender.com/api/jewelry` lists 6 items.
+3. Wait for the deploy and check `https://<your-api>.onrender.com/api/jewelry` responds. The gallery starts empty.
 4. In Vercel, Settings, Environment Variables, set `NBJEWEL_API_URL` = `https://<your-api>.onrender.com`, then Deployments, Redeploy.
 5. Open `https://<your-app>.vercel.app/owner/jewelry`, enter the PIN.
 
@@ -44,7 +44,7 @@ The app calls the API from the browser, so the API must allow the app's address 
    dotnet publish backend/NbJewel.Api -c Release -o publish
    ```
 
-   Then deploy the `publish` folder (VS Code Azure extension, `az webapp deploy`, or a zip deploy). The seed images are inside `publish/sample-data/jewelry`.
+   Then deploy the `publish` folder (VS Code Azure extension, `az webapp deploy`, or a zip deploy).
 3. In the Web App, Settings, Environment variables, add:
 
    | Name | Value |
@@ -54,7 +54,7 @@ The app calls the API from the browser, so the API must allow the app's address 
    | `JEWELRY_STORAGE_PATH` | `/home/data/jewelry` (on Azure App Service Linux, `/home` survives restarts) |
    | `GEMINI_API_KEY`, `GEMINI_MODEL` | only if the chatbot should work too |
 
-4. Check: open `https://<your-api>/api/jewelry`. It should list 6 sample items.
+4. Open `https://<your-api>/api/jewelry`. A fresh legacy gallery returns an empty list. For the ERP-backed storefront sample, use the photo import in [QA](QA_TEST.md).
 
 Other hosts. Render, Railway or Fly.io need a Docker image for .NET. A minimal Dockerfile (not in the repo):
 
@@ -112,11 +112,11 @@ The camera needs https, and `http://<computer-ip>:4200` is not https, so a phone
 
 ## Known limit: uploads on temporary disks
 
-The API stores jewelry metadata (`jewelry.json`) and images on its own disk under `JEWELRY_STORAGE_PATH`. Many free hosts (Render free, Railway without a volume, container restarts in general) give a temporary disk, so owner uploads are lost when the API restarts or redeploys. The 6 samples come back because they are seeded on first start. Fix later by moving to SQL plus blob storage behind `IJewelryRepository`.
+The API stores legacy jewelry metadata (`jewelry.json`) and images under `JEWELRY_STORAGE_PATH`. Owner uploads can be lost after a restart or redeploy when the host uses temporary disk storage.
 
 ## Checklist
 
-- [ ] API `https://<your-api>/api/jewelry` returns 6 items
+- [ ] API `https://<your-api>/api/jewelry` returns the active uploaded items
 - [ ] `OWNER_PIN`, `CORS_ORIGINS`, `JEWELRY_STORAGE_PATH` set on the API host
 - [ ] `NBJEWEL_API_URL` set on Vercel or Netlify
 - [ ] `https://<your-app>/tryon` shows the grid on the phone

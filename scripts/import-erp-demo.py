@@ -4,6 +4,8 @@
 import argparse,getpass,hashlib,http.cookiejar,json,mimetypes,sys,urllib.error,urllib.parse,urllib.request,uuid
 from pathlib import Path
 ROOT=Path(__file__).resolve().parent.parent
+DEMO_PHOTOS=ROOT/'sample-data/Jewellery Images'
+DEMO_MANIFEST=DEMO_PHOTOS/'demo-import.json'
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self,*args,**kwargs): raise ValueError('Redirect refused; check the local API address.')
@@ -32,14 +34,16 @@ class Client:
         headers={'Content-Type':'multipart/form-data; boundary='+boundary,'X-CSRF-TOKEN':self.token}
         with self.opener.open(urllib.request.Request(self.base+f'/api/items/{item_id}/image',body,headers,method='POST'),timeout=90) as r:return json.load(r)
 
-def read_manifest(path):
+def read_manifest(path, *, sample=False):
+    path=Path(path).resolve()
+    image_root=DEMO_PHOTOS if sample or path==DEMO_MANIFEST else ROOT
     rows=json.loads(Path(path).read_text())['products'];seen=set()
     for row in rows:
         code=row['code']
         if not isinstance(code,str) or not code or len(code)>30 or code.casefold() in seen:raise ValueError('Invalid/duplicate product code.')
         seen.add(code.casefold())
         image=(ROOT/row['image']).resolve()
-        if not image.is_relative_to(ROOT) or not image.is_file():raise ValueError('Image must exist inside the repository.')
+        if not image.is_relative_to(image_root) or not image.is_file():raise ValueError(f'Image must exist inside {image_root.relative_to(ROOT)}.')
         data=image.read_bytes()
         if len(data)>5*1024*1024 or not (data.startswith(b'\x89PNG\r\n\x1a\n') or data.startswith(b'\xff\xd8\xff')):raise ValueError('Upload must be PNG/JPG <=5 MB.')
         if hashlib.sha256(data).hexdigest()!=row['sha256']:raise ValueError('Image checksum mismatch: '+code)
@@ -48,7 +52,7 @@ def read_manifest(path):
         if not row.get('description'):raise ValueError('Description required.')
     return rows
 
-def import_one(client,row,store_id):
+def import_one(client,row,store_id, *, sample=False):
     page=1
     while True:
         result=client.request('GET','/api/items?'+urllib.parse.urlencode({'search':row['code'],'page':page,'pageSize':100}))
@@ -59,7 +63,8 @@ def import_one(client,row,store_id):
         page+=1
     categories=client.request('GET','/api/categories');designs=client.request('GET','/api/designs')
     category=next((x for x in categories if x['name']==row['category']),None)
-    design=next((x for x in designs if x['designCode']==row.get('designCode','DEMO-HERITAGE')),None)
+    default_design='DSN-102' if sample else 'DEMO-HERITAGE'
+    design=next((x for x in designs if x['designCode']==row.get('designCode',default_design)),None)
     if not category or not design:raise ValueError('Missing category/design reference data; apply reviewed demo references first.')
     request={key:row[key] for key in ('code','name','metalType','purity','grossWt','stoneWt','makingType','makingValue','stoneValue','vatPercent')}
     request.update(categoryId=category['id'],designId=design['designId'],netWt=row['grossWt']-row['stoneWt'],huid=row.get('huid'),imageUrl=None,
@@ -74,19 +79,27 @@ def import_one(client,row,store_id):
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--manifest',type=Path,default=ROOT/'Jewellery Images/demo-import.json')
+    parser.add_argument('--manifest',type=Path,default=DEMO_MANIFEST)
     parser.add_argument('--api',default='http://localhost:5155');parser.add_argument('--apply',action='store_true')
+    parser.add_argument('--sample',action='store_true',help='Use a local Sample API and its assumed sample design')
+    parser.add_argument('--code',action='append',help='Import only this manifest code (repeatable)')
     parser.add_argument('--store-id',type=int,help='Optional explicit ERP store for one assumed sample unit per NEW item')
-    args=parser.parse_args();rows=read_manifest(args.manifest)
+    args=parser.parse_args();rows=read_manifest(args.manifest,sample=args.sample)
+    if args.code:
+        requested={code.casefold() for code in args.code}
+        rows=[row for row in rows if row['code'].casefold() in requested]
+        missing=requested-{row['code'].casefold() for row in rows}
+        if missing:parser.error('Unknown manifest code: '+', '.join(sorted(missing)))
     if not args.apply:
         for row in rows:print(row['code'],row['category'],row['targetStatus'])
         print(f'Validated {len(rows)} products. Offline dry-run; no API/SQL writes.');return
     client=Client(args.api);client.login()
-    if client.request('GET','/api/items/storage')['provider']!='Sql':raise ValueError('Import refused: API is not using SQL. Preserve/export sample work before changing launchers.')
+    provider='Sample' if args.sample else 'Sql'
+    if client.request('GET','/api/items/storage')['provider']!=provider:raise ValueError(f'Import refused: API is not using {provider}.')
     if args.store_id is not None and not any(x['id']==args.store_id for x in client.request('GET','/api/stores')):raise ValueError('Unknown store ID.')
     failed=False
     for row in rows:
-        try: print(json.dumps(import_one(client,row,args.store_id)))
+        try: print(json.dumps(import_one(client,row,args.store_id,sample=args.sample)))
         except (urllib.error.HTTPError,ValueError,OSError) as error:
             failed=True;print(row['code'],'incomplete:', ('HTTP '+str(error.code)) if isinstance(error,urllib.error.HTTPError) else type(error).__name__, '; inspect ERP before retrying.',file=sys.stderr)
     if failed:sys.exit(1)

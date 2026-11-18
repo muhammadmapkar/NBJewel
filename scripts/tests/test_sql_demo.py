@@ -6,8 +6,22 @@ def module(name):
     spec=importlib.util.spec_from_file_location(name,ROOT/'scripts'/f'{name}.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
 
 class SqlDemoTests(unittest.TestCase):
+    def test_default_import_uses_only_photos_from_the_moved_sample_folder(self):
+        tool=module('import-erp-demo')
+        sample_folder=ROOT/'sample-data/Jewellery Images'
+        rows=tool.read_manifest(tool.DEMO_MANIFEST)
+        self.assertEqual(18,len(rows))
+        self.assertTrue(all((ROOT/row['image']).resolve().is_relative_to(sample_folder) for row in rows))
+        self.assertEqual(6,sum(row['image'].startswith('sample-data/Jewellery Images/Pasted ') for row in rows))
+    def test_sample_mode_rejects_images_outside_the_photo_folder(self):
+        tool=module('import-erp-demo');data=json.loads(tool.DEMO_MANIFEST.read_text())
+        data['products'][0]['image']='customer-tryon/public/catalog/pieces/temple-jhumka-necklace-necklace.png'
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/'manifest.json';path.write_text(json.dumps(data))
+            with self.assertRaisesRegex(ValueError,'Image must exist inside sample-data/Jewellery Images'):
+                tool.read_manifest(path,sample=True)
     def test_manifest_images_are_verified_and_publication_is_manual(self):
-        tool=module('import-erp-demo'); rows=tool.read_manifest(ROOT/'Jewellery Images/demo-import.json')
+        tool=module('import-erp-demo'); rows=tool.read_manifest(tool.DEMO_MANIFEST)
         new=[x for x in rows if x['code'].startswith('DEMO-MET-')]
         self.assertEqual(12,len(new)); self.assertEqual(8,sum(x['targetStatus']=='Complete' for x in new))
         self.assertTrue(all(x['isPublicDomain'] for x in new))
@@ -21,14 +35,14 @@ class SqlDemoTests(unittest.TestCase):
         row={'code':'DEMO-ONE','name':'Importer original'}
         self.assertEqual('skipped',tool.import_one(ExistingClient(),row,None)['result'])
     def test_new_import_uses_erp_validation_without_auto_approval(self):
-        tool=module('import-erp-demo');row=tool.read_manifest(ROOT/'Jewellery Images/demo-import.json')[0]
+        tool=module('import-erp-demo');row=tool.read_manifest(tool.DEMO_MANIFEST)[0]
         calls=[]
         class NewClient:
             def request(self,method,path,data=None):
                 calls.append((method,path,data))
                 if path.startswith('/api/items?'):return {'items':[],'totalCount':0}
                 if path=='/api/categories':return [{'id':4,'name':'Necklaces'}]
-                if path=='/api/designs':return [{'designId':8,'designCode':'DEMO-HERITAGE'}]
+                if path=='/api/designs':return [{'designId':8,'designCode':'DEMO-HERITAGE'},{'designId':2,'designCode':'DSN-102'}]
                 if method=='POST' and path=='/api/items':return {'id':123}
                 if path in ('/api/items/123/stock','/api/items/123/status'):return {}
                 raise AssertionError(path)
@@ -38,8 +52,12 @@ class SqlDemoTests(unittest.TestCase):
         self.assertEqual(4,creation['categoryId']);self.assertEqual(8,creation['designId'])
         self.assertTrue(creation['storefront']['isSample'])
         self.assertFalse(any('review' in x[1] or 'publish' in x[1] for x in calls))
+        calls.clear()
+        self.assertEqual(123,tool.import_one(NewClient(),row,None,sample=True)['id'])
+        creation=next(x[2] for x in calls if x[0]=='POST' and x[1]=='/api/items')
+        self.assertEqual(2,creation['designId'])
     def test_manifest_rejects_modified_image(self):
-        tool=module('import-erp-demo');data=json.loads((ROOT/'Jewellery Images/demo-import.json').read_text());data['products'][0]['sha256']='bad'
+        tool=module('import-erp-demo');data=json.loads((tool.DEMO_MANIFEST).read_text());data['products'][0]['sha256']='bad'
         with tempfile.TemporaryDirectory() as folder:
             path=Path(folder)/'manifest.json';path.write_text(json.dumps(data))
             with self.assertRaises(ValueError):tool.read_manifest(path)

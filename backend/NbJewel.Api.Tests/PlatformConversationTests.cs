@@ -74,7 +74,7 @@ public partial class PlatformConversationTests
                 ["NBJEWEL_IDENTITY_CONNECTION"] = "", ["Repository:Provider"] = "Sample", ["BUSINESS_STORAGE_PATH"] = Path.Combine(Path.GetTempPath(), "nbjewel-policy-" + name), ["GEMINI_MODEL"] = "test", ["AiPlatform:AssistantRequestsPerMinute"] = AssistantLimit.ToString(), ["AiPlatform:DailyReservedTokenBudget"] = DailyTokenBudget.ToString(), ["JEWELRY_STORAGE_PATH"] = Path.Combine(Path.GetTempPath(), "conv-" + name), ["Assistants:website:Instructions"] = WebsiteInstructions
             }));
             builder.ConfigureTestServices(s => {
-                s.RemoveAll<JewelryStorageOptions>(); s.AddSingleton(new JewelryStorageOptions(Path.Combine(Path.GetTempPath(), "conv-images-" + name), Path.Combine(SampleRepositoryFactory.FindRoot(), "sample-data", "jewelry")));
+                s.RemoveAll<JewelryStorageOptions>(); s.AddSingleton(new JewelryStorageOptions(Path.Combine(Path.GetTempPath(), "conv-images-" + name)));
                 s.RemoveAll<DbContextOptions<IdentityDatabase>>(); s.RemoveAll<IDbContextOptionsConfiguration<IdentityDatabase>>(); s.AddDbContext<IdentityDatabase>(o => o.UseInMemoryDatabase(name + "identity"));
                 s.RemoveAll<DbContextOptions<PlatformDatabase>>(); s.RemoveAll<IDbContextOptionsConfiguration<PlatformDatabase>>(); s.AddDbContext<PlatformDatabase>(o => o.UseInMemoryDatabase(name + "platform"));
                 s.RemoveAll<DbContextOptions<KnowledgeDatabase>>(); s.RemoveAll<IDbContextOptionsConfiguration<KnowledgeDatabase>>(); s.AddDbContext<KnowledgeDatabase>(o => o.UseInMemoryDatabase(name + "knowledge"));

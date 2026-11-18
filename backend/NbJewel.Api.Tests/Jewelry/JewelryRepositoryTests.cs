@@ -1,5 +1,4 @@
-// Role: Tests file jewelry persistence and business operations; HTTP identity boundaries have integration tests. First start seeds
-// Six sample items seed initially, uploads persist, and inactive items disappear from the public list.
+// Role: Tests uploaded legacy jewelry persistence and public visibility.
 
 using Microsoft.AspNetCore.Mvc;
 using NbJewel.Api.Jewelry;
@@ -11,25 +10,26 @@ public sealed class JewelryRepositoryTests
     private static readonly CancellationToken Ct = CancellationToken.None;
 
     [Fact]
-    public async Task FirstStart_SeedsSixItemsTwoPerType()
+    public async Task OldBuiltInDrawingsAreRetiredWithoutRemovingUploads()
     {
         var options = JewelryTestKit.TempOptions();
-        var items = await new FileJewelryRepository(options).ListAsync(activeOnly: false, Ct);
-        Assert.Equal(6, items.Count);
-        foreach (var type in JewelryTypes.All) Assert.Equal(2, items.Count(x => x.Type == type));
-        Assert.All(items, x => Assert.True(File.Exists(Path.Combine(options.ImagesFolder, x.File))));
+        var repository = new FileJewelryRepository(options);
+        var upload = await repository.AddAsync("Uploaded necklace", "necklace", JewelryTestKit.Png(), ".png", Ct);
+        var old = new JewelryRecord("a1000000000000000000000000000003", "Old drawing", "necklace",
+            "a1000000000000000000000000000003.png", true, DateTimeOffset.UnixEpoch);
+        await File.WriteAllTextAsync(options.MetadataFile, System.Text.Json.JsonSerializer.Serialize(
+            new[] { upload, old }, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)));
+        var reopened = new FileJewelryRepository(options);
+        Assert.Equal(upload.Id, Assert.Single(await reopened.ListAsync(activeOnly: true, Ct)).Id);
+        Assert.NotNull(await reopened.GetAsync(old.Id, Ct));
     }
 
     [Fact]
-    public async Task SeedImages_AreTransparentPngs()
+    public async Task FirstStartHasNoBuiltInDrawings()
     {
         var options = JewelryTestKit.TempOptions();
-        foreach (var item in await new FileJewelryRepository(options).ListAsync(false, Ct))
-        {
-            var bytes = await File.ReadAllBytesAsync(Path.Combine(options.ImagesFolder, item.File));
-            Assert.Equal(".png", UploadValidator.DetectExtension(bytes));
-            Assert.Equal(6, bytes[25]); // IHDR color type 6 means RGBA, so the PNG has an alpha channel.
-        }
+        Assert.Empty(await new FileJewelryRepository(options).ListAsync(activeOnly: false, Ct));
+        Assert.Empty(Directory.EnumerateFiles(options.ImagesFolder));
     }
 
     [Fact]
@@ -40,14 +40,15 @@ public sealed class JewelryRepositoryTests
         var reloaded = await new FileJewelryRepository(options).GetAsync(added.Id, Ct);
         Assert.NotNull(reloaded);
         Assert.Equal("Test Stud", reloaded.Name);
-        Assert.Equal(7, (await new FileJewelryRepository(options).ListAsync(false, Ct)).Count);
+        Assert.Single(await new FileJewelryRepository(options).ListAsync(false, Ct));
+        Assert.Equal(JewelryTestKit.Png(), await File.ReadAllBytesAsync(Path.Combine(options.ImagesFolder, reloaded.File)));
     }
 
     [Fact]
     public async Task SetActive_False_HidesFromActiveList()
     {
         var repository = new FileJewelryRepository(JewelryTestKit.TempOptions());
-        var first = (await repository.ListAsync(true, Ct))[0];
+        var first = await repository.AddAsync("Necklace", "necklace", JewelryTestKit.Png(), ".png", Ct);
         Assert.NotNull(await repository.SetActiveAsync(first.Id, false, Ct));
         Assert.DoesNotContain(await repository.ListAsync(true, Ct), x => x.Id == first.Id);
         Assert.Contains(await repository.ListAsync(false, Ct), x => x.Id == first.Id);
@@ -81,12 +82,12 @@ public sealed class JewelryRepositoryTests
     public async Task PublicList_ReturnsActiveOnlyWithImageUrls()
     {
         var repository = new FileJewelryRepository(JewelryTestKit.TempOptions());
-        var first = (await repository.ListAsync(true, Ct))[0];
+        var first = await repository.AddAsync("Necklace", "necklace", JewelryTestKit.Png(), ".png", Ct);
+        var visible = await repository.AddAsync("Earrings", "earring", JewelryTestKit.Png(), ".png", Ct);
         await repository.SetActiveAsync(first.Id, false, Ct);
         var result = await JewelryTestKit.Controller(repository).GetActive(Ct);
         var items = Assert.IsAssignableFrom<IReadOnlyList<JewelryItem>>(Assert.IsType<OkObjectResult>(result.Result).Value);
-        Assert.Equal(3, items.Count);
-        Assert.All(items, x => Assert.StartsWith("/jewelry-images/", x.ImageUrl));
+        Assert.Equal($"/jewelry-images/{visible.File}", Assert.Single(items).ImageUrl);
     }
 
     [Fact]
@@ -94,7 +95,7 @@ public sealed class JewelryRepositoryTests
     {
         var repository = new FileJewelryRepository(JewelryTestKit.TempOptions());
         var controller = JewelryTestKit.Controller(repository);
-        var id = (await repository.ListAsync(false, Ct))[0].Id;
+        var id = (await repository.AddAsync("Necklace", "necklace", JewelryTestKit.Png(), ".png", Ct)).Id;
         Assert.IsType<OkObjectResult>((await controller.GetAll(Ct)).Result);
         Assert.IsType<OkObjectResult>((await controller.SetActive(id, new JewelryActiveRequest(false), Ct)).Result);
         Assert.IsType<NoContentResult>(await controller.Delete(id, Ct));

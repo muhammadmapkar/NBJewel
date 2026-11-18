@@ -99,17 +99,12 @@ public sealed class IdentitySessionTests
     {
         await using var factory = new IdentityTestFactory();
         var repo = factory.Services.GetRequiredService<IJewelryRepository>();
-        var stored = await repo.ListAsync(false, default);
-        var rings = stored.Where(x => x.Type == "ring").ToArray();
-        Assert.Equal(2, rings.Length);
+        var ring = await repo.AddAsync("Ring", "ring", Jewelry.JewelryTestKit.Png(), ".png", default);
+        var necklace = await repo.AddAsync("Necklace", "necklace", Jewelry.JewelryTestKit.Png(), ".png", default);
         using var client = factory.CreateClient();
         var visible = await client.GetFromJsonAsync<List<JewelryItem>>("/api/jewelry");
-        Assert.Equal(4, visible!.Count);
-        Assert.All(visible, item => Assert.Contains(item.Type, new[] { "earring", "necklace" }));
-        foreach (var ring in rings)
-        {
-            Assert.NotNull(await repo.GetAsync(ring.Id, default));
-        }
+        Assert.Equal(necklace.Id, Assert.Single(visible!).Id);
+        Assert.NotNull(await repo.GetAsync(ring.Id, default));
     }
 
     [Fact]
@@ -117,7 +112,7 @@ public sealed class IdentitySessionTests
     {
         await using var factory = new IdentityTestFactory();
         var repo = factory.Services.GetRequiredService<IJewelryRepository>();
-        var ring = (await repo.ListAsync(true, default)).First(x => x.Type == "ring");
+        var ring = await repo.AddAsync("Ring", "ring", Jewelry.JewelryTestKit.Png(), ".png", default);
         using var client = factory.CreateClient();
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/jewelry-images/" + ring.File)).StatusCode);
         Assert.NotNull(await repo.GetAsync(ring.Id, default));
@@ -128,7 +123,7 @@ public sealed class IdentitySessionTests
     {
         await using var factory = new IdentityTestFactory();
         var repo = factory.Services.GetRequiredService<IJewelryRepository>();
-        var item = (await repo.ListAsync(true, default))[0];
+        var item = await repo.AddAsync("Necklace", "necklace", Jewelry.JewelryTestKit.Png(), ".png", default);
         using var client = factory.CreateClient();
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/jewelry-images/" + item.File)).StatusCode);
         await repo.SetActiveAsync(item.Id, false, default);
@@ -171,8 +166,7 @@ public sealed class IdentityTestFactory : WebApplicationFactory<Program>
             // Replace storage itself so publication tests never mutate shared app data.
             services.RemoveAll<JewelryStorageOptions>();
             services.AddSingleton(new JewelryStorageOptions(
-                Path.Combine(Path.GetTempPath(), "nbjewel-isolated-images-" + databaseName),
-                Path.Combine(SampleRepositoryFactory.FindRoot(), "sample-data", "jewelry")));
+                Path.Combine(Path.GetTempPath(), "nbjewel-isolated-images-" + databaseName)));
             services.RemoveAll<DbContextOptions<IdentityDatabase>>();
             services.RemoveAll<IDbContextOptionsConfiguration<IdentityDatabase>>();
             services.AddDbContext<IdentityDatabase>(options => options.UseInMemoryDatabase(databaseName));

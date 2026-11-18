@@ -132,7 +132,7 @@ First validate offline:
 python3 scripts/import-erp-demo.py
 ```
 
-`Jewellery Images/demo-import.json` contains 12 new Met Open Access photographs plus six existing designs. Each entry records a stable item code, image hash, provenance and license status. Weights, purity, charges and stock are **assumed sample values**, not inferred physical measurements. Existing multi-piece sets import their necklace component because the current ERP preview supports necklaces and earrings only.
+`sample-data/Jewellery Images/demo-import.json` points to 12 Met Open Access photographs and six original owner-provided photos in that folder. Each entry records a stable item code, image hash, provenance and license status. Weights, purity, charges and stock are **assumed sample values**. For a photo showing a multi-piece set, verify that the ERP cutout isolates the right piece before approval.
 
 Use the `StoreId` for `DEMO01` from step 2. Replace `YOUR_STORE_ID` below with that number:
 

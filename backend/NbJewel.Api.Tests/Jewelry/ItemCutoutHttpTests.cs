@@ -12,7 +12,7 @@ namespace NbJewel.Api.Tests.Jewelry;
 public sealed class ItemCutoutHttpTests
 {
     // Synthetic gold square on white, generated as a test fixture rather than a product photo.
-    private static readonly byte[] Photo = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAlklEQVR4nO3awQmEUAAD0XGwDyuwMCuyMCuwkm8NIosM67sHArlmGmNQJnESJ3ESJ3ESJ3ESJ3ESJ3ESJ3ESJ3Hz3cCxL/zSup3/tYDESZzESZzESZzESZzESZzESZzESZzESZzESZzESZzESZzESZzESZzESZzESZzESdz0/YVeJnESJ3ESJ3ESJ3ESJ3ESJ3ESJ3G+XeCpCyqgCXui4j6ZAAAAAElFTkSuQmCC");
+    private static readonly byte[] Photo = JewelryTestKit.CutoutPhoto;
     private static string Storage() => Path.Combine(Path.GetTempPath(), "nbjewel-item-cutout-" + Guid.NewGuid().ToString("N"));
     private static string Python => Environment.GetEnvironmentVariable("CUTOUT_PYTHON_PATH") ?? "python3";
     private static KnowledgeHttpFactory Factory(string storage) => new()

@@ -60,7 +60,7 @@ public sealed class CustomerShoppingStateTests
     {
         var registry = factory.Services.GetRequiredService<BusinessRegistry>(); var partition = factory.Services.GetRequiredService<BusinessStorage>().For(registry.Find(slug)!);
         var revision = Guid.NewGuid().ToString("N"); var path = partition.Cutout.RevisionFolder(revision); Directory.CreateDirectory(path);
-        var bytes = await File.ReadAllBytesAsync(Path.Combine(SampleRepositoryFactory.FindRoot(), "sample-data", "jewelry", "necklace-gold-pendant.png"));
+        var bytes = Jewelry.JewelryTestKit.CutoutPhoto;
         await File.WriteAllBytesAsync(Path.Combine(path, "preview.png"), bytes); var hash = Convert.ToHexString(SHA256.HashData(bytes));
         await partition.Assets.SaveAsync(new(7, revision, hash, hash, "ready", "approved", "open", 64, 64, DateTimeOffset.UtcNow), default);
         await partition.Publications.SaveAsync(new() { ItemId = 7, Published = true, AssetRevisionId = revision }, "test", default);
