@@ -3,10 +3,11 @@
 
 ## Lock
 - Agent: codex-portal-impl.
-- Since: 2026-11-18T14:06:58+04:00
+- Since: 2026-11-18T14:19:54+04:00
 - Status: released in this checkpoint. Existing L2/L3 changes remain pending.
 
 ## Branch and last commit
+- Necklace fit follow-up predecessor: ba5f524 aligned after fetch and ff-only pull.
 - Necklace height predecessor: 0f849ce aligned after fetch and ff-only pull. This checkpoint releases the Lock.
 - ERP camera preview predecessor: 6d1c005, aligned after fetch and ff-only pull. The staged camera-trim checkpoint releases the Lock.
 - Necklace camera overlay predecessor: fb8d2e7 aligned after fetch and ff-only pull. The commit containing this handoff releases the Lock.
@@ -74,6 +75,7 @@ Origin reconciliation, forensic audit and reproduced assistant visibility repair
 
 
 ## Done
+- Necklace fit follow-up: default offset is now 18.5% of face height, halfway between 15% and 22%.
 - Necklace fit: assumed default top offset reduced from 22% to 15% of face height below the chin.
 - ERP camera preview: Gemini suggests a bounded necklace cut line. The Images tab marks the hidden area, renders the front, and lets staff adjust it. Saving the trim creates a pending revision and the camera uses its reviewed crop.
 - Necklace camera overlay: item 33 used a transparent full loop, including the clasp. Fit large, enclosed necklace openings by cropping above the front drape in the camera renderer.
@@ -289,6 +291,7 @@ Historical phase-2 checklist:
 - Pre-existing owner changes preserved, excluded from staging: PROGRESS.md, docs/run-guide.md, customer-tryon/package-lock.json; untracked browser security plan, old proof image, pasted jewelry image.
 
 ## Test commands and last results
+- Necklace midpoint: expected RED placement assertion, then npm test 113 pass. Storefront tsc and loopback build:deploy passed. Local try-on bundle serves the midpoint. Logs /tmp/nbjewel-necklace-mid-*.log.
 - Necklace height: focused RED measured 372.8 px instead of 356 px. Full storefront npm test 113 pass, tsc and loopback build:deploy pass. The running storefront serves necklaceDrop .15. Logs /tmp/nbjewel-necklace-higher-*.log.
 - ERP camera preview: RED 6 expected failures, focused Sample GREEN 13. Full exact staged snapshot: dotnet test 484 pass/7 SQL skips, npm test ERP 80/storefront 91, both tsc and build:deploy pass. Chrome fixture tested item 33 at 21% automatic, 24% mocked AI, saved manual 27%, offline fallback. Camera used saved 27% with synthetic landmarks. Logs /tmp/nbjewel-erp-trim-*.log.
 - Necklace camera overlay: focused npm test 1 expected RED then 15 GREEN, full npm test 112 pass, tsc --noEmit -p tsconfig.app.json and loopback npm run build:deploy pass. Headless Chrome with item 33 and synthetic landmarks cropped source row 129.1 of 612 and retained the pendant. Running localhost:4300 serves the updated chunk; localhost:5155 still serves the same approved revision. Logs /tmp/nbjewel-necklace-*.log.
@@ -379,6 +382,7 @@ Historical phase-2 checklist:
 - Real browser CORS and cookies.
 
 ## Agent log (newest first)
+- 2026-11-18T14:20:43+04:00 codex-portal-impl: lowered default necklace placement after camera feedback, verified localhost update and released the Lock.
 - 2026-11-18T14:07:27+04:00 codex-portal-impl: verified the modest necklace raise and bundled code, checkpointed storefront-only files and released the Lock.
 - 2026-11-18T13:51:02+04:00 codex-portal-impl: implemented and verified revision-bound camera trim in ERP and storefront. Tested the exact staged snapshot, preserved owner services and excluded pending L2/L3 work. Lock released.
 - 2026-11-18T13:27:05+04:00 codex-portal-impl: reproduced full-loop camera rendering, verified the new crop with the published photo, checkpointed storefront-only change and released the Lock.

@@ -62,8 +62,8 @@ describe('earrings', () => {
 });
 
 describe('necklace', () => {
-  it('places the top of an uncalibrated necklace closer to the neck', () => {
-    expect(necklacePlacement(face(), 0.8).y).toBeCloseTo(356);
+  it('places the top of an uncalibrated necklace at the adjusted fit', () => {
+    expect(necklacePlacement(face(), 0.8).y).toBeCloseTo(364.4);
   });
 
   it('sits below the chin, sized by fit.width, level for a level head', () => {
