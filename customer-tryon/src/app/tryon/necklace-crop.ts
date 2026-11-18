@@ -1,4 +1,26 @@
 // Role: Finds a camera-only top crop for a cutout showing a complete necklace loop.
+export const MAX_CAMERA_TRIM_PERCENT = 49;
+
+export function isCameraTrimPercent(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= MAX_CAMERA_TRIM_PERCENT;
+}
+
+export function detectCameraTrimPercent(image: HTMLImageElement): number {
+  const { naturalWidth, naturalHeight } = image;
+  if (!naturalWidth || !naturalHeight) return 0;
+  const sample = document.createElement('canvas');
+  const scale = Math.min(1, 128 / Math.max(naturalWidth, naturalHeight));
+  sample.width = Math.max(1, Math.round(naturalWidth * scale));
+  sample.height = Math.max(1, Math.round(naturalHeight * scale));
+  const context = sample.getContext('2d', { willReadFrequently: true });
+  if (!context) return 0;
+  try {
+    context.drawImage(image, 0, 0, sample.width, sample.height);
+    const crop = necklaceFrontCrop(context.getImageData(0, 0, sample.width, sample.height));
+    return Math.min(MAX_CAMERA_TRIM_PERCENT, Math.round(crop * 100));
+  } catch { return 0; }
+}
+
 export function necklaceFrontCrop({ data, width, height }: Pick<ImageData, 'data' | 'width' | 'height'>): number {
   const size = width * height;
   const seen = new Uint8Array(size);

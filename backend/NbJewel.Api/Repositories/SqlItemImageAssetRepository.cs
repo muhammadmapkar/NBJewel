@@ -24,6 +24,14 @@ public sealed class SqlItemImageAssetRepository(DbContextOptions<ItemAssetDataba
         }
         await Save(db, ct);
     }
+    public async Task ReplaceAsync(ItemImageAsset asset, string expectedRevision, CancellationToken ct)
+    {
+        await using var db = new ItemAssetDatabase(options);
+        var current = await db.Assets.SingleOrDefaultAsync(x => x.ItemId == asset.ItemId, ct);
+        if (current is not { State: "ready" } || current.RevisionId != expectedRevision) throw new ItemAssetConflictException();
+        db.Entry(current).CurrentValues.SetValues(asset);
+        await Save(db, ct);
+    }
     public async Task<ItemImageAsset?> ReviewAsync(int itemId, string revisionId, bool approve, CancellationToken ct)
     {
         await using var db = new ItemAssetDatabase(options);

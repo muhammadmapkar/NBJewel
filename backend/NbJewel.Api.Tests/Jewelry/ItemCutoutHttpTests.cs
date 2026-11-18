@@ -63,6 +63,42 @@ public sealed class ItemCutoutHttpTests
     }
 
     [Fact]
+    public async Task SavedCameraTrimRequiresANewReviewAndIsPublishedWithThatRevision()
+    {
+        await using var factory = Factory(Storage());
+        using var staff = await Admin(factory);
+        using var guest = factory.CreateClient();
+        var item = (await staff.GetFromJsonAsync<JsonObject>("/api/items/7"))!;
+        item["storefront"] = new JsonObject { ["description"] = "Assumed sample necklace", ["isSample"] = true };
+        Assert.Equal(HttpStatusCode.OK, (await staff.PutAsJsonAsync("/api/items/7", item)).StatusCode);
+        using var upload = await Upload(staff, 7, Photo);
+        var original = (await upload.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("revisionId").GetString();
+        byte[] image = await staff.GetByteArrayAsync($"/api/items/7/image/preview?revisionId={original}");
+        const string route = "/api/items/7/image/camera-trim";
+        var request = new { revisionId = original, cameraTrimPercent = 22 };
+        Assert.Equal(HttpStatusCode.Unauthorized, (await guest.PostAsJsonAsync(route, request)).StatusCode);
+        staff.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
+        Assert.Equal(HttpStatusCode.BadRequest, (await staff.PostAsJsonAsync(route, request)).StatusCode);
+        await Csrf(staff);
+        Assert.Equal(HttpStatusCode.BadRequest, (await staff.PostAsJsonAsync(route, request with { cameraTrimPercent = 50 })).StatusCode);
+        using var save = await staff.PostAsJsonAsync(route, request);
+        Assert.Equal(HttpStatusCode.OK, save.StatusCode);
+        var trimmed = await save.Content.ReadFromJsonAsync<JsonElement>();
+        var revision = trimmed.GetProperty("revisionId").GetString();
+        Assert.NotEqual(original, revision);
+        Assert.Equal(22, trimmed.GetProperty("cameraTrimPercent").GetInt32());
+        Assert.Equal("pending", trimmed.GetProperty("qualityReview").GetString());
+        Assert.Equal(image, await staff.GetByteArrayAsync($"/api/items/7/image/preview?revisionId={revision}"));
+        Assert.Equal(HttpStatusCode.Conflict, (await staff.PostAsJsonAsync(route, request)).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await staff.PostAsJsonAsync("/api/ai/knowledge/products/7/publish", new { confirm = true, assetRevisionId = revision })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await staff.PostAsJsonAsync("/api/items/7/image/review", new { revisionId = revision, approve = true, confirm = true })).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await staff.PostAsJsonAsync("/api/ai/knowledge/products/7/publish", new { confirm = true, assetRevisionId = revision })).StatusCode);
+        var product = await guest.GetFromJsonAsync<JsonElement>("/api/storefront/products/7");
+        Assert.Equal(22, product.GetProperty("cameraTrimPercent").GetInt32());
+        Assert.EndsWith(revision!, product.GetProperty("previewUrl").GetString());
+    }
+
+    [Fact]
     public async Task ItemUploadCreatesLinkedTransparentPreviewThatSurvivesNewApiHost()
     {
         var storage = Storage(); byte[] preview; string revision;

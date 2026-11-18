@@ -33,6 +33,23 @@ public class JewelryVisionTests
         Assert.Equal("Temple", result.Collection); Assert.Equal("erp-test", handler.Key);
         Assert.Contains("inlineData", handler.Body); Assert.Contains("AQID", handler.Body);
     }
+    [Fact]
+    public void A_necklace_trim_suggestion_is_accepted_with_copy()
+    {
+        var suggestion = JewelryVisionClient.ParseSuggestion("""{"description":"A floral necklace.","collection":"Temple","cameraTrimPercent":22}""");
+        Assert.Equal(22, suggestion.CameraTrimPercent);
+    }
+    [Theory]
+    [InlineData("-1")]
+    [InlineData("50")]
+    [InlineData("20.5")]
+    [InlineData("\"28\"")]
+    public void Invalid_trim_keeps_copy_and_discards_the_cut_line(string trim)
+    {
+        var suggestion = JewelryVisionClient.ParseSuggestion($$"""{"description":"A floral necklace.","collection":"Temple","cameraTrimPercent":{{trim}}}""");
+        Assert.Equal("Temple", suggestion.Collection);
+        Assert.Null(suggestion.CameraTrimPercent);
+    }
     [Theory]
     [InlineData("{}")]
     [InlineData("{\"description\":\"copy\",\"collection\":\"Unknown\"}")]

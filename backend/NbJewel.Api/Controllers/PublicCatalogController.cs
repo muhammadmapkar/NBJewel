@@ -8,6 +8,7 @@ using NbJewel.Api.Jewelry;
 using NbJewel.Api.Platform;
 using NbJewel.Api.Repositories;
 using NbJewel.Api.Storefront;
+using System.Text.Json.Serialization;
 
 namespace NbJewel.Api.Controllers;
 
@@ -21,7 +22,8 @@ public sealed class PublicCatalogController(IItemRepository items, IPublicationR
     // Explicit DTO prevents ERP status, hallmark IDs, design links, stock and store fields leaking.
     public sealed record PublicProduct(int Id, string Code, string Name, string Category,
         string MetalType, string Purity, decimal GrossWeight, decimal NetWeight,
-        string? ImageUrl, StorefrontMetadata? Storefront, ItemPrice? Price, string? PreviewUrl, decimal? PreviewAspect);
+        string? ImageUrl, StorefrontMetadata? Storefront, ItemPrice? Price, string? PreviewUrl, decimal? PreviewAspect,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? CameraTrimPercent = null);
 
     [HttpGet("spot-rates")]
     public async Task<IActionResult> GetSpotRates([FromServices] SpotRates spot, CancellationToken ct) => Ok(await spot.ReadAsync(ct));
@@ -132,7 +134,8 @@ public sealed class PublicCatalogController(IItemRepository items, IPublicationR
             : Request.RouteValues.ContainsKey("slug") ? $"/api/shops/{policy.Business.Slug}/products" : "/api/storefront/products";
         return new(item.Id, item.Code, item.Name, category, item.MetalType, item.Purity,
             item.GrossWt, item.NetWt, item.ImageUrl, item.Storefront, showPrices ? await items.GetPriceAsync(item.Id, ct) : null,
-            asset is null ? null : $"{prefix}/{item.Id}/preview?v={asset.RevisionId}",
-            asset is { Width: > 0 } ? (decimal)asset.Height / asset.Width : null);
+            $"{prefix}/{item.Id}/preview?v={asset.RevisionId}",
+            asset is { Width: > 0 } ? (decimal)asset.Height / asset.Width : null,
+            category == "necklace" ? await previews.ReadCameraTrimAsync(asset, ct) : null);
     }
 }

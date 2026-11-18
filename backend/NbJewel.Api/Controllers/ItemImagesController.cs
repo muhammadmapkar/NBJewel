@@ -12,11 +12,18 @@ namespace NbJewel.Api.Controllers;
 public sealed class ItemImagesController(IItemRepository items, IItemImageAssetRepository assets, ItemCutoutPipeline pipeline, IJewelryVision vision) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<ItemImageAsset>> GetAsset(int itemId, CancellationToken ct)
+    public async Task<IActionResult> GetAsset(int itemId, CancellationToken ct)
     {
         if (await items.GetItemAsync(itemId, ct) is null) return NotFound();
-        return await assets.GetAsync(itemId, ct) is { } asset ? Ok(asset) : NotFound();
+        return await assets.GetAsync(itemId, ct) is { } asset ? await DescribeAsync(asset, ct) : NotFound();
     }
+
+    private async Task<IActionResult> DescribeAsync(ItemImageAsset asset, CancellationToken ct) => Ok(new
+    {
+        asset.ItemId, asset.RevisionId, asset.SourceSha256, asset.PreviewSha256, asset.State, asset.QualityReview,
+        asset.LicenseStatus, asset.Width, asset.Height, asset.CreatedAt, asset.FailureCode,
+        CameraTrimPercent = await pipeline.ReadCameraTrimAsync(asset, ct)
+    });
 
     [HttpPost]
     [RequestSizeLimit(UploadValidator.MaxBytes + 64 * 1024)]
@@ -47,9 +54,23 @@ public sealed class ItemImagesController(IItemRepository items, IItemImageAssetR
         try {
             var result = await vision.AnalyzeAsync(bytes, ct);
             if ((await assets.GetAsync(itemId, ct))?.RevisionId != request.RevisionId) return Conflict(new ErrorMessage("The preview changed. Generate copy for the current image."));
-            return Ok(new { revisionId = request.RevisionId, result.Description, result.Collection });
+            return Ok(new { revisionId = request.RevisionId, result.Description, result.Collection, result.CameraTrimPercent });
         }
         catch (VisionUnavailableException e) { return StatusCode(e.Status, new ErrorMessage(e.Message)); }
+    }
+
+    public sealed record CameraTrimRequest(string RevisionId, int? CameraTrimPercent);
+    [HttpPost("camera-trim")]
+    public async Task<IActionResult> SaveCameraTrim(int itemId, CameraTrimRequest request, CancellationToken ct)
+    {
+        if (!Guid.TryParseExact(request.RevisionId, "N", out _) || request.CameraTrimPercent is not { } trim) return BadRequest();
+        try
+        {
+            var asset = await pipeline.SaveCameraTrimAsync(itemId, request.RevisionId, trim, ct);
+            return asset is null ? NotFound() : await DescribeAsync(asset, ct);
+        }
+        catch (DomainValidationException error) { return BadRequest(new ErrorMessage(error.Message)); }
+        catch (ItemAssetConflictException) { return Conflict(new ErrorMessage("The image changed. Reopen the current camera preview.")); }
     }
 
     public sealed record ReviewRequest(string RevisionId, bool Approve, bool Confirm);

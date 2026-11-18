@@ -1,6 +1,7 @@
 // Role: Maps the narrow public API into existing shop/try-on contracts, preserving server
 // prices and recorded dates. Invalid or unsupported data fails instead of inventing values.
 import { Catalog, PieceImage, Product, PublicMetalRate } from './catalog.models';
+import { isCameraTrimPercent } from '../tryon/necklace-crop';
 export interface ApiPrice {
   itemId: number; currency: string; ratePerGram: number; metalValue: number; makingType: string; makingValue: number;
   makingCharge: number; stoneValue: number; vatPercent: number; vatAmount: number; totalPrice: number;
@@ -9,6 +10,7 @@ export interface ApiPrice {
 export interface ApiProduct {
   id: number; code: string; name: string; category: string; metalType: string; purity: string;
   grossWeight: number; netWeight: number; previewUrl: string; previewAspect: number; price?: ApiPrice | null;
+  cameraTrimPercent?: number | null;
   storefront?: { description?: string; collection?: string; note?: string; occasions?: string[]; stones?: string[]; size?: string;
     badge?: 'new' | 'bestseller' | null; popularity?: number; addedOn?: string | null; isSample?: boolean } | null;
 }
@@ -31,6 +33,10 @@ export function catalogFromApi(rows: ApiProduct[], rates: PublicMetalRate[], bas
     const preview = new URL(base + row.previewUrl);
     if (preview.searchParams.get('v')?.match(/^[a-f0-9]{32}$/) === null || !preview.searchParams.has('v')) throw new Error('Invalid preview revision.');
     const image: PieceImage = { image: preview.href, aspect: row.previewAspect };
+    if (row.category === 'necklace' && row.cameraTrimPercent != null) {
+      if (!isCameraTrimPercent(row.cameraTrimPercent)) throw new Error('Invalid camera trim.');
+      image.cameraTrimPercent = row.cameraTrimPercent;
+    }
     const m = row.storefront;
     return {
       id: String(row.id), code: row.code, name: row.name, note: m?.note ?? 'Sample ERP item', description: m?.description ?? row.name,

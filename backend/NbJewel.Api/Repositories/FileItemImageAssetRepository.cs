@@ -41,6 +41,18 @@ public sealed class FileItemImageAssetRepository(ItemCutoutOptions options) : II
         File.Move(temp, Link(asset.ItemId), overwrite: true);
     }
 
+    public async Task ReplaceAsync(ItemImageAsset asset, string expectedRevision, CancellationToken ct)
+    {
+        await gate.WaitAsync(ct);
+        try
+        {
+            var current = await GetAsync(asset.ItemId, ct);
+            if (current is not { State: "ready" } || current.RevisionId != expectedRevision) throw new ItemAssetConflictException();
+            await WriteAsync(asset, ct);
+        }
+        finally { gate.Release(); }
+    }
+
     public async Task SaveAsync(ItemImageAsset asset, CancellationToken ct)
     {
         if (asset.ItemId < 1 || !Guid.TryParseExact(asset.RevisionId, "N", out _))

@@ -41,7 +41,7 @@ it('keeps saved copy in the parent when Images is destroyed and recreated', () =
 
 it('preserves manual edits while AI responds and rejects stale image replies', async () => {
   const { Subject } = await import('rxjs');
-  const response = new Subject<{ revisionId: string; description: string; collection: string }>();
+  const response = new Subject<{ revisionId: string; description: string; collection: string; cameraTrimPercent?: number }>();
   const injector = createEnvironmentInjector([
     provideZonelessChangeDetection(), { provide: ɵINJECTOR_SCOPE, useValue: 'root' },
     { provide: AuthService, useValue: { identity: signal({ accountType: 'erp', allStores: true, permissions: ['items.read','items.write','prices.read','status.read'] }) } },
@@ -50,13 +50,18 @@ it('preserves manual edits while AI responds and rejects stale image replies', a
   try {
     const panel = runInInjectionContext(injector, () => new StorefrontPanelComponent());
     Object.defineProperty(panel, 'item', { value: signal({ id: 7 } as Item) });
+    Object.defineProperty(panel, 'categoryName', { value: signal('Necklaces') });
     panel.asset.set({ itemId: 7, revisionId: 'one', state: 'ready', qualityReview: 'pending', licenseStatus: 'open', width: 1, height: 1 });
     panel.preview.set('blob:test'); panel.analyze(); panel.description = 'Retailer edit';
-    response.next({ revisionId: 'one', description: 'AI copy', collection: 'Temple' });
+    panel.updateCameraTrim(18);
+    response.next({ revisionId: 'one', description: 'AI copy', collection: 'Temple', cameraTrimPercent: 25 });
     expect(panel.description).toBe('Retailer edit'); expect(panel.collection).toBe('Temple');
+    expect(panel.cameraTrim()).toBe(18);
+    expect(panel.reviewablePreview()).toBe(false);
     panel.analyze(); panel.asset.update(x => ({ ...x!, revisionId: 'two' }));
-    response.next({ revisionId: 'one', description: 'Old copy', collection: 'Bridal' });
+    response.next({ revisionId: 'one', description: 'Old copy', collection: 'Bridal', cameraTrimPercent: 31 });
     expect(panel.description).toBe('Retailer edit'); expect(panel.collection).toBe('Temple');
+    expect(panel.cameraTrim()).toBe(18);
     panel.ngOnDestroy();
   } finally { injector.destroy(); }
 });

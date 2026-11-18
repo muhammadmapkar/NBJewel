@@ -18,7 +18,7 @@ public sealed class ErpBoundaryFilter(BusinessContext business) : IAsyncAuthoriz
             ("Portal", "Publish" or "Offline") => ["portal.publish"],
             ("Portal", "Draft" or "SaveDraft" or "UploadAsset" or "GetAsset" or "Preview" or "ProductPreview" or "Choices" or "PreviewStores") => ["portal.manage"],
             ("ItemImages", "Review") => ["items.read", "items.write", "prices.read", "status.read", "knowledge.manage"],
-            ("ItemImages", "Upload" or "Analyze") => ["items.read", "items.write", "prices.read", "status.read"],
+            ("ItemImages", "Upload" or "Analyze" or "SaveCameraTrim") => ["items.read", "items.write", "prices.read", "status.read"],
             ("ItemImages", _) => ["items.read", "prices.read", "status.read"],
             ("Items", "GetStock") => ["items.read", "stock.read"],
             ("Items", "AddStock") => ["items.read", "stock.write", "stock.read"],

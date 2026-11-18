@@ -45,6 +45,8 @@ The first command validates the manifest offline. The second prompts for your Sa
 
 `DEMO-MET-446770` and `DEMO-MET-39408` stay Draft because the current cutout script produces no transparency for those two photos. If you need either item for try-on, open the existing Draft in ERP and upload a photo with a light, neutral background. Re-running the importer skips the existing Draft.
 
+For a necklace with a closed loop, open **Images** and compare **Full cutout and cut line** with **Camera cutout**. The shaded area is hidden in camera try-on. Gemini can suggest a line when enabled. Adjust it with the slider until the clasp is out of view and the front sides and pendant are intact. Save the camera trim before saving any changed storefront copy, then approve and publish the new revision. The product page shows the full photo cutout.
+
 ## 2. URLs and credentials
 
 | Purpose | URL / credentials |

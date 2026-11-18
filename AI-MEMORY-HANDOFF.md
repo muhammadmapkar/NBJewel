@@ -3,10 +3,11 @@
 
 ## Lock
 - Agent: codex-portal-impl.
-- Since: 2026-11-18T13:23:46+04:00
+- Since: 2026-11-18T13:38:06+04:00
 - Status: released in this checkpoint. Existing L2/L3 changes remain pending.
 
 ## Branch and last commit
+- ERP camera preview predecessor: 6d1c005, aligned after fetch and ff-only pull. The staged camera-trim checkpoint releases the Lock.
 - Necklace camera overlay predecessor: fb8d2e7 aligned after fetch and ff-only pull. The commit containing this handoff releases the Lock.
 - Sample photo source predecessor: 17641b7, aligned after fetch/ff-only pull. The commit containing this handoff releases the Lock.
 - L1 committed/pushed: 17641b7. Resume verified local/remote alignment; pending L3 diff intact.
@@ -72,6 +73,7 @@ Origin reconciliation, forensic audit and reproduced assistant visibility repair
 
 
 ## Done
+- ERP camera preview: Gemini suggests a bounded necklace cut line. The Images tab marks the hidden area, renders the front, and lets staff adjust it. Saving the trim creates a pending revision and the camera uses its reviewed crop.
 - Necklace camera overlay: item 33 used a transparent full loop, including the clasp. Fit large, enclosed necklace openings by cropping above the front drape in the camera renderer.
 - Sample photo source: the owner-moved sample-data/Jewellery Images folder supplies all 18 default imports. Retired six built-in drawings from API public reads and both web builds.
 - L1: fixed SQL owner setup/reset via hidden-prompt Keychain launcher, guarded Production loopback public API, core readiness and narrow gateway health routes. Scoped independent Astra review passed spec/quality; no SQL/Keychain/tunnel/deploy execution.
@@ -121,6 +123,7 @@ Origin reconciliation, forensic audit and reproduced assistant visibility repair
 - Setup files written: replaced stale handoff statements, added the handoff protocol to AGENTS.md, and added Claude/Copilot routing instructions. Validation passed; setup pushed as `d44c748`.
 
 ## Next steps (ordered checklist)
+- [x] Camera preview: Gemini cut-line suggestion, editable side-by-side ERP preview, revision-bound save and review, storefront rendering, and all local gates. Existing L2/L3 changes are separate.
 - [x] L1: SQL inspection/setup preparation, stable owner credentials, public-demo launcher and core readiness.
 - [ ] L2: safe persistent automatic publication and ERP controls.
 - [ ] L3: visible-tab storefront refresh within 30 seconds.
@@ -173,6 +176,7 @@ Historical phase-2 checklist:
 - [x] After task 9: sequential read-only lead review completed; all findings corrected with regressions and affected suites/builds passing. Stop and wait for Muhammad.
 
 ## Blockers and decisions
+- ERP camera preview: assumed 0 to 49 percent crop. Immutable revision files store the trim beside the full image in Sample and SQL modes. Compare-and-swap rejects stale saves, and the product card retains the full PNG. No schema or new image-removal tooling. Gemini and actual device fit remain manual.
 - Necklace camera overlay: assumed upright closed-loop source shape. Preserve already-open artwork and explicitly fitted pieces. ERP asset bytes, revision approval, and storefront product images stay intact. No new background-removal tooling.
 - Sample photo source: preserve existing uploads and SQL importer. Assumed Sample fallback design DSN-102. Six owner photos remain Draft for license review. Existing L2/L3 edits excluded.
 - L3 independent Astra review: pending fixes before completion. Background refresh must commit portal settings/catalog together (hidden-to-visible prices must not expose old price-less data as zero); add 8-second aggregate deadline, cancel/error/disable stale actions and retry. Sol queued behind sole backend writer Astra L2. Original 100-test pass is pre-review evidence only.
@@ -244,6 +248,7 @@ Historical phase-2 checklist:
 - No questions to owner. Choose conservative sample-only behavior and log assumptions. Accounts, chatbot, locator are later phases.
 
 ## Files touched
+- ERP camera preview: ERP Images panel and service, storefront catalog and renderer, API vision/image/public handlers, image revision adapters, regression tests and QA guide. Existing L2/L3 pending hunks were excluded.
 - Necklace camera overlay: customer-tryon/src/app/tryon/jewelry-renderer.ts, necklace-crop.ts, necklace-crop.spec.ts and this handoff. Pending L2/L3 edits excluded.
 - Sample photo source: owner image move and drawing removal, importer and tests, legacy gallery/storage config and tests, Angular asset filtering, QA/hosting instructions and handoff.
 - L1: IdentitySetup/Program, new Platform CoreReadiness/PublicDemoSetup and owner/runtime tests; scripts/run-public-demo.py/tests, hosting-config/hosting tests; docs/public-demo-sql-inspection.sql. New exact CLI: check, setup-owner, reset-owner, serve.
@@ -281,6 +286,7 @@ Historical phase-2 checklist:
 - Pre-existing owner changes preserved, excluded from staging: PROGRESS.md, docs/run-guide.md, customer-tryon/package-lock.json; untracked browser security plan, old proof image, pasted jewelry image.
 
 ## Test commands and last results
+- ERP camera preview: RED 6 expected failures, focused Sample GREEN 13. Full exact staged snapshot: dotnet test 484 pass/7 SQL skips, npm test ERP 80/storefront 91, both tsc and build:deploy pass. Chrome fixture tested item 33 at 21% automatic, 24% mocked AI, saved manual 27%, offline fallback. Camera used saved 27% with synthetic landmarks. Logs /tmp/nbjewel-erp-trim-*.log.
 - Necklace camera overlay: focused npm test 1 expected RED then 15 GREEN, full npm test 112 pass, tsc --noEmit -p tsconfig.app.json and loopback npm run build:deploy pass. Headless Chrome with item 33 and synthetic landmarks cropped source row 129.1 of 612 and retained the pendant. Running localhost:4300 serves the updated chunk; localhost:5155 still serves the same approved revision. Logs /tmp/nbjewel-necklace-*.log.
 - Sample photos: RED /tmp/nbjewel-photo-import-red.log and /tmp/nbjewel-photo-legacy-red.log. Python importer 8 pass, clean Sample dotnet test 495 pass/7 SQL skipped, npm test 80 ERP/109 storefront, both tsc and loopback build:deploy pass. Logs /tmp/nbjewel-photo-*.log. Disposable HTTP import verified 18 source hashes, 16 ready cutouts and 2 failed private Drafts. All remained unpublished and repeat imports skipped.
 - L1: clean Sample backend 478 passed/7 SQL skipped, build 0 warnings/errors (/tmp/nbjewel-live-L1-full.log, -build.log); Python18 and Node6 passed (-python-all-final.log, -node.log); focused32, role/dash/protected/whitespace checks passed (-static.log). RED logs in -python-red/-owner-red/-reset-red/-runtime-core-red/-https-red/-gateway-red. Independent Astra spec/quality PASS; no real SQL claim.
@@ -345,6 +351,7 @@ Historical phase-2 checklist:
 - Task 1 baseline: `dotnet test backend/NbJewel.Api.Tests` with all SQL/connection environment variables removed and `Repository__Provider=Sample`: 309 passed, 6 skipped, 0 failed. Initial sandbox run aborted at VSTest socket binding; same command outside sandbox passed. No SQL executed. Logs: `/tmp/nbjewel-task1-baseline.log`.
 
 ## Manual checks for Muhammad
+- ERP camera preview: compare the marked full cutout and cropped camera preview in Images. Save, approve and publish. The owner API on 5155 still runs the previous build. Start the updated API at a suitable time and reimport temporary Sample items. Live Gemini and real camera fit were not exercised.
 - Necklace camera overlay: reload localhost:4300/shops/nb-jewel-demo/try/33 and check the fit on a real camera. No re-upload, republication, or backend restart needed.
 - Sample photo source: follow docs/QA_TEST.md, import via --sample --apply, then review quality/license and publish. DEMO-MET-446770 and DEMO-MET-39408 need replacement photos for transparent previews. Current owner services were preserved. No SQL/Docker/deploy.
 - L1: future final runbook will document private Keychain nbjewel-public-demo/configuration JSON, durable existing roots, owner backup/schema/setup/reset, core readiness and tunnel with --http-host-header localhost. Do not run public sample identity; owner SQL/Keychain/live checks remain unexecuted.
@@ -367,6 +374,7 @@ Historical phase-2 checklist:
 - Real browser CORS and cookies.
 
 ## Agent log (newest first)
+- 2026-11-18T13:51:02+04:00 codex-portal-impl: implemented and verified revision-bound camera trim in ERP and storefront. Tested the exact staged snapshot, preserved owner services and excluded pending L2/L3 work. Lock released.
 - 2026-11-18T13:27:05+04:00 codex-portal-impl: reproduced full-loop camera rendering, verified the new crop with the published photo, checkpointed storefront-only change and released the Lock.
 - 2026-11-18T13:06:28+04:00 codex-portal-impl: verified owner move byte-for-byte, tested original photo upload and private cutouts, checkpointed sample-only changes and released the Lock.
 - 2026-11-17T19:51:21+04:00 codex-portal-impl: continued after Astra review quota interruption; fetch/ff-only pull aligned 17641b7. L1 complete/pushed; L3 source/tests/typecheck/build green but independent review pending; L2 not started. Renewed own lock, preserving owner services.

@@ -9,6 +9,8 @@ namespace NbJewel.Api.Jewelry;
 
 public sealed class ItemCutoutPipeline(IItemRepository items, IItemImageAssetRepository assets, ItemCutoutOptions options)
 {
+    public const int MaxCameraTrimPercent = 49;
+    private const string CameraTrimFile = "camera-trim.json";
     private readonly SemaphoreSlim gate = new(1, 1);
     private sealed record Report(int Width, int Height, bool HasTransparency, bool HasForeground);
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -80,9 +82,49 @@ public sealed class ItemCutoutPipeline(IItemRepository items, IItemImageAssetRep
         if (await items.GetItemAsync(itemId, ct) is null) return null;
         var asset = await assets.GetAsync(itemId, ct);
         if (asset is not { State: "ready", PreviewSha256: not null } || (revisionId is not null && revisionId != asset.RevisionId)) return null;
+        return await ReadPreviewAsync(asset, ct);
+    }
+
+    private async Task<byte[]?> ReadPreviewAsync(ItemImageAsset asset, CancellationToken ct)
+    {
         var path = Path.Combine(options.RevisionFolder(asset.RevisionId), "preview.png");
         if (!File.Exists(path)) return null;
         var bytes = await File.ReadAllBytesAsync(path, ct);
         return Convert.ToHexString(SHA256.HashData(bytes)) == asset.PreviewSha256 ? bytes : null;
+    }
+
+    public async Task<int?> ReadCameraTrimAsync(ItemImageAsset asset, CancellationToken ct)
+    {
+        var path = Path.Combine(options.RevisionFolder(asset.RevisionId), CameraTrimFile);
+        if (!File.Exists(path)) return null;
+        var value = JsonSerializer.Deserialize<int>(await File.ReadAllTextAsync(path, ct));
+        if (value is < 0 or > MaxCameraTrimPercent) throw new InvalidDataException("Invalid camera trim.");
+        return value;
+    }
+
+    public async Task<ItemImageAsset?> SaveCameraTrimAsync(int itemId, string expectedRevision, int trimPercent, CancellationToken ct)
+    {
+        var item = await items.GetItemAsync(itemId, ct);
+        if (item is null) return null;
+        var category = (await items.GetCategoriesAsync(ct)).FirstOrDefault(x => x.Id == item.CategoryId)?.Name;
+        if (category != "Necklaces" || trimPercent is < 0 or > MaxCameraTrimPercent)
+            throw new DomainValidationException("Choose a necklace trim between 0 and 49 percent.");
+
+        var current = await assets.GetAsync(itemId, ct);
+        if (current is not { State: "ready", PreviewSha256: not null } || current.RevisionId != expectedRevision ||
+            await ReadPreviewAsync(current, ct) is not { } preview) throw new ItemAssetConflictException();
+
+        var next = current with { RevisionId = Guid.NewGuid().ToString("N"), QualityReview = "pending", CreatedAt = DateTimeOffset.UtcNow };
+        var folder = options.RevisionFolder(next.RevisionId);
+        Directory.CreateDirectory(folder);
+        await File.WriteAllBytesAsync(Path.Combine(folder, "preview.png"), preview, ct);
+        await File.WriteAllTextAsync(Path.Combine(folder, CameraTrimFile), JsonSerializer.Serialize(trimPercent), ct);
+        foreach (var name in new[] { "source.png", "source.jpg" })
+        {
+            var source = Path.Combine(options.RevisionFolder(current.RevisionId), name);
+            if (File.Exists(source)) File.Copy(source, Path.Combine(folder, name));
+        }
+        await assets.ReplaceAsync(next, expectedRevision, ct);
+        return next;
     }
 }

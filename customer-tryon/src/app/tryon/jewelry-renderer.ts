@@ -11,7 +11,7 @@
 
 import { PieceKind, Product } from '../catalog/catalog.models';
 import { Placement, Point, earringPlacements, faceFrame, necklacePlacement, tikkaPlacement } from './overlay-math';
-import { necklaceFrontCrop } from './necklace-crop';
+import { detectCameraTrimPercent } from './necklace-crop';
 import { EARRING, NECKLACE, Swing, TIKKA } from './physics';
 import { Light, Point3, blendLight, depthMeters, facePolygon, headPose, lightFromPixels, turnScale } from './pose';
 
@@ -54,7 +54,8 @@ export class JewelryRenderer {
     const draws: Draw[] = [];
     const p = product.parts;
     if (parts.includes('necklace') && p.necklace && images.necklace) {
-      const cropTop = p.necklace.neckline === undefined ? this.frontCrop(images.necklace) : 0;
+      const trim = p.necklace.cameraTrimPercent ?? (p.necklace.neckline === undefined ? this.frontCrop(images.necklace) : 0);
+      const cropTop = trim / 100;
       const place = necklacePlacement(face, p.necklace.aspect * (1 - cropTop), p.necklace.fit, p.necklace.neckline);
       const s = swing('necklace', place, face[152].z);
       draws.push({ image: images.necklace, place: { ...place, rotation: place.rotation + s.side }, scaleX: turnScale(pose.yaw * 0.5, 0.6), scaleY: Math.cos(s.tilt), cropTop, tuck: true });
@@ -141,20 +142,8 @@ export class JewelryRenderer {
   private frontCrop(image: HTMLImageElement): number {
     const cached = this.necklaceCrops.get(image);
     if (cached !== undefined) return cached;
-    const { naturalWidth, naturalHeight } = image;
-    if (!naturalWidth || !naturalHeight) return 0;
-    const sample = document.createElement('canvas');
-    const scale = Math.min(1, 128 / Math.max(naturalWidth, naturalHeight));
-    sample.width = Math.max(1, Math.round(naturalWidth * scale));
-    sample.height = Math.max(1, Math.round(naturalHeight * scale));
-    const context = sample.getContext('2d', { willReadFrequently: true });
-    let crop = 0;
-    if (context) {
-      try {
-        context.drawImage(image, 0, 0, sample.width, sample.height);
-        crop = necklaceFrontCrop(context.getImageData(0, 0, sample.width, sample.height));
-      } catch { /* If pixels are unavailable, use the approved image as provided. */ }
-    }
+    if (!image.naturalWidth || !image.naturalHeight) return 0;
+    const crop = detectCameraTrimPercent(image);
     this.necklaceCrops.set(image, crop);
     return crop;
   }

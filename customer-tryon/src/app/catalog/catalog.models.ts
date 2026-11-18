@@ -14,6 +14,7 @@ export interface PieceImage {
   aspect: number; // height / width
   fit?: Fit;
   neckline?: number; // necklaces: inner front edge as a share of the image height
+  cameraTrimPercent?: number; // approved camera-only crop measured from the top of the image
 }
 
 export interface Product {
