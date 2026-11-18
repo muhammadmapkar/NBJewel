@@ -3,10 +3,11 @@
 
 ## Lock
 - Agent: codex-portal-impl.
-- Since: 2026-11-18T13:01:30+04:00
+- Since: 2026-11-18T13:23:46+04:00
 - Status: released in this checkpoint. Existing L2/L3 changes remain pending.
 
 ## Branch and last commit
+- Necklace camera overlay predecessor: fb8d2e7 aligned after fetch and ff-only pull. The commit containing this handoff releases the Lock.
 - Sample photo source predecessor: 17641b7, aligned after fetch/ff-only pull. The commit containing this handoff releases the Lock.
 - L1 committed/pushed: 17641b7. Resume verified local/remote alignment; pending L3 diff intact.
 - Live demo predecessor: aed04c5; fetch/ff-only pull aligned, clean main checkout verified before acquisition.
@@ -71,6 +72,7 @@ Origin reconciliation, forensic audit and reproduced assistant visibility repair
 
 
 ## Done
+- Necklace camera overlay: item 33 used a transparent full loop, including the clasp. Fit large, enclosed necklace openings by cropping above the front drape in the camera renderer.
 - Sample photo source: the owner-moved sample-data/Jewellery Images folder supplies all 18 default imports. Retired six built-in drawings from API public reads and both web builds.
 - L1: fixed SQL owner setup/reset via hidden-prompt Keychain launcher, guarded Production loopback public API, core readiness and narrow gateway health routes. Scoped independent Astra review passed spec/quality; no SQL/Keychain/tunnel/deploy execution.
 - H1: assumed Vercel Build Output API v3 generation, preserved /erp upstream/static prefix, base-aware portal config/return route and generated public API settings; local defaults unchanged. RED/GREEN and both app gates passed.
@@ -171,6 +173,7 @@ Historical phase-2 checklist:
 - [x] After task 9: sequential read-only lead review completed; all findings corrected with regressions and affected suites/builds passing. Stop and wait for Muhammad.
 
 ## Blockers and decisions
+- Necklace camera overlay: assumed upright closed-loop source shape. Preserve already-open artwork and explicitly fitted pieces. ERP asset bytes, revision approval, and storefront product images stay intact. No new background-removal tooling.
 - Sample photo source: preserve existing uploads and SQL importer. Assumed Sample fallback design DSN-102. Six owner photos remain Draft for license review. Existing L2/L3 edits excluded.
 - L3 independent Astra review: pending fixes before completion. Background refresh must commit portal settings/catalog together (hidden-to-visible prices must not expose old price-less data as zero); add 8-second aggregate deadline, cancel/error/disable stale actions and retry. Sol queued behind sole backend writer Astra L2. Original 100-test pass is pre-review evidence only.
 - Live demo ruling: latest subagent authorization supersedes older root-only critical implementation instructions. Root Astra reviews security assertions and every diff; helpers never commit/push/lock/handoff. No skill worktree or separate progress ledger; this handoff remains authoritative.
@@ -241,6 +244,7 @@ Historical phase-2 checklist:
 - No questions to owner. Choose conservative sample-only behavior and log assumptions. Accounts, chatbot, locator are later phases.
 
 ## Files touched
+- Necklace camera overlay: customer-tryon/src/app/tryon/jewelry-renderer.ts, necklace-crop.ts, necklace-crop.spec.ts and this handoff. Pending L2/L3 edits excluded.
 - Sample photo source: owner image move and drawing removal, importer and tests, legacy gallery/storage config and tests, Angular asset filtering, QA/hosting instructions and handoff.
 - L1: IdentitySetup/Program, new Platform CoreReadiness/PublicDemoSetup and owner/runtime tests; scripts/run-public-demo.py/tests, hosting-config/hosting tests; docs/public-demo-sql-inspection.sql. New exact CLI: check, setup-owner, reset-owner, serve.
 - Hosting: .gitignore/.dockerignore, backend/Dockerfile; both apps angular.json/package.json/vercel.json; scripts/build-web.mjs, hosting-config.mjs, tests/hosting-build.test.mjs; ERP write-deploy-env.mjs, auth-policy/spec, portal-admin.service/spec and web-portal.spec; docs/combined-hosting.md, hosting plan and handoff. No lockfiles/protected owner paths changed.
@@ -277,6 +281,7 @@ Historical phase-2 checklist:
 - Pre-existing owner changes preserved, excluded from staging: PROGRESS.md, docs/run-guide.md, customer-tryon/package-lock.json; untracked browser security plan, old proof image, pasted jewelry image.
 
 ## Test commands and last results
+- Necklace camera overlay: focused npm test 1 expected RED then 15 GREEN, full npm test 112 pass, tsc --noEmit -p tsconfig.app.json and loopback npm run build:deploy pass. Headless Chrome with item 33 and synthetic landmarks cropped source row 129.1 of 612 and retained the pendant. Running localhost:4300 serves the updated chunk; localhost:5155 still serves the same approved revision. Logs /tmp/nbjewel-necklace-*.log.
 - Sample photos: RED /tmp/nbjewel-photo-import-red.log and /tmp/nbjewel-photo-legacy-red.log. Python importer 8 pass, clean Sample dotnet test 495 pass/7 SQL skipped, npm test 80 ERP/109 storefront, both tsc and loopback build:deploy pass. Logs /tmp/nbjewel-photo-*.log. Disposable HTTP import verified 18 source hashes, 16 ready cutouts and 2 failed private Drafts. All remained unpublished and repeat imports skipped.
 - L1: clean Sample backend 478 passed/7 SQL skipped, build 0 warnings/errors (/tmp/nbjewel-live-L1-full.log, -build.log); Python18 and Node6 passed (-python-all-final.log, -node.log); focused32, role/dash/protected/whitespace checks passed (-static.log). RED logs in -python-red/-owner-red/-reset-red/-runtime-core-red/-https-red/-gateway-red. Independent Astra spec/quality PASS; no real SQL claim.
 - Hosting H1 RED: Node missing module and ERP config-prefix/safe-return assertions failed (/tmp/nbjewel-hosting-H1-node-red.log, H1-erp-red2.log). GREEN node --test scripts/tests/hosting-build.test.mjs: 5 passed. ERP npm test:80, storefront npm test:88; both npx tsc --noEmit -p tsconfig.app.json, NG_BUILD_MAX_WORKERS=2 normal builds and explicit-loopback npm run build:deploy passed (/tmp/nbjewel-hosting-H1-*.log).
@@ -340,6 +345,7 @@ Historical phase-2 checklist:
 - Task 1 baseline: `dotnet test backend/NbJewel.Api.Tests` with all SQL/connection environment variables removed and `Repository__Provider=Sample`: 309 passed, 6 skipped, 0 failed. Initial sandbox run aborted at VSTest socket binding; same command outside sandbox passed. No SQL executed. Logs: `/tmp/nbjewel-task1-baseline.log`.
 
 ## Manual checks for Muhammad
+- Necklace camera overlay: reload localhost:4300/shops/nb-jewel-demo/try/33 and check the fit on a real camera. No re-upload, republication, or backend restart needed.
 - Sample photo source: follow docs/QA_TEST.md, import via --sample --apply, then review quality/license and publish. DEMO-MET-446770 and DEMO-MET-39408 need replacement photos for transparent previews. Current owner services were preserved. No SQL/Docker/deploy.
 - L1: future final runbook will document private Keychain nbjewel-public-demo/configuration JSON, durable existing roots, owner backup/schema/setup/reset, core readiness and tunnel with --http-host-header localhost. Do not run public sample identity; owner SQL/Keychain/live checks remain unexecuted.
 - Hosting: follow docs/combined-hosting.md. Agent never ran Docker/deployed/applied SQL; verify container imports/cutout, mounted /var/data durability/permissions, production identity/data-protection keys and actual HTTPS/proxy/session behavior yourself after separate authorization. Local browser verification used synthetic /tmp data and signed out; our 5156/4201/4301 listeners stopped, owner services left running.
@@ -361,6 +367,7 @@ Historical phase-2 checklist:
 - Real browser CORS and cookies.
 
 ## Agent log (newest first)
+- 2026-11-18T13:27:05+04:00 codex-portal-impl: reproduced full-loop camera rendering, verified the new crop with the published photo, checkpointed storefront-only change and released the Lock.
 - 2026-11-18T13:06:28+04:00 codex-portal-impl: verified owner move byte-for-byte, tested original photo upload and private cutouts, checkpointed sample-only changes and released the Lock.
 - 2026-11-17T19:51:21+04:00 codex-portal-impl: continued after Astra review quota interruption; fetch/ff-only pull aligned 17641b7. L1 complete/pushed; L3 source/tests/typecheck/build green but independent review pending; L2 not started. Renewed own lock, preserving owner services.
 - 2026-11-17T12:20:34+04:00 codex-portal-impl: continued interrupted live demo; aed04c5 aligned after fetch/ff-only pull. Astra previously exhausted usage before edits; only plan/handoff changes existed. Renewed own Lock. Temporary local customer demonstration services remain untouched.

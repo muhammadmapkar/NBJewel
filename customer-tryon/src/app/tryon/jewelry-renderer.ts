@@ -11,6 +11,7 @@
 
 import { PieceKind, Product } from '../catalog/catalog.models';
 import { Placement, Point, earringPlacements, faceFrame, necklacePlacement, tikkaPlacement } from './overlay-math';
+import { necklaceFrontCrop } from './necklace-crop';
 import { EARRING, NECKLACE, Swing, TIKKA } from './physics';
 import { Light, Point3, blendLight, depthMeters, facePolygon, headPose, lightFromPixels, turnScale } from './pose';
 
@@ -18,7 +19,7 @@ export interface PieceImages { necklace?: HTMLImageElement; earringLeft?: HTMLIm
 
 type Key = 'necklace' | 'earringLeft' | 'earringRight' | 'tikka';
 
-interface Draw { image: HTMLImageElement; place: Placement; scaleX: number; scaleY: number; tuck?: boolean; behindFace?: boolean }
+interface Draw { image: HTMLImageElement; place: Placement; scaleX: number; scaleY: number; cropTop?: number; tuck?: boolean; behindFace?: boolean }
 
 const LIGHT_EVERY = 6; // measure the room light every few frames
 
@@ -26,6 +27,7 @@ export class JewelryRenderer {
   private readonly side: Record<Key, Swing> = { necklace: new Swing(NECKLACE), earringLeft: new Swing(EARRING), earringRight: new Swing(EARRING), tikka: new Swing(TIKKA) };
   private readonly depth: Record<Key, Swing> = { necklace: new Swing(NECKLACE), earringLeft: new Swing(EARRING), earringRight: new Swing(EARRING), tikka: new Swing(TIKKA) };
   private readonly layers = new Map<string, HTMLCanvasElement>(); // one small canvas per piece image
+  private readonly necklaceCrops = new WeakMap<HTMLImageElement, number>();
   private light: Light = { brightness: 1, tint: { r: 255, g: 255, b: 255 } };
   private frames = 0;
 
@@ -52,9 +54,10 @@ export class JewelryRenderer {
     const draws: Draw[] = [];
     const p = product.parts;
     if (parts.includes('necklace') && p.necklace && images.necklace) {
-      const place = necklacePlacement(face, p.necklace.aspect, p.necklace.fit, p.necklace.neckline);
+      const cropTop = p.necklace.neckline === undefined ? this.frontCrop(images.necklace) : 0;
+      const place = necklacePlacement(face, p.necklace.aspect * (1 - cropTop), p.necklace.fit, p.necklace.neckline);
       const s = swing('necklace', place, face[152].z);
-      draws.push({ image: images.necklace, place: { ...place, rotation: place.rotation + s.side }, scaleX: turnScale(pose.yaw * 0.5, 0.6), scaleY: Math.cos(s.tilt), tuck: true });
+      draws.push({ image: images.necklace, place: { ...place, rotation: place.rotation + s.side }, scaleX: turnScale(pose.yaw * 0.5, 0.6), scaleY: Math.cos(s.tilt), cropTop, tuck: true });
     }
     if (parts.includes('tikka') && p.tikka && images.tikka) {
       const place = tikkaPlacement(face, p.tikka.aspect, p.tikka.fit);
@@ -113,7 +116,9 @@ export class JewelryRenderer {
     if (!c) return canvas;
     c.globalCompositeOperation = 'source-over';
     c.clearRect(0, 0, w, h);
-    c.drawImage(d.image, 0, 0, w, h);
+    const { naturalWidth, naturalHeight } = d.image;
+    const sourceTop = (d.cropTop ?? 0) * naturalHeight;
+    c.drawImage(d.image, 0, sourceTop, naturalWidth, naturalHeight - sourceTop, 0, 0, w, h);
     if (d.tuck) {
       // The chain ends at the top go behind the neck: fade the top band away.
       c.globalCompositeOperation = 'destination-out';
@@ -131,6 +136,27 @@ export class JewelryRenderer {
     c.fillRect(0, 0, w, h);
     c.globalCompositeOperation = 'source-over';
     return canvas;
+  }
+
+  private frontCrop(image: HTMLImageElement): number {
+    const cached = this.necklaceCrops.get(image);
+    if (cached !== undefined) return cached;
+    const { naturalWidth, naturalHeight } = image;
+    if (!naturalWidth || !naturalHeight) return 0;
+    const sample = document.createElement('canvas');
+    const scale = Math.min(1, 128 / Math.max(naturalWidth, naturalHeight));
+    sample.width = Math.max(1, Math.round(naturalWidth * scale));
+    sample.height = Math.max(1, Math.round(naturalHeight * scale));
+    const context = sample.getContext('2d', { willReadFrequently: true });
+    let crop = 0;
+    if (context) {
+      try {
+        context.drawImage(image, 0, 0, sample.width, sample.height);
+        crop = necklaceFrontCrop(context.getImageData(0, 0, sample.width, sample.height));
+      } catch { /* If pixels are unavailable, use the approved image as provided. */ }
+    }
+    this.necklaceCrops.set(image, crop);
+    return crop;
   }
 
   // Reads a small patch of skin around the nose to estimate the room light.
